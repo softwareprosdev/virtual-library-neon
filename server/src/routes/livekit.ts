@@ -31,7 +31,7 @@ router.get('/token', authenticateToken, async (req: AuthRequest, res: Response):
     at.addGrant({
       roomJoin: true,
       room: roomId,
-      canPublish: role === Role.ADMIN || role === Role.MODERATOR,
+      canPublish: true, // Allow all to use cam/mic as requested
       canSubscribe: true,
       canPublishData: true,
     });
