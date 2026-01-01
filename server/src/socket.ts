@@ -61,6 +61,15 @@ export const setupSocket = async (io: Server) => {
       }
     });
 
+    // WebRTC Signaling
+    socket.on('signal', ({ roomId, targetId, signal }) => {
+      io.to(targetId).emit('signal', {
+        from: socket.id,
+        signal,
+        userId: socket.user?.id
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log('User Disconnected', socket.id);
     });

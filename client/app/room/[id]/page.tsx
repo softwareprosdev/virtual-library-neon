@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { connectSocket, getSocket } from '../../lib/socket';
-import { api } from '../../lib/api';
-import { getToken } from '../../lib/auth';
+import { connectSocket, getSocket } from '../../../lib/socket';
+import { api } from '../../../lib/api';
+import { getToken } from '../../../lib/auth';
+import nextDynamic from 'next/dynamic';
 import { 
   Box, 
   TextField, 
@@ -17,6 +18,13 @@ import {
   IconButton,
   Avatar
 } from '@mui/material';
+
+const VideoPanel = nextDynamic(() => import('../../../components/VideoPanel'), { 
+  ssr: false,
+  loading: () => <Box sx={{ flexGrow: 1, bgcolor: 'black' }} />
+});
+
+export const dynamic = 'force-dynamic';
 
 interface Message {
   id: string;
@@ -34,10 +42,14 @@ export default function RoomPage() {
   const [inputText, setInputText] = useState('');
   const [roomName, setRoomName] = useState('Loading...');
   const [isConnected, setIsConnected] = useState(false);
-  // We'll need the current user's ID to style "my" messages differently
-  // For MVP we decode or just rely on local logic (omitted for brevity, assume "Me" if sender matches)
-  
+  const [socket, setSocket] = useState<any>(null);
+
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  useEffect(() => {
+    const s = connectSocket();
+    setSocket(s);
+  }, []);
 
   useEffect(() => {
     const token = getToken();
@@ -64,7 +76,6 @@ export default function RoomPage() {
   }, [roomId, router]);
 
   useEffect(() => {
-    const socket = connectSocket();
     if (!socket) return;
 
     function onConnect() {
@@ -95,7 +106,7 @@ export default function RoomPage() {
       socket.off('message', onMessage);
       socket.emit('leaveRoom', { roomId });
     };
-  }, [roomId]);
+  }, [roomId, socket]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -106,7 +117,6 @@ export default function RoomPage() {
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputText.trim()) {
-      const socket = getSocket();
       socket?.emit('chat', { roomId, text: inputText });
       setInputText('');
     }
@@ -144,20 +154,13 @@ export default function RoomPage() {
       </AppBar>
 
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
-        {/* Main Content Area (Video/Whiteboard - Placeholder) */}
-        <Grid item xs={12} md={8} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper' }}>
-          <Box sx={{ textAlign: 'center', opacity: 0.5 }}>
-            <Typography variant="h4" color="text.secondary" className="neon-text">
-              VISUAL FEED OFFLINE
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Waiting for video stream...
-            </Typography>
-          </Box>
+        {/* Main Content Area (Video) */}
+        <Grid size={{ xs: 12, md: 8 }} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper' }}>
+           {socket && <VideoPanel roomId={roomId} socket={socket} />}
         </Grid>
 
         {/* Chat Panel */}
-        <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {messages.map((msg, index) => (
               <Box key={msg.id || index} sx={{ display: 'flex', gap: 1 }}>

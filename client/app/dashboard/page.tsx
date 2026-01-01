@@ -23,6 +23,8 @@ import {
   Chip
 } from '@mui/material';
 
+export const dynamic = 'force-dynamic';
+
 // Using a generic Add icon replacement since we haven't set up icons yet
 const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
 const UserIcon = () => <span>👤</span>;
@@ -32,15 +34,23 @@ interface Room {
   name: string;
   description: string;
   host: { name: string };
+  category?: { name: string };
   _count: { messages: number };
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 export default function Dashboard() {
   const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
+  const [selectedCat, setSelectedCat] = useState('');
 
   useEffect(() => {
     const token = getToken();
@@ -49,6 +59,7 @@ export default function Dashboard() {
       return;
     }
     fetchRooms();
+    fetchCategories();
   }, [router]);
 
   const fetchRooms = async () => {
@@ -63,17 +74,34 @@ export default function Dashboard() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api('/rooms/categories');
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleCreateRoom = async () => {
     try {
       const res = await api('/rooms', {
         method: 'POST',
-        body: JSON.stringify({ name: newRoomName, description: newRoomDesc })
+        body: JSON.stringify({ 
+          name: newRoomName, 
+          description: newRoomDesc,
+          categoryId: selectedCat
+        })
       });
       
       if (res.ok) {
         setOpen(false);
         setNewRoomName('');
         setNewRoomDesc('');
+        setSelectedCat('');
         fetchRooms();
       }
     } catch (error) {
@@ -95,7 +123,7 @@ export default function Dashboard() {
 
         <Grid container spacing={4}>
           {rooms.map((room) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={room.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={room.id}>
               <Card 
                 sx={{ 
                   height: '100%', 
@@ -108,7 +136,16 @@ export default function Dashboard() {
                   <Typography variant="h5" component="div" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
                     {room.name}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'text.secondary' }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                    {room.category && (
+                      <Chip 
+                        label={room.category.name} 
+                        size="small" 
+                        sx={{ bgcolor: 'secondary.dark', color: 'white', fontSize: '0.7rem' }} 
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'text.secondary', fontSize: '0.8rem' }}>
                     <UserIcon /> <span style={{ marginLeft: 8 }}>{room.host.name}</span>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -118,7 +155,7 @@ export default function Dashboard() {
                     label={`${room._count.messages} Messages`} 
                     size="small" 
                     variant="outlined" 
-                    sx={{ borderColor: 'secondary.main', color: 'secondary.main' }} 
+                    sx={{ borderColor: 'primary.dark', color: 'primary.light' }} 
                   />
                 </CardContent>
                 <CardActions sx={{ p: 2, pt: 0 }}>
@@ -153,6 +190,8 @@ export default function Dashboard() {
       <Dialog 
         open={open} 
         onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="xs"
         PaperProps={{
           sx: {
             bgcolor: 'background.paper',
@@ -174,6 +213,20 @@ export default function Dashboard() {
             onChange={(e) => setNewRoomName(e.target.value)}
             sx={{ mb: 2, mt: 1 }}
           />
+          <TextField
+            select
+            label="Category Module"
+            fullWidth
+            value={selectedCat}
+            onChange={(e) => setSelectedCat(e.target.value)}
+            SelectProps={{ native: true }}
+            sx={{ mb: 2 }}
+          >
+            <option value="">Select Category...</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </TextField>
           <TextField
             margin="dense"
             label="Protocol Description"

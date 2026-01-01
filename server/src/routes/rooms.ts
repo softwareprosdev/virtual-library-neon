@@ -4,17 +4,24 @@ import { AuthRequest, authenticateToken } from '../middlewares/auth';
 
 const router = Router();
 
+// List all categories
+router.get('/categories', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const categories = await prisma.category.findMany();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // List all rooms
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const rooms = await prisma.room.findMany({
       include: {
-        host: {
-          select: { name: true, email: true }
-        },
-        _count: {
-          select: { messages: true }
-        }
+        host: { select: { name: true, email: true } },
+        category: true,
+        _count: { select: { messages: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -27,7 +34,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 // Create a room
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, description } = req.body;
+    const { name, description, categoryId } = req.body;
     
     if (!name) {
       res.status(400).json({ message: "Room name is required" });
@@ -38,8 +45,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       data: {
         name,
         description,
-        hostId: req.user.id
-      }
+        hostId: req.user.id,
+        categoryId: categoryId || null
+      },
+      include: { category: true }
     });
 
     res.status(201).json(room);
