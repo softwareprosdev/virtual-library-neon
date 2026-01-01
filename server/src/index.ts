@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import bookRoutes from './routes/books';
+import livekitRoutes from './routes/livekit';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -30,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/livekit', livekitRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

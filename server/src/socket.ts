@@ -3,31 +3,26 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
 import prisma from './db';
+import { getRoomRole } from './permissions';
 
 interface AuthSocket extends Socket {
   user?: { id: string; email: string };
 }
 
 export const setupSocket = async (io: Server) => {
-  // Redis Adapter Setup for Scalability
-  const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+  const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6380' });
   const subClient = pubClient.duplicate();
 
   await Promise.all([pubClient.connect(), subClient.connect()]);
   console.log('🚀[redis]: Connected to Redis Adapter');
   io.adapter(createAdapter(pubClient, subClient));
 
-  // Middleware for authentication
   io.use((socket: AuthSocket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) {
-      return next(new Error("Authentication error: No token provided"));
-    }
+    if (!token) return next(new Error("Authentication error"));
 
     jwt.verify(token, process.env.JWT_SECRET as string, (err: any, decoded: any) => {
-      if (err) {
-        return next(new Error("Authentication error: Invalid token"));
-      }
+      if (err) return next(new Error("Authentication error"));
       socket.user = decoded;
       next();
     });
@@ -35,34 +30,58 @@ export const setupSocket = async (io: Server) => {
 
   io.on('connection', (socket: AuthSocket) => {
     socket.on('joinRoom', async ({ roomId }) => {
-      if (!roomId) return;
+      if (!roomId || !socket.user) return;
+      
       socket.join(roomId);
-      io.to(roomId).emit('userJoined', { userId: socket.user?.id, email: socket.user?.email });
+
+      // Phase 2: Register Participant in DB
+      try {
+        await prisma.participant.upsert({
+          where: { userId_roomId: { userId: socket.user.id, roomId } },
+          update: { joinedAt: new Date() },
+          create: { userId: socket.user.id, roomId }
+        });
+
+        const role = await getRoomRole(socket.user.id, roomId);
+        
+        io.to(roomId).emit('userJoined', { 
+          userId: socket.user.id, 
+          email: socket.user.email,
+          role 
+        });
+      } catch (error) {
+        console.error("Join Error:", error);
+      }
     });
 
-    socket.on('leaveRoom', ({ roomId }) => {
-      if (!roomId) return;
+    socket.on('leaveRoom', async ({ roomId }) => {
+      if (!roomId || !socket.user) return;
+      
       socket.leave(roomId);
-      io.to(roomId).emit('userLeft', { userId: socket.user?.id });
+      
+      try {
+        await prisma.participant.delete({
+          where: { userId_roomId: { userId: socket.user.id, roomId } }
+        });
+        io.to(roomId).emit('userLeft', { userId: socket.user.id });
+      } catch (e) { /* ignore if already deleted */ }
     });
 
     socket.on('chat', async ({ roomId, text }) => {
-      if (!roomId || !text) return;
+      if (!roomId || !text || !socket.user) return;
 
       try {
         const message = await prisma.message.create({
-          data: { text, roomId, senderId: socket.user!.id },
+          data: { text, roomId, senderId: socket.user.id },
           include: { sender: { select: { id: true, name: true, email: true } } }
         });
         io.to(roomId).emit('message', message);
       } catch (error) {
-        console.error("Error saving message:", error);
         socket.emit('error', { message: "Failed to send message" });
       }
     });
 
-    // WebRTC Signaling
-    socket.on('signal', ({ roomId, targetId, signal }) => {
+    socket.on('signal', ({ targetId, signal }) => {
       io.to(targetId).emit('signal', {
         from: socket.id,
         signal,
@@ -70,8 +89,13 @@ export const setupSocket = async (io: Server) => {
       });
     });
 
-    socket.on('disconnect', () => {
-      console.log('User Disconnected', socket.id);
+    socket.on('disconnect', async () => {
+      // Cleanup: Remove user from all participants entries
+      if (socket.user) {
+        try {
+          await prisma.participant.deleteMany({ where: { userId: socket.user.id } });
+        } catch (e) {}
+      }
     });
   });
 };
