@@ -6,23 +6,22 @@ import { connectSocket, getSocket } from '../../../lib/socket';
 import { api } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import nextDynamic from 'next/dynamic';
-import { 
-  Box, 
-  TextField, 
-  Paper, 
-  Typography, 
+import {
+  Box,
+  TextField,
+  Paper,
+  Typography,
   AppBar,
   Toolbar,
   Button,
-  Grid,
   Avatar,
-  Chip,
   Tooltip,
   Stack,
   IconButton
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 
-const VideoPanel = nextDynamic(() => import('../../../components/LiveAudio'), { 
+const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
   ssr: false,
   loading: () => <Box sx={{ flexGrow: 1, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography className="neon-text">ESTABLISHING_LINK...</Typography></Box>
 });
@@ -53,7 +52,6 @@ export default function RoomPage() {
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [myRole, setMyRole] = useState<string>('LISTENER');
   const [inputText, setInputText] = useState('');
   const [roomName, setRoomName] = useState('Loading...');
   const [isConnected, setIsConnected] = useState(false);
@@ -192,10 +190,10 @@ export default function RoomPage() {
 
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {/* Main Content Area (Live Audio/Video) */}
-        <Grid item xs={12} md={8} sx={{ 
-          borderRight: { md: '1px solid #333' }, 
-          display: 'flex', 
-          flexDirection: 'column', 
+        <Grid size={{ xs: 12, md: 8 }} sx={{
+          borderRight: { md: '1px solid #333' },
+          display: 'flex',
+          flexDirection: 'column',
           bgcolor: 'background.paper',
           height: { xs: '50vh', md: '100%' }
         }}>
@@ -203,9 +201,9 @@ export default function RoomPage() {
         </Grid>
 
         {/* Right Sidebar: Chat + Participants */}
-        <Grid item xs={12} md={4} sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
+        <Grid size={{ xs: 12, md: 4 }} sx={{
+          display: 'flex',
+          flexDirection: 'column',
           height: { xs: '50vh', md: '100%' },
           borderTop: { xs: '1px solid #333', md: 'none' }
         }}>

@@ -124,7 +124,7 @@ export default function LibraryPage() {
 
         <Grid container spacing={4}>
           {books.map((book) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={book.id}>
               <Card sx={{ height: '100%', position: 'relative' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>

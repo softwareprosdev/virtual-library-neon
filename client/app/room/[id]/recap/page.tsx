@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '../../../../lib/api';
 import MainLayout from '../../../../components/MainLayout';
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Paper, 
-  Stack, 
-  Divider,
+import {
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Stack,
   Button,
   CircularProgress
 } from '@mui/material';

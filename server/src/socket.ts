@@ -3,7 +3,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
 import prisma from './db';
-import { getRoomRole } from './permissions';
+import { getRoomRole, Role } from './permissions';
 
 interface AuthSocket extends Socket {
   user?: { id: string; email: string };
@@ -34,28 +34,29 @@ export const setupSocket = async (io: Server) => {
       
       socket.join(roomId);
 
-              // Phase 2: Register Participant in DB
-              await prisma.participant.upsert({
-                where: { userId_roomId: { userId: socket.user.id, roomId } },
-                update: { joinedAt: new Date() },
-                create: { userId: socket.user.id, roomId }
-              });
-      
-              // Phase 8: Record Interaction for Personalization
-              const roomData = await prisma.room.findUnique({ where: { id: roomId }, select: { genreId: true } });
-              await prisma.interaction.create({
-                data: {
-                  userId: socket.user.id,
-                  roomId,
-                  genreId: roomData?.genreId
-                }
-              });
-      
-              const role = await getRoomRole(socket.user.id, roomId);        
-        io.to(roomId).emit('userJoined', { 
-          userId: socket.user.id, 
+      try {
+        // Phase 2: Register Participant in DB
+        await prisma.participant.upsert({
+          where: { userId_roomId: { userId: socket.user.id, roomId } },
+          update: { joinedAt: new Date() },
+          create: { userId: socket.user.id, roomId }
+        });
+
+        // Phase 8: Record Interaction for Personalization
+        const roomData = await prisma.room.findUnique({ where: { id: roomId }, select: { genreId: true } });
+        await prisma.interaction.create({
+          data: {
+            userId: socket.user.id,
+            roomId,
+            genreId: roomData?.genreId
+          }
+        });
+
+        const role = await getRoomRole(socket.user.id, roomId);
+        io.to(roomId).emit('userJoined', {
+          userId: socket.user.id,
           email: socket.user.email,
-          role 
+          role
         });
       } catch (error) {
         console.error("Join Error:", error);

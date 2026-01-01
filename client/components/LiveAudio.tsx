@@ -1,21 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { 
-  LiveKitRoom, 
-  VideoConference, 
+import {
+  LiveKitRoom,
+  VideoConference,
   RoomAudioRenderer,
   ControlBar,
-  useTracks,
-  LayoutContextProvider,
-  CarouselLayout,
-  ConnectionQualityIndicator,
-  ParticipantTile,
-  Chat
+  LayoutContextProvider
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
 import '@livekit/components-styles';
-import { Box, CircularProgress, Typography, Paper } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { api } from '../lib/api';
 
 interface LiveAudioProps {

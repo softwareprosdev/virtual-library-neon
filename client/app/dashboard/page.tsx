@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
-import { 
-  Typography, 
-  Button, 
-  Container, 
-  Card, 
-  CardContent, 
-  CardActions,
+import {
+  Typography,
+  Button,
+  Container,
+  Card,
+  CardContent,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,10 +19,9 @@ import {
   Fab,
   Box,
   Chip,
-  Divider,
   Stack,
-  Alert,
-  Skeleton
+  Skeleton,
+  Paper
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 
@@ -55,7 +53,7 @@ export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
@@ -77,8 +75,8 @@ export default function Dashboard() {
       
       setRooms(roomsData);
       setGenres(genresData);
-    } catch (err: any) {
-      setError(err.message || 'Neural connection lost.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Neural connection lost.');
     } finally {
       setLoading(false);
     }
@@ -108,7 +106,9 @@ export default function Dashboard() {
         setSelectedGenre('');
         fetchData();
       }
-    } catch (e) {}
+    } catch {
+      // Failed to create room
+    }
   };
 
   return (
@@ -129,7 +129,7 @@ export default function Dashboard() {
 
         {loading ? (
           <Grid container spacing={4}>
-            {[1,2,3].map(i => <Grid item xs={12} md={4} key={i}><Skeleton variant="rectangular" height={300} sx={{ bgcolor: '#111' }} /></Grid>)}
+            {[1,2,3].map(i => <Grid size={{ xs: 12, md: 4 }} key={i}><Skeleton variant="rectangular" height={300} sx={{ bgcolor: '#111' }} /></Grid>)}
           </Grid>
         ) : (
           <>
@@ -142,7 +142,7 @@ export default function Dashboard() {
               
               <Grid container spacing={2}>
                 {genres.map((genre) => (
-                  <Grid item xs={6} sm={4} md={3} lg={2} key={genre.id}>
+                  <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={genre.id}>
                     <Box 
                       onClick={() => {}} // Future: filter by genre
                       sx={{ 
@@ -175,7 +175,7 @@ export default function Dashboard() {
 
             <Grid container spacing={6}>
               {/* Left Column: Live Transmissions */}
-              <Grid item xs={12} lg={8}>
+              <Grid size={{ xs: 12, lg: 8 }}>
                 <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'error.main' }}>LIVE_TRANSMISSIONS</Typography>
                 <Stack spacing={3}>
                   {rooms.map((room) => (
@@ -209,7 +209,7 @@ export default function Dashboard() {
               </Grid>
 
               {/* Right Column: AI Neural Feed (Phase 1 Placeholder) */}
-              <Grid item xs={12} lg={4}>
+              <Grid size={{ xs: 12, lg: 4 }}>
                 <Typography variant="h4" sx={{ mb: 4, fontWeight: 'bold', color: 'secondary.main' }}>NEURAL_FEED</Typography>
                 <Paper sx={{ p: 3, bgcolor: '#0a0a0a', border: '1px dashed #333', textAlign: 'center', height: 500, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                    <Typography variant="h6" className="neon-text" gutterBottom>AI_MODERATION_ONLINE</Typography>
@@ -219,7 +219,7 @@ export default function Dashboard() {
                    <Box sx={{ mt: 4, p: 2, border: '1px solid #222', textAlign: 'left', bgcolor: '#000' }}>
                       <Typography variant="caption" sx={{ color: 'primary.main', display: 'block', mb: 1 }}>[SIGNAL_DETECTED]</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Analyzing "Cyberpunk Noir Live Hub" session. Theme: Radical transhumanism in erotic fiction. Status: Safe.
+                        Analyzing &quot;Cyberpunk Noir Live Hub&quot; session. Theme: Radical transhumanism in erotic fiction. Status: Safe.
                       </Typography>
                    </Box>
                    <Box sx={{ mt: 2, p: 2, border: '1px solid #222', textAlign: 'left', bgcolor: '#000', opacity: 0.5 }}>

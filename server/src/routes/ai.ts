@@ -48,7 +48,10 @@ router.get('/recap/:roomId', authenticateToken, async (req: AuthRequest, res: Re
     const recap = await prisma.recap.findUnique({
       where: { roomId: req.params.roomId }
     });
-    if (!recap) return res.status(404).json({ message: "No recap available" });
+    if (!recap) {
+      res.status(404).json({ message: "No recap available" });
+      return;
+    }
     res.json(recap);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
