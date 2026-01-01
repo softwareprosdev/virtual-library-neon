@@ -69,8 +69,8 @@ export const setupSocket = async (io: Server) => {
       socket.leave(roomId);
       
       try {
-        await prisma.participant.delete({
-          where: { userId_roomId: { userId: socket.user.id, roomId } }
+        await prisma.participant.deleteMany({
+          where: { userId: socket.user.id, roomId }
         });
         io.to(roomId).emit('userLeft', { userId: socket.user.id });
       } catch (e) { /* ignore if already deleted */ }

@@ -11,7 +11,7 @@ import {
   useLocalParticipant,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Box, CircularProgress, Typography, Button, Stack, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { Box, CircularProgress, Typography, Button, Stack, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent, Grid, Paper, IconButton } from '@mui/material';
 import { api } from '../lib/api';
 import CyberpunkAudioVisualizer from './CyberpunkAudioVisualizer';
 import { 
@@ -401,8 +401,21 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
             justifyContent: 'center',
             gap: 2
           }}>
-            <ControlBar variation="minimal" controls={{ camera: false, microphone: false, screenShare: true, leave: true }} />
-            {/* Custom controls could go here to toggle effects live */}
+            <Box sx={{ height: 80, bgcolor: '#0a0a0a', borderTop: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+                <IconButton onClick={() => setVideoEnabled(!videoEnabled)} sx={{ color: videoEnabled ? 'primary.main' : 'grey.700', border: '1px solid', borderColor: videoEnabled ? 'primary.main' : 'grey.800' }}>
+                    {videoEnabled ? "📷" : "🚫"}
+                </IconButton>
+                <IconButton onClick={() => setAudioEnabled(!audioEnabled)} sx={{ color: audioEnabled ? 'secondary.main' : 'grey.700', border: '1px solid', borderColor: audioEnabled ? 'secondary.main' : 'grey.800' }}>
+                     {audioEnabled ? "🎙️" : "🔇"}
+                </IconButton>
+                <Select size="small" value={videoEffect} onChange={(e) => setVideoEffect(e.target.value as VideoEffectType)} sx={{ color: 'white', height: 40, borderColor: '#333' }}>
+                    <MenuItem value="none">FX: OFF</MenuItem>
+                    <MenuItem value="holo">HOLO</MenuItem>
+                    <MenuItem value="glitch">GLITCH</MenuItem>
+                </Select>
+            </Box>
+          </Box>
           </Box>
 
           <RoomAudioRenderer />
