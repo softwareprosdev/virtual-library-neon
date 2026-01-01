@@ -11,6 +11,7 @@ import {
   useTracks,
   useRoomContext,
   ParticipantLoop,
+  useParticipants,
   ParticipantContext,
   VideoTrack,
 } from '@livekit/components-react';
@@ -218,8 +219,7 @@ function CyberpunkTile({ participant }: { participant: any }) {
 }
 
 function CyberpunkGrid() {
-  const tracks = useTracks([Track.Source.Camera, Track.Source.Microphone]);
-  const safeTracks = tracks || [];
+  const participants = useParticipants();
   
   return (
     <Box sx={{ 
@@ -228,9 +228,9 @@ function CyberpunkGrid() {
         gap: 2, 
         p: 2,
         height: '100%',
-        alignContent: 'center'
+        alignContent: 'start'
     }}>
-      <ParticipantLoop tracks={safeTracks}>
+      <ParticipantLoop participants={participants}>
         <ParticipantContext.Consumer>
           {(participant) => (
              participant && <CyberpunkTile participant={participant} />
