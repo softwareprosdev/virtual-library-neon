@@ -19,59 +19,54 @@ import {
   TextField,
   Fab,
   Box,
-  Chip
+  Chip,
+  Divider,
+  Stack
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 
 export const dynamic = 'force-dynamic';
 
 const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
-const UserIcon = () => <span>👤</span>;
+const LiveIcon = () => <Box sx={{ width: 10, height: 10, bgcolor: '#ef4444', borderRadius: '50%', mr: 1, boxShadow: '0 0 10px #ef4444' }} />;
 
 interface Room {
   id: string;
   name: string;
   description: string;
   host: { name: string };
-  category?: { name: string };
-  _count: { messages: number };
+  genre?: { name: string; isAdult: boolean };
+  _count: { messages: number; participants: number };
 }
 
-interface Category {
+interface Genre {
   id: string;
   name: string;
+  isAdult: boolean;
+  description: string;
+  _count: { rooms: number };
 }
 
 export default function Dashboard() {
   const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
-  const [selectedCat, setSelectedCat] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('');
 
-  const fetchRooms = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await api('/rooms');
-      if (res.ok) {
-        const data = await res.json();
-        setRooms(data);
-      }
+      const [roomsRes, genresRes] = await Promise.all([
+        api('/rooms'),
+        api('/rooms/genres')
+      ]);
+      
+      if (roomsRes.ok) setRooms(await roomsRes.json());
+      if (genresRes.ok) setGenres(await genresRes.json());
     } catch (error) {
-      console.error(error);
-    }
-  }, []);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await api('/rooms/categories');
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      }
-    } catch (error) {
-      console.error(error);
+      console.error("Discovery Error:", error);
     }
   }, []);
 
@@ -81,14 +76,8 @@ export default function Dashboard() {
       router.push('/');
       return;
     }
-    
-    const init = async () => {
-      await fetchRooms();
-      await fetchCategories();
-    };
-    
-    init();
-  }, [router, fetchRooms, fetchCategories]);
+    fetchData();
+  }, [router, fetchData]);
 
   const handleCreateRoom = async () => {
     try {
@@ -97,7 +86,7 @@ export default function Dashboard() {
         body: JSON.stringify({ 
           name: newRoomName, 
           description: newRoomDesc,
-          categoryId: selectedCat
+          genreId: selectedGenre
         })
       });
       
@@ -105,8 +94,8 @@ export default function Dashboard() {
         setOpen(false);
         setNewRoomName('');
         setNewRoomDesc('');
-        setSelectedCat('');
-        fetchRooms();
+        setSelectedGenre('');
+        fetchData();
       }
     } catch (error) {
       console.error(error);
@@ -116,64 +105,73 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <Container maxWidth="xl">
-        <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography variant="h2" component="h1" gutterBottom className="neon-text" sx={{ color: 'white' }}>
-            DASHBOARD
+        {/* Header */}
+        <Box sx={{ mb: 6, textAlign: 'left', borderLeft: '4px solid', borderColor: 'primary.main', pl: 2 }}>
+          <Typography variant="h3" component="h1" className="neon-text" sx={{ fontWeight: 'bold', letterSpacing: 4 }}>
+            DISCOVERY_HUB
           </Typography>
-          <Typography variant="h6" color="text.secondary">
-            Select a neural link to join a session
+          <Typography variant="subtitle1" color="text.secondary">
+            GENRE_NETWORKS_CONNECTED: {genres.length}
           </Typography>
         </Box>
 
+        {/* Phase 1 Task: Genre Discovery Grid */}
+        <Typography variant="h5" sx={{ mb: 3, color: 'secondary.main', fontWeight: 'bold' }}>GENRE MODULES</Typography>
+        <Grid container spacing={3} sx={{ mb: 8 }}>
+          {genres.map((genre) => (
+            <Grid item xs={12} sm={6} md={4} lg={2} key={genre.id}>
+              <Card sx={{ 
+                bgcolor: 'background.paper', 
+                border: '1px solid', 
+                borderColor: genre.isAdult ? 'error.dark' : 'primary.dark',
+                cursor: 'pointer',
+                '&:hover': { transform: 'scale(1.05)', borderColor: genre.isAdult ? 'error.main' : 'primary.main' }
+              }}>
+                <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>{genre.name.toUpperCase()}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {genre._count.rooms} ACTIVE ROOMS
+                  </Typography>
+                  {genre.isAdult && (
+                    <Chip label="18+" size="small" sx={{ mt: 1, bgcolor: 'error.main', color: 'white', fontWeight: 'bold' }} />
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Divider sx={{ mb: 6, borderColor: 'rgba(255,255,255,0.1)' }} />
+
+        {/* Phase 1 Task: Live Now Rooms */}
+        <Typography variant="h5" sx={{ mb: 3, color: 'primary.main', fontWeight: 'bold' }}>LIVE TRANSMISSIONS</Typography>
         <Grid container spacing={4}>
           {rooms.map((room) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={room.id}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  background: 'linear-gradient(180deg, rgba(10,10,10,1) 0%, rgba(20,20,20,1) 100%)',
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h5" component="div" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                    {room.name}
+            <Grid item xs={12} sm={6} md={4} key={room.id}>
+              <Card sx={{ background: 'linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 100%)' }}>
+                <CardContent>
+                  <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
+                    <LiveIcon />
+                    <Typography variant="overline" color="error" sx={{ fontWeight: 'bold' }}>LIVE NOW</Typography>
+                  </Stack>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.light' }}>{room.name}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, minHeight: 40 }}>
+                    {room.description || 'Neural link established. Waiting for metadata...'}
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-                    <Chip 
-                      label="MATURE CONTENT" 
-                      size="small" 
-                      sx={{ bgcolor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.6rem', border: '1px solid #ef4444' }} 
-                    />
-                    {room.category && (
-                      <Chip 
-                        label={room.category.name} 
-                        size="small" 
-                        sx={{ bgcolor: 'secondary.dark', color: 'white', fontSize: '0.7rem' }} 
-                      />
-                    )}
+                  
+                  <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                    {room.genre?.isAdult && <Chip label="MATURE" size="small" variant="outlined" color="error" />}
+                    <Chip label={room.genre?.name || 'Uncategorized'} size="small" variant="outlined" sx={{ color: 'secondary.light', borderColor: 'secondary.dark' }} />
+                  </Stack>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">HOST: {room.host.name}</Typography>
+                    <Typography variant="caption" color="primary.main">{room._count.participants} LISTENERS</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, color: 'text.secondary', fontSize: '0.8rem' }}>
-                    <UserIcon /> <span style={{ marginLeft: 8 }}>{room.host.name}</span>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {room.description || 'No system description available.'}
-                  </Typography>
-                  <Chip 
-                    label={`${room._count.messages} Messages`} 
-                    size="small" 
-                    variant="outlined" 
-                    sx={{ borderColor: 'primary.dark', color: 'primary.light' }} 
-                  />
                 </CardContent>
                 <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    onClick={() => router.push(`/room/${room.id}`)}
-                  >
-                    Jack In
+                  <Button fullWidth variant="contained" onClick={() => router.push(`/room/${room.id}`)}>
+                    JOIN_LINK
                   </Button>
                 </CardActions>
               </Card>
@@ -183,73 +181,38 @@ export default function Dashboard() {
       </Container>
 
       <Fab 
-        color="secondary" 
-        aria-label="add" 
-        sx={{ 
-          position: 'fixed', 
-          bottom: 32, 
-          right: 32,
-          boxShadow: '0 0 20px rgba(236, 72, 153, 0.6)'
-        }}
+        color="primary" 
+        sx={{ position: 'fixed', bottom: 32, right: 32, boxShadow: '0 0 20px rgba(217, 70, 239, 0.4)' }}
         onClick={() => setOpen(true)}
       >
         <AddIcon />
       </Fab>
 
-      <Dialog 
-        open={open} 
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="xs"
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'primary.main',
-            boxShadow: '0 0 50px rgba(217, 70, 239, 0.2)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ color: 'primary.main', fontWeight: 'bold' }}>INITIALIZE NEW ROOM</DialogTitle>
+      {/* Room Creation Dialog */}
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 'bold' }}>INITIALIZE TRANSMISSION</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
-            margin="dense"
-            label="System Name"
-            fullWidth
-            variant="outlined"
-            value={newRoomName}
-            onChange={(e) => setNewRoomName(e.target.value)}
-            sx={{ mb: 2, mt: 1 }}
+            autoFocus margin="dense" label="Room Name" fullWidth variant="outlined"
+            value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} sx={{ mb: 2, mt: 1 }}
           />
           <TextField
-            select
-            label="Category Module"
-            fullWidth
-            value={selectedCat}
-            onChange={(e) => setSelectedCat(e.target.value)}
-            SelectProps={{ native: true }}
-            sx={{ mb: 2 }}
+            select label="Genre Module" fullWidth value={selectedGenre}
+            onChange={(e) => setSelectedGenre(e.target.value)} SelectProps={{ native: true }} sx={{ mb: 2 }}
           >
-            <option value="">Select Category...</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            <option value="">Select Genre...</option>
+            {genres.map((g) => (
+              <option key={g.id} value={g.id}>{g.name} {g.isAdult ? '(18+)' : ''}</option>
             ))}
           </TextField>
           <TextField
-            margin="dense"
-            label="Protocol Description"
-            fullWidth
-            variant="outlined"
-            multiline
-            rows={2}
-            value={newRoomDesc}
-            onChange={(e) => setNewRoomDesc(e.target.value)}
+            margin="dense" label="Transmission Description" fullWidth variant="outlined" multiline rows={2}
+            value={newRoomDesc} onChange={(e) => setNewRoomDesc(e.target.value)}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpen(false)} color="inherit">Abort</Button>
-          <Button onClick={handleCreateRoom} variant="contained">Execute</Button>
+          <Button onClick={() => setOpen(false)} color="inherit">ABORT</Button>
+          <Button onClick={handleCreateRoom} variant="contained">EXECUTE</Button>
         </DialogActions>
       </Dialog>
     </MainLayout>

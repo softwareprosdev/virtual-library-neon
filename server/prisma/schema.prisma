@@ -19,6 +19,8 @@ model User {
   ownedRooms Room[]   @relation("RoomHost")
   messages   Message[]
   books      Book[]
+  participants Participant[]
+  moderators   Moderator[]
 }
 
 model Room {
@@ -27,34 +29,60 @@ model Room {
   description String?
   hostId      String
   host        User      @relation("RoomHost", fields: [hostId], references: [id])
-  categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id])
+  genreId     String?
+  genre       Genre?    @relation(fields: [genreId], references: [id])
+  isLive      Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
-  messages    Message[]
-  books       Book[]
+  messages     Message[]
+  books        Book[]
+  participants Participant[]
+  moderators   Moderator[]
+}
+
+model Genre {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  isAdult     Boolean  @default(false)
+  description String?
+  rooms       Room[]
+}
+
+model Participant {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  joinedAt  DateTime @default(now())
+
+  @@unique([userId, roomId])
+}
+
+model Moderator {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roomId])
 }
 
 model Book {
   id          String   @id @default(uuid())
   title       String
   author      String?
-  fileUrl     String   // S3 or local path
-  fileType    String   // pdf, epub
+  fileUrl     String
+  fileType    String
   ownerId     String
   owner       User     @relation(fields: [ownerId], references: [id])
   roomId      String?
   room        Room?    @relation(fields: [roomId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
-
-model Category {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  rooms       Room[]
 }
 
 model Message {

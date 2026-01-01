@@ -4,11 +4,18 @@ import { AuthRequest, authenticateToken } from '../middlewares/auth';
 
 const router = Router();
 
-// List all categories
-router.get('/categories', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+// List all genres with live room counts
+router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const categories = await prisma.category.findMany();
-    res.json(categories);
+    const genres = await prisma.genre.findMany({
+      include: {
+        _count: {
+          select: { rooms: { where: { isLive: true } } }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+    res.json(genres);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -18,10 +25,11 @@ router.get('/categories', authenticateToken, async (req: AuthRequest, res: Respo
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const rooms = await prisma.room.findMany({
+      where: { isLive: true },
       include: {
         host: { select: { name: true, email: true } },
-        category: true,
-        _count: { select: { messages: true } }
+        genre: true,
+        _count: { select: { messages: true, participants: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -34,7 +42,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 // Create a room
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, description, categoryId } = req.body;
+    const { name, description, genreId } = req.body;
     
     if (!name) {
       res.status(400).json({ message: "Room name is required" });
@@ -46,9 +54,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         name,
         description,
         hostId: req.user.id,
-        categoryId: categoryId || null
+        genreId: genreId || null,
+        isLive: true
       },
-      include: { category: true }
+      include: { genre: true }
     });
 
     res.status(201).json(room);
