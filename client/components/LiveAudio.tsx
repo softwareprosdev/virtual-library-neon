@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Track, RoomEvent, ConnectionState } from 'livekit-client';
+import { Track, RoomEvent, ConnectionState, Participant } from 'livekit-client';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -140,7 +140,7 @@ function CustomPublisher({
   useEffect(() => {
     if (!localParticipant || !rawStream || !isRoomConnected) return;
 
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new window.AudioContext();
     audioContext.resume().catch(e => console.warn("AudioContext resume failed", e));
 
     const publishAudio = async () => {
@@ -175,7 +175,7 @@ function CustomPublisher({
 }
 
 // --- Custom Cyberpunk Grid ---
-function CyberpunkTile({ participant }: { participant: any }) {
+function CyberpunkTile({ participant }: { participant: Participant }) {
   const tracks = useTracks([Track.Source.Camera]).filter(t => t.participant.identity === participant.identity);
   const videoTrack = tracks.length > 0 ? tracks[0] : null;
 
@@ -263,24 +263,36 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
     })();
   }, [roomId]);
 
+  // Cleanup preview stream when joining room
   useEffect(() => {
-    if (isJoined) {
-        if (previewStream) {
-            previewStream.getTracks().forEach(t => t.stop());
-            setPreviewStream(null);
-        }
-        return;
+    if (isJoined && previewStream) {
+        previewStream.getTracks().forEach(t => t.stop());
     }
+  }, [isJoined, previewStream]);
+
+  // Start preview stream when not joined
+  useEffect(() => {
+    if (isJoined) return;
+
     let localStream: MediaStream | null = null;
+    let isCancelled = false;
+
     const startPreview = async () => {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setPreviewStream(localStream);
-        if (videoRef.current) videoRef.current.srcObject = localStream;
+        if (!isCancelled) {
+          setPreviewStream(localStream);
+          if (videoRef.current) videoRef.current.srcObject = localStream;
+        } else {
+          localStream.getTracks().forEach(t => t.stop());
+        }
       } catch (e) { console.warn("Media access error", e); }
     };
     startPreview();
-    return () => { localStream?.getTracks().forEach(t => t.stop()); };
+    return () => {
+      isCancelled = true;
+      localStream?.getTracks().forEach(t => t.stop());
+    };
   }, [isJoined]);
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
 import { searchBooks, GoogleBook } from '../../lib/google-books';
+import type { FormEvent } from 'react';
 import {
   Typography,
   Button,
@@ -23,7 +24,6 @@ import {
   Chip,
   Stack,
   Skeleton,
-  Paper,
   IconButton,
   InputAdornment
 } from '@mui/material';
@@ -34,7 +34,6 @@ export const dynamic = 'force-dynamic';
 const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
 const SearchIcon = () => <span>🔍</span>;
 const BackIcon = () => <span>←</span>;
-const LiveIcon = () => <Box sx={{ width: 8, height: 8, bgcolor: '#ef4444', borderRadius: '50%', mr: 1, boxShadow: '0 0 8px #ef4444' }} />;
 
 interface Room {
   id: string;
@@ -68,6 +67,7 @@ export default function Dashboard() {
   const [bookList, setBookList] = useState<GoogleBook[]>([]);
   const [activeGenreName, setActiveGenreName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [, setIsSearching] = useState(false);
   
   // Room Creation State
   const [open, setOpen] = useState(false);
@@ -109,7 +109,38 @@ export default function Dashboard() {
         fetchData();
       }, [router, fetchData]);
     
-      const handleDiscussBook = (book: GoogleBook) => {      setNewRoomName(`Reading: ${book.volumeInfo.title}`);
+      const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (!searchQuery.trim()) return;
+      try {
+        setIsSearching(true);
+        const results = await searchBooks(searchQuery);
+        setBookList(results);
+        setActiveGenreName(`Search: "${searchQuery}"`);
+        setViewMode('books');
+      } catch {
+        // Search failed
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const handleGenreClick = async (genre: Genre) => {
+      try {
+        setIsSearching(true);
+        const results = await searchBooks(genre.name);
+        setBookList(results);
+        setActiveGenreName(genre.name);
+        setViewMode('books');
+      } catch {
+        // Genre search failed
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const handleDiscussBook = (book: GoogleBook) => {
+      setNewRoomName(`Reading: ${book.volumeInfo.title}`);
       setNewRoomDesc(`Discussion room for "${book.volumeInfo.title}" by ${book.volumeInfo.authors?.join(', ')}. Join us to read and discuss!`);
       setSelectedBook(book); // Store selected book
       setOpen(true);
@@ -117,10 +148,21 @@ export default function Dashboard() {
   
     const handleCreateRoom = async () => {
       try {
-        const body: any = { 
-            name: newRoomName, 
-            description: newRoomDesc, 
-            genreId: selectedGenre 
+        const body: {
+          name: string;
+          description: string;
+          genreId: string;
+          bookData?: {
+            id: string;
+            title?: string;
+            authors?: string[];
+            description?: string;
+            imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+          };
+        } = {
+            name: newRoomName,
+            description: newRoomDesc,
+            genreId: selectedGenre
         };
   
         // Pass raw Google Book data if available
