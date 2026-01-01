@@ -76,10 +76,40 @@ export default function Dashboard() {
     const [selectedGenre, setSelectedGenre] = useState('');
     const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
     
-    const [mounted, setMounted] = useState(false);
-  // ...
-    const handleDiscussBook = (book: GoogleBook) => {
-      setNewRoomName(`Reading: ${book.volumeInfo.title}`);
+      const [mounted, setMounted] = useState(false);
+    
+      const fetchData = useCallback(async () => {
+        try {
+          setLoading(true);
+          const [roomsRes, genresRes] = await Promise.all([
+            api('/rooms'),
+            api('/rooms/genres')
+          ]);
+          
+          if (!roomsRes.ok || !genresRes.ok) throw new Error("Link synchronization failed.");
+    
+          const roomsData = await roomsRes.json();
+          const genresData = await genresRes.json();
+          
+          setRooms(roomsData);
+          setGenres(genresData);
+        } catch (err: unknown) {
+          setError(err instanceof Error ? err.message : 'Neural connection lost.');
+        } finally {
+          setLoading(false);
+        }
+      }, []);
+    
+      useEffect(() => {
+        setMounted(true);
+        if (!getToken()) {
+          router.push('/');
+          return;
+        }
+        fetchData();
+      }, [router, fetchData]);
+    
+      const handleDiscussBook = (book: GoogleBook) => {      setNewRoomName(`Reading: ${book.volumeInfo.title}`);
       setNewRoomDesc(`Discussion room for "${book.volumeInfo.title}" by ${book.volumeInfo.authors?.join(', ')}. Join us to read and discuss!`);
       setSelectedBook(book); // Store selected book
       setOpen(true);

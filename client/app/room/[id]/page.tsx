@@ -6,6 +6,21 @@ import { connectSocket, getSocket } from '../../../lib/socket';
 import { api } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import BookPanel from '../../../components/BookPanel';
+import nextDynamic from 'next/dynamic';
+import {
+  Box,
+  TextField,
+  Paper,
+  Typography,
+  AppBar,
+  Toolbar,
+  Button,
+  Avatar,
+  Tooltip,
+  Stack,
+  IconButton
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
 
 const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
   ssr: false,

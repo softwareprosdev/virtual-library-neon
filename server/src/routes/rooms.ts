@@ -81,6 +81,9 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       return;
     }
 
+    console.log(`Backend: Creating room "${name}" with genre "${genreId}"`);
+    if (bookData) console.log('Backend: Received book data:', JSON.stringify(bookData).substring(0, 200) + '...');
+
     const room = await prisma.room.create({
       data: {
         name,
@@ -89,14 +92,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         genreId: genreId || null,
         isLive: true,
         // If bookData exists, create the book relation immediately
-        books: bookData ? {
+        books: bookData && bookData.title ? {
           create: {
             title: bookData.title,
-            author: bookData.authors?.join(', '),
-            description: bookData.description,
-            coverUrl: bookData.imageLinks?.thumbnail,
-            googleId: bookData.id,
-            isbn: bookData.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier,
+            author: Array.isArray(bookData.authors) ? bookData.authors.join(', ') : (bookData.authors || null),
+            description: bookData.description || null,
+            coverUrl: bookData.imageLinks?.thumbnail || null,
+            googleId: bookData.id || null,
+            isbn: Array.isArray(bookData.industryIdentifiers) 
+                  ? bookData.industryIdentifiers.find((id: any) => id.type === 'ISBN_13')?.identifier 
+                  : null,
             ownerId: req.user.id,
           }
         } : undefined
@@ -107,7 +112,12 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
     res.status(201).json(room);
   } catch (error) {
     console.error("Create Room Error:", error);
-    res.status(500).json({ message: "Server error" });
+    const fs = require('fs');
+    fs.appendFileSync('error.log', `${new Date().toISOString()} - ${error}\n`);
+    if (error instanceof Error) {
+        fs.appendFileSync('error.log', `${error.stack}\n`);
+    }
+    res.status(500).json({ message: "Server error", details: error instanceof Error ? error.message : String(error) });
   }
 });
 
