@@ -5,6 +5,7 @@ import { Track, RoomEvent, ConnectionState } from 'livekit-client';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
+  StartAudio,
   LayoutContextProvider,
   useLocalParticipant,
   useTracks,
@@ -139,6 +140,7 @@ function CustomPublisher({
     if (!localParticipant || !rawStream || !isRoomConnected) return;
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContext.resume().catch(e => console.warn("AudioContext resume failed", e));
 
     const publishAudio = async () => {
         if (!audioEnabled) {
@@ -217,6 +219,7 @@ function CyberpunkTile({ participant }: { participant: any }) {
 
 function CyberpunkGrid() {
   const tracks = useTracks([Track.Source.Camera, Track.Source.Microphone]);
+  const safeTracks = tracks || [];
   
   return (
     <Box sx={{ 
@@ -227,7 +230,7 @@ function CyberpunkGrid() {
         height: '100%',
         alignContent: 'center'
     }}>
-      <ParticipantLoop tracks={tracks}>
+      <ParticipantLoop tracks={safeTracks}>
         <ParticipantContext.Consumer>
           {(participant) => (
              participant && <CyberpunkTile participant={participant} />
@@ -373,6 +376,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
             audioEffect={audioEffect} 
         />
         <LayoutContextProvider>
+            <StartAudio label="Click to allow audio playback" />
             <Grid container sx={{ height: 'calc(100% - 80px)' }}>
                 <CyberpunkGrid />
             </Grid>
