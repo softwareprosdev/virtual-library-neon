@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #d946ef;
+  --color-primary-light: #f0abfc;
+  --color-primary-dark: #86198f;
+  --color-secondary: #ec4899;
+  --color-background: #000000;
+  --color-surface: #0a0a0a;
+}
+
+:root {
+  --background: #000000;
+  --foreground: #f8fafc;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+}
+
+/* Cyberpunk Scanline Overlay */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 110, 0.06));
+  z-index: 9999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Neon Glow Utilities */
+.neon-text {
+  text-shadow: 0 0 5px rgba(217, 70, 239, 0.7), 0 0 10px rgba(217, 70, 239, 0.5), 0 0 15px rgba(236, 72, 153, 0.3);
+}
+
+.neon-border {
+  border: 1px solid rgba(217, 70, 239, 0.5);
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.2);
+}
+
+/* Glitch Animation */
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.3s cubic-bezier(.25,.46,.45,.94) both infinite;
+  color: #ec4899;
+  text-shadow: 2px 0 #d946ef, -2px 0 #06b6d4;
+}
+
+/* Holographic Shimmer */
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.holo-bg {
+  background: linear-gradient(-45deg, #000000, #1a0526, #000000, #250a3a);
+  background-size: 400% 400%;
+  animation: holographic 15s ease infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d946ef;
+  box-shadow: 0 0 10px #d946ef;
+}
