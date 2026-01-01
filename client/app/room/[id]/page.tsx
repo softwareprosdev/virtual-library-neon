@@ -214,13 +214,24 @@ export default function RoomPage() {
           height: { xs: '50vh', md: '100%' },
           position: 'relative'
         }}>
-           {/* Book Overlay/Header */}
+           {/* Book Panel - shows book being discussed */}
            {roomData?.books && roomData.books.length > 0 && (
-               <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, p: 2, background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), transparent)' }}>
+               <Box sx={{
+                 position: 'absolute',
+                 top: 0,
+                 left: 0,
+                 right: 0,
+                 zIndex: 10,
+                 p: 2,
+                 background: 'linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 70%, transparent 100%)',
+                 borderBottom: '1px solid rgba(0, 243, 255, 0.3)'
+               }}>
                    <BookPanel book={roomData.books[0]} />
                </Box>
            )}
-           <LiveAudio roomId={roomId} />
+           <Box sx={{ pt: roomData?.books && roomData.books.length > 0 ? { xs: 20, md: 16 } : 0, height: '100%' }}>
+             <LiveAudio roomId={roomId} />
+           </Box>
         </Grid>
 
         {/* Right Sidebar: Chat + Participants */}

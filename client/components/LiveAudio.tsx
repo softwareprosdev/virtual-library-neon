@@ -14,6 +14,7 @@ import {
   useParticipants,
   ParticipantContext,
   VideoTrack,
+  AudioTrack,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { 
@@ -71,8 +72,8 @@ function CustomPublisher({
        setIsRoomConnected(room.state === ConnectionState.Connected);
     };
     updateState();
-    room.on(RoomEvent.StateChanged, updateState);
-    return () => { room.off(RoomEvent.StateChanged, updateState); };
+    room.on(RoomEvent.ConnectionStateChanged, updateState);
+    return () => { room.off(RoomEvent.ConnectionStateChanged, updateState); };
   }, [room]);
 
   // Acquire Media
@@ -176,15 +177,16 @@ function CustomPublisher({
 
 // --- Custom Cyberpunk Grid ---
 function CyberpunkTile({ participant }: { participant: Participant }) {
-  const tracks = useTracks([Track.Source.Camera]).filter(t => t.participant.identity === participant.identity);
-  const videoTrack = tracks.length > 0 ? tracks[0] : null;
+  const allTracks = useTracks([Track.Source.Camera, Track.Source.Microphone]);
+  const videoTrack = allTracks.find(t => t.participant.identity === participant.identity && t.source === Track.Source.Camera) || null;
+  const audioTrack = allTracks.find(t => t.participant.identity === participant.identity && t.source === Track.Source.Microphone) || null;
 
   return (
     <ActiveSpeaker participant={participant}>
-      <Paper sx={{ 
-        width: '100%', 
-        height: '100%', 
-        bgcolor: '#000', 
+      <Paper sx={{
+        width: '100%',
+        height: '100%',
+        bgcolor: '#000',
         position: 'relative',
         overflow: 'hidden',
         border: '1px solid #333'
@@ -193,8 +195,8 @@ function CyberpunkTile({ participant }: { participant: Participant }) {
           <VideoTrack trackRef={videoTrack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <Box sx={{ 
-                width: 80, height: 80, borderRadius: '50%', 
+            <Box sx={{
+                width: 80, height: 80, borderRadius: '50%',
                 bgcolor: '#1a1a1a', border: '1px solid #00f3ff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
@@ -204,14 +206,19 @@ function CyberpunkTile({ participant }: { participant: Participant }) {
             </Box>
           </Box>
         )}
-        <Box sx={{ 
-            position: 'absolute', bottom: 0, left: 0, right: 0, 
+        {/* Render audio track for remote participants */}
+        {audioTrack && !participant.isLocal && (
+          <AudioTrack trackRef={audioTrack} />
+        )}
+        <Box sx={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
             p: 1, background: 'linear-gradient(transparent, #000)',
             display: 'flex', gap: 1, alignItems: 'center'
         }}>
             <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
                 {participant.identity} {participant.isLocal ? '(YOU)' : ''}
             </Typography>
+            {audioTrack && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981', boxShadow: '0 0 8px #10b981' }} />}
         </Box>
       </Paper>
     </ActiveSpeaker>
@@ -388,7 +395,15 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
             audioEffect={audioEffect} 
         />
         <LayoutContextProvider>
-            <StartAudio label="Click to allow audio playback" />
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 100
+            }}>
+              <StartAudio label="🔊 CLICK TO ENABLE AUDIO" />
+            </Box>
             <Grid container sx={{ height: 'calc(100% - 80px)' }}>
                 <CyberpunkGrid />
             </Grid>

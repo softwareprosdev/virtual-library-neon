@@ -6,9 +6,16 @@ export interface GoogleBook {
     description?: string;
     imageLinks?: {
       thumbnail: string;
+      smallThumbnail?: string;
     };
     categories?: string[];
     publishedDate?: string;
+    industryIdentifiers?: Array<{
+      type: string;
+      identifier: string;
+    }>;
+    pageCount?: number;
+    publisher?: string;
   };
 }
 

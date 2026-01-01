@@ -14,7 +14,6 @@ export function createVideoProcessor(
   if (!ctx) return;
 
   let animationFrameId: number;
-  let frameCount = 0;
 
   const draw = () => {
     if (sourceVideo.paused || sourceVideo.ended) return;
@@ -52,7 +51,7 @@ export function createVideoProcessor(
             try {
                 const imageData = ctx.getImageData(0, sliceY, width, sliceHeight);
                 ctx.putImageData(imageData, displacement, sliceY);
-            } catch (e) {
+            } catch {
                 // Ignore cross-origin issues if any
             }
         }
@@ -72,7 +71,6 @@ export function createVideoProcessor(
         for(let y=0; y<height; y+=10) ctx.fillRect(0, y, width, 1);
     }
 
-    frameCount++;
     animationFrameId = requestAnimationFrame(draw);
   };
 

@@ -158,6 +158,9 @@ export default function Dashboard() {
             authors?: string[];
             description?: string;
             imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+            industryIdentifiers?: Array<{ type: string; identifier: string }>;
+            pageCount?: number;
+            publisher?: string;
           };
         } = {
             name: newRoomName,
