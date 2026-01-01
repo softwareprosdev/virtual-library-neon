@@ -18,21 +18,26 @@ import {
   Avatar,
   Chip,
   Tooltip,
-  Divider
+  Stack,
+  IconButton
 } from '@mui/material';
 
-const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), { 
+const VideoPanel = nextDynamic(() => import('../../../components/LiveAudio'), { 
   ssr: false,
-  loading: () => <Box sx={{ flexGrow: 1, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography className="neon-text">SYNCING_STREAMS...</Typography></Box>
+  loading: () => <Box sx={{ flexGrow: 1, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography className="neon-text">ESTABLISHING_LINK...</Typography></Box>
 });
 
 export const dynamic = 'force-dynamic';
+
+const DeleteIcon = () => <span style={{ fontSize: '0.8rem' }}>🗑️</span>;
 
 interface Message {
   id: string;
   text: string;
   sender: { name: string; email: string; id: string };
   createdAt: string;
+  isFlagged?: boolean;
+  isSystem?: boolean;
 }
 
 interface Participant {
@@ -100,12 +105,23 @@ export default function RoomPage() {
       scrollToBottom();
     }
 
+    function onMessageDeleted({ messageId }: { messageId: string }) {
+      setMessages((prev) => prev.filter(m => m.id !== messageId));
+    }
+
     function onUserJoined(user: Participant) {
       setParticipants((prev) => {
         if (prev.find(p => p.userId === user.userId)) return prev;
         return [...prev, user];
       });
-      // Logic to determine "my" role could be added here if userId matches
+      // Add system message
+      setMessages((prev) => [...prev, {
+        id: Math.random().toString(),
+        text: `${user.email} joined the archives.`,
+        sender: { name: 'SYSTEM', email: '', id: '' },
+        createdAt: new Date().toISOString(),
+        isSystem: true
+      }]);
     }
 
     function onUserLeft({ userId }: { userId: string }) {
@@ -115,6 +131,7 @@ export default function RoomPage() {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('message', (data: unknown) => onMessage(data as Message));
+    socket.on('messageDeleted', (data: unknown) => onMessageDeleted(data as { messageId: string }));
     socket.on('userJoined', (data: unknown) => onUserJoined(data as Participant));
     socket.on('userLeft', (data: unknown) => onUserLeft(data as { userId: string }));
 
@@ -123,9 +140,10 @@ export default function RoomPage() {
     }
 
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
+      socket.off('connect');
+      socket.off('disconnect');
       socket.off('message');
+      socket.off('messageDeleted');
       socket.off('userJoined');
       socket.off('userLeft');
       socket.emit('leaveRoom', { roomId });
@@ -142,17 +160,21 @@ export default function RoomPage() {
     }
   };
 
+  const handleDelete = (messageId: string) => {
+    const socket = getSocket();
+    socket.emit('deleteMessage', { roomId, messageId });
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'ADMIN': return '#ef4444'; // Red
-      case 'MODERATOR': return '#d946ef'; // Purple
-      default: return '#64748b'; // Gray
+      case 'ADMIN': return '#ef4444';
+      case 'MODERATOR': return '#d946ef';
+      default: return '#64748b';
     }
   };
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      {/* Header */}
       <AppBar position="static" sx={{ borderBottom: '1px solid', borderColor: 'primary.dark' }}>
         <Toolbar>
           <Button onClick={() => router.push('/dashboard')} sx={{ color: 'text.secondary', mr: 2 }}>← HUB</Button>
@@ -160,7 +182,6 @@ export default function RoomPage() {
             {roomName.toUpperCase()}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
-             <Chip label={myRole} size="small" sx={{ bgcolor: getRoleColor(myRole), color: 'white', fontWeight: 'bold' }} />
              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 10px #10b981' : 'none' }} />
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>{isConnected ? "CONNECTED" : "OFFLINE"}</Typography>
@@ -171,53 +192,81 @@ export default function RoomPage() {
 
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {/* Main Content Area (Live Audio/Video) */}
-        <Grid item xs={12} md={8} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper' }}>
+        <Grid item xs={12} md={8} sx={{ 
+          borderRight: { md: '1px solid #333' }, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          bgcolor: 'background.paper',
+          height: { xs: '50vh', md: '100%' }
+        }}>
            <LiveAudio roomId={roomId} />
         </Grid>
 
         {/* Right Sidebar: Chat + Participants */}
-        <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Participants Area */}
-          <Box sx={{ height: '25%', borderBottom: '1px solid #333', p: 2, overflowY: 'auto' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 1, display: 'block' }}>ACTIVE_PARTICIPANTS ({participants.length})</Typography>
+        <Grid item xs={12} md={4} sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: { xs: '50vh', md: '100%' },
+          borderTop: { xs: '1px solid #333', md: 'none' }
+        }}>
+          <Box sx={{ height: '20%', borderBottom: '1px solid #333', p: 2, overflowY: 'auto' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 1, display: 'block' }}>NEURAL_PARTICIPANTS ({participants.length})</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {participants.map((p) => (
                 <Tooltip title={`${p.email} (${p.role})`} key={p.userId}>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: getRoleColor(p.role), fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    {p.email[0].toUpperCase()}
+                  <Avatar sx={{ width: 28, height: 28, bgcolor: getRoleColor(p.role), fontSize: '0.7rem' }}>
+                    {p.email[0]?.toUpperCase()}
                   </Avatar>
                 </Tooltip>
               ))}
             </Box>
           </Box>
 
-          {/* Chat Area */}
-          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {messages.map((msg, index) => (
-              <Box key={msg.id || index} sx={{ display: 'flex', gap: 1 }}>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>{msg.sender.name ? msg.sender.name[0] : '?'}</Avatar>
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                    <Typography variant="caption" sx={{ color: 'primary.light', fontWeight: 'bold' }}>{msg.sender.name || 'Anonymous'}</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>{new Date(msg.createdAt).toLocaleTimeString()}</Typography>
+              msg.isSystem ? (
+                <Typography key={msg.id} variant="caption" sx={{ textAlign: 'center', color: 'text.secondary', fontStyle: 'italic', my: 1 }}>
+                  {msg.text}
+                </Typography>
+              ) : (
+                <Box key={msg.id || index} sx={{ display: 'flex', gap: 1, group: 'hover' }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: msg.isFlagged ? 'error.dark' : 'secondary.main', opacity: 0.8 }}>{msg.sender.name ? msg.sender.name[0] : '?'}</Avatar>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                      <Typography variant="caption" sx={{ color: msg.isFlagged ? 'error.main' : 'primary.light', fontWeight: 'bold' }}>{msg.sender.name || 'Anonymous'}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>{new Date(msg.createdAt).toLocaleTimeString()}</Typography>
+                      {/* Deletion Button for Admins/Mods */}
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDelete(msg.id)} 
+                        sx={{ ml: 'auto', opacity: 0.2, '&:hover': { opacity: 1 } }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                    <Paper sx={{ 
+                      p: 1.5, 
+                      bgcolor: msg.isFlagged ? 'rgba(239, 68, 68, 0.1)' : 'background.paper', 
+                      border: '1px solid', 
+                      borderColor: msg.isFlagged ? 'error.main' : '#333',
+                      borderRadius: '0 12px 12px 12px'
+                    }}>
+                      <Typography variant="body2" sx={{ color: msg.isFlagged ? 'error.light' : 'text.primary' }}>{msg.text}</Typography>
+                    </Paper>
                   </Box>
-                  <Paper sx={{ p: 1.5, bgcolor: 'background.paper', border: '1px solid #333', borderRadius: '0 12px 12px 12px', maxWidth: '100%' }}>
-                    <Typography variant="body2">{msg.text}</Typography>
-                  </Paper>
                 </Box>
-              </Box>
+              )
             ))}
             <div ref={messagesEndRef} />
           </Box>
 
-          {/* Input Area */}
-          <Box component="form" onSubmit={handleSend} sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid #333' }}>
+          <Box component="form" onSubmit={handleSend} sx={{ p: 2, bgcolor: '#050505', borderTop: '1px solid #333' }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <TextField
-                fullWidth variant="outlined" placeholder="Transmit message..." size="small" value={inputText}
+                fullWidth variant="outlined" placeholder="TRANSMIT_DATA..." size="small" value={inputText}
                 onChange={(e) => setInputText(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#000' } }}
               />
-              <Button type="submit" variant="contained" disabled={!inputText.trim()} sx={{ minWidth: 100 }}>SEND</Button>
+              <Button type="submit" variant="contained" disabled={!inputText.trim()} sx={{ minWidth: 80, borderRadius: 0 }}>SEND</Button>
             </Box>
           </Box>
         </Grid>

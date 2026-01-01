@@ -24,10 +24,23 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
   }
 });
 
-// List all active rooms
+// List all active rooms with personalization
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     console.log('Backend: Fetching live rooms...');
+    
+    // 1. Get user's top genres from interactions
+    const topInteractions = await prisma.interaction.groupBy({
+      by: ['genreId'],
+      where: { userId: req.user.id, NOT: { genreId: null } },
+      _count: { genreId: true },
+      orderBy: { _count: { genreId: 'desc' } },
+      take: 3
+    });
+
+    const interestedGenreIds = topInteractions.map(i => i.genreId as string);
+
+    // 2. Fetch rooms prioritizing these genres
     const rooms = await prisma.room.findMany({
       where: { isLive: true },
       include: {
@@ -35,10 +48,23 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
         genre: true,
         _count: { select: { messages: true, participants: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        {
+          // Custom sort: rooms in interested genres first (simulated via application logic or prisma sort)
+          createdAt: 'desc'
+        }
+      ]
     });
+
+    // 3. Simple sorting in JS for personalized ordering
+    const personalizedRooms = [...rooms].sort((a, b) => {
+      const aInt = a.genreId && interestedGenreIds.includes(a.genreId) ? 1 : 0;
+      const bInt = b.genreId && interestedGenreIds.includes(b.genreId) ? 1 : 0;
+      return bInt - aInt;
+    });
+
     console.log(`Backend: Found ${rooms.length} live rooms`);
-    res.json(rooms);
+    res.json(personalizedRooms);
   } catch (error) {
     console.error('Backend Room Error:', error);
     res.status(500).json({ message: "Server error" });

@@ -8,6 +8,7 @@ import roomRoutes from './routes/rooms';
 import bookRoutes from './routes/books';
 import livekitRoutes from './routes/livekit';
 import newsletterRoutes from './routes/newsletter';
+import aiRoutes from './routes/ai';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -34,6 +35,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/livekit', livekitRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/ai', aiRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

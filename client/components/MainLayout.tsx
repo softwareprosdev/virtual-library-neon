@@ -100,12 +100,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { sm: 'none' }, color: 'primary.main' }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {pathname.split('/').pop()?.toUpperCase() || 'VIRTUAL LIBRARY'}
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold', letterSpacing: 2, fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
+            V-LIBRARY // NEURAL_LINK
           </Typography>
           <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: '0.875rem' }}>U</Avatar>
         </Toolbar>

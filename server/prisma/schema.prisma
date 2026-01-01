@@ -7,44 +7,87 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  password     String
-  name         String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  ageVerified  Boolean       @default(false)
-  birthDate    DateTime?
-  books        Book[]
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  name      String?
+  birthDate DateTime?
+  ageVerified Boolean @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  ownedRooms   Room[]   @relation("RoomHost")
   messages     Message[]
-  moderators   Moderator[]
+  books        Book[]
   participants Participant[]
-  ownedRooms   Room[]        @relation("RoomHost")
+  moderators   Moderator[]
+  interactions Interaction[]
+}
+
+model Interaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  genreId   String?
+  genre     Genre?   @relation(fields: [genreId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 model Room {
-  id           String        @id @default(uuid())
-  name         String
-  description  String?
-  hostId       String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  genreId      String?
-  isLive       Boolean       @default(true)
-  books        Book[]
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  hostId      String
+  host        User      @relation("RoomHost", fields: [hostId], references: [id])
+  genreId     String?
+  genre       Genre?    @relation(fields: [genreId], references: [id])
+  isLive      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
   messages     Message[]
-  moderators   Moderator[]
+  books        Book[]
   participants Participant[]
-  genre        Genre?        @relation(fields: [genreId], references: [id])
-  host         User          @relation("RoomHost", fields: [hostId], references: [id])
+  moderators   Moderator[]
+  transcripts  Transcript[]
+  recap        Recap?
+  interactions Interaction[]
+}
+
+model Transcript {
+  id        String   @id @default(uuid())
+  text      String
+  startTime DateTime
+  endTime   DateTime?
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+}
+
+model Recap {
+  id        String   @id @default(uuid())
+  summary   String
+  highlights String[] // Array of quotes or key points
+  roomId    String   @unique
+  room      Room     @relation(fields: [roomId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 model Genre {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  isAdult     Boolean @default(false)
+
+  id          String   @id @default(uuid())
+
+  name        String   @unique
+
+  isAdult     Boolean  @default(false)
+
   description String?
+
   rooms       Room[]
+
+  interactions Interaction[]
+
 }
 
 model Participant {

@@ -37,6 +37,7 @@ interface Room {
   name: string;
   description: string;
   host: { name: string };
+  genreId?: string; // Added genreId
   genre?: { name: string; isAdult: boolean };
   _count: { messages: number; participants: number };
 }
@@ -139,7 +140,7 @@ export default function Dashboard() {
                 <Typography variant="caption" color="text.secondary">TOTAL_MODULES: {genres.length}</Typography>
               </Stack>
               
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 {genres.map((genre) => (
                   <Grid item xs={6} sm={4} md={3} lg={2} key={genre.id}>
                     <Box 
@@ -185,15 +186,15 @@ export default function Dashboard() {
                       <Box sx={{ width: 120, bgcolor: room.genre?.isAdult ? 'error.dark' : 'primary.dark', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
                          <Typography variant="h2" sx={{ opacity: 0.2, fontWeight: 900 }}>{room.name[0]}</Typography>
                       </Box>
-                      <CardContent sx={{ flexGrow: 1, py: 3 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                          <Box>
-                            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                              <LiveIcon />
-                              <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>FREQUENCY_ACTIVE</Typography>
-                            </Stack>
-                            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>{room.name}</Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{room.description}</Typography>
+                                        <CardContent sx={{ flexGrow: 1, py: 3 }}>
+                                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                                            <Box>
+                                              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                                                <LiveIcon />
+                                                <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>FREQUENCY_ACTIVE</Typography>
+                                                <Chip label="PERSONALIZED" size="small" sx={{ height: 16, fontSize: '0.5rem', bgcolor: 'secondary.main', color: 'white', fontWeight: 'bold', ml: 1 }} />
+                                              </Stack>
+                                              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>{room.name}</Typography>                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{room.description}</Typography>
                             <Stack direction="row" spacing={1}>
                               <Chip label={room.genre?.name} size="small" variant="outlined" />
                               <Chip label={`${room._count.participants} LISTENERS`} size="small" sx={{ color: 'primary.main' }} />
