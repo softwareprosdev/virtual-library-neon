@@ -3,6 +3,8 @@ import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+import pdf from 'pdf-parse';
 
 const router = Router();
 
@@ -22,6 +24,40 @@ const upload = multer({
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     if (extname) return cb(null, true);
     cb(new Error("Only .pdf and .epub files are allowed"));
+  }
+});
+
+// Search Books (Title, Author, Content)
+router.get('/search', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string') {
+      res.status(400).json({ message: "Query required" });
+      return;
+    }
+
+    const books = await prisma.book.findMany({
+      where: {
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { author: { contains: q, mode: 'insensitive' } },
+          { content: { contains: q, mode: 'insensitive' } }
+        ],
+        ownerId: req.user.id
+      },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        fileUrl: true,
+        fileType: true,
+        createdAt: true
+      }
+    });
+    res.json(books);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Search failed" });
   }
 });
 
@@ -47,13 +83,27 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
     }
 
     const { title, author } = req.body;
+    let content = '';
+
+    // Extract text if PDF
+    if (req.file.mimetype === 'application/pdf' || req.file.filename.endsWith('.pdf')) {
+      try {
+        const dataBuffer = fs.readFileSync(req.file.path);
+        const data = await pdf(dataBuffer);
+        content = data.text;
+      } catch (err) {
+        console.error("PDF Parse Error:", err);
+      }
+    }
+
     const book = await prisma.book.create({
       data: {
         title: title || req.file.originalname,
         author: author || 'Unknown',
         fileUrl: `/uploads/${req.file.filename}`,
         fileType: path.extname(req.file.originalname).substring(1),
-        ownerId: req.user.id
+        ownerId: req.user.id,
+        content: content || null
       }
     });
 

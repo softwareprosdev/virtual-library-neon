@@ -46,6 +46,7 @@ export default function LibraryPage() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const token = getToken();
@@ -56,9 +57,33 @@ export default function LibraryPage() {
     fetchBooks();
   }, [router]);
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery) {
+        handleSearch();
+      } else {
+        fetchBooks();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const fetchBooks = async () => {
     try {
       const res = await api('/books');
+      if (res.ok) {
+        const data = await res.json();
+        setBooks(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleSearch = async () => {
+    try {
+      const res = await api(`/books/search?q=${encodeURIComponent(searchQuery)}`);
       if (res.ok) {
         const data = await res.json();
         setBooks(data);
@@ -120,6 +145,23 @@ export default function LibraryPage() {
           <Typography variant="h6" color="text.secondary">
             Manage your synchronized knowledge modules
           </Typography>
+          <Box sx={{ mt: 4, maxWidth: 600, mx: 'auto' }}>
+             <TextField
+               fullWidth
+               label="Search Archives (Content & Metadata)"
+               variant="outlined"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               sx={{ 
+                 '& .MuiOutlinedInput-root': { 
+                   color: 'white',
+                   '& fieldset': { borderColor: '#333' },
+                   '&:hover fieldset': { borderColor: '#00ff41' },
+                 },
+                 '& .MuiInputLabel-root': { color: '#666' }
+               }}
+             />
+          </Box>
         </Box>
 
         <Grid container spacing={4}>
@@ -148,7 +190,7 @@ export default function LibraryPage() {
                   <Button 
                     variant="outlined" 
                     size="small"
-                    onClick={() => book.fileUrl && window.open(`http://localhost:4000${book.fileUrl}`, '_blank')}
+                    onClick={() => book.fileUrl && router.push(`/read/${book.id}`)}
                     disabled={!book.fileUrl}
                   >
                     Read

@@ -21,6 +21,8 @@
     "pdfjs-dist": "^5.4.530",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-pageflip": "^2.0.3",
+    "react-pdf": "^10.3.0",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.3"
   },
@@ -29,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-pdf": "^6.2.0",
     "@types/simple-peer": "^9.11.9",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
