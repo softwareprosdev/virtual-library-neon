@@ -33,9 +33,9 @@ const DeleteIcon = () => <span>🗑️</span>;
 interface Book {
   id: string;
   title: string;
-  author: string;
-  fileType: string;
-  fileUrl: string;
+  author: string | null;
+  fileType: string | null;
+  fileUrl: string | null;
 }
 
 export default function LibraryPage() {
@@ -134,19 +134,22 @@ export default function LibraryPage() {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
-                    By: {book.author}
+                    By: {book.author || 'Unknown'}
                   </Typography>
-                  <Chip 
-                    label={book.fileType.toUpperCase()} 
-                    size="small" 
-                    sx={{ mt: 2, bgcolor: 'primary.dark', color: 'primary.light' }} 
-                  />
+                  {book.fileType && (
+                    <Chip 
+                      label={book.fileType.toUpperCase()} 
+                      size="small" 
+                      sx={{ mt: 2, bgcolor: 'primary.dark', color: 'primary.light' }} 
+                    />
+                  )}
                 </CardContent>
                 <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
                   <Button 
                     variant="outlined" 
                     size="small"
-                    onClick={() => window.open(`http://localhost:4000${book.fileUrl}`, '_blank')}
+                    onClick={() => book.fileUrl && window.open(`http://localhost:4000${book.fileUrl}`, '_blank')}
+                    disabled={!book.fileUrl}
                   >
                     Read
                   </Button>
