@@ -5,7 +5,9 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
+import bookRoutes from './routes/books';
 import { setupSocket } from './socket';
+import path from 'path';
 
 dotenv.config();
 
@@ -21,9 +23,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve Static Uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/books', bookRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

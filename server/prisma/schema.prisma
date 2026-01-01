@@ -16,6 +16,7 @@ model User {
   
   ownedRooms Room[]   @relation("RoomHost")
   messages   Message[]
+  books      Book[]
 }
 
 model Room {
@@ -30,6 +31,21 @@ model Room {
   updatedAt   DateTime  @updatedAt
   
   messages    Message[]
+  books       Book[]
+}
+
+model Book {
+  id          String   @id @default(uuid())
+  title       String
+  author      String?
+  fileUrl     String   // S3 or local path
+  fileType    String   // pdf, epub
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+  roomId      String?
+  room        Room?    @relation(fields: [roomId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Category {
