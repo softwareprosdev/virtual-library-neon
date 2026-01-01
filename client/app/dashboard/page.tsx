@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
-import { 
-  Typography, 
-  Button, 
-  Container, 
-  Grid, 
-  Card, 
-  CardContent, 
+import {
+  Typography,
+  Button,
+  Container,
+  Grid,
+  Card,
+  CardContent,
   CardActions,
   Dialog,
   DialogTitle,
@@ -90,8 +90,8 @@ export default function Dashboard() {
     try {
       const res = await api('/rooms', {
         method: 'POST',
-        body: JSON.stringify({ 
-          name: newRoomName, 
+        body: JSON.stringify({
+          name: newRoomName,
           description: newRoomDesc,
           categoryId: selectedCat
         })
@@ -123,7 +123,7 @@ export default function Dashboard() {
 
         <Grid container spacing={4}>
           {rooms.map((room) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={room.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={room.id}>
               <Card 
                 sx={{ 
                   height: '100%', 
@@ -131,8 +131,7 @@ export default function Dashboard() {
                   flexDirection: 'column',
                   background: 'linear-gradient(180deg, rgba(10,10,10,1) 0%, rgba(20,20,20,1) 100%)',
                 }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
+              >                <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h5" component="div" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
                     {room.name}
                   </Typography>

@@ -155,12 +155,12 @@ export default function RoomPage() {
 
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {/* Main Content Area (Video) */}
-        <Grid size={{ xs: 12, md: 8 }} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper' }}>
+        <Grid item xs={12} md={8} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper' }}>
            {socket && <VideoPanel roomId={roomId} socket={socket} />}
         </Grid>
 
         {/* Chat Panel */}
-        <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {messages.map((msg, index) => (
               <Box key={msg.id || index} sx={{ display: 'flex', gap: 1 }}>
