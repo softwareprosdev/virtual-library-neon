@@ -32,10 +32,21 @@ This project is containerized and ready for deployment using Docker.
 
 ## Manual Docker Deployment
 
-You can also run the full stack on any server with Docker Compose:
+You can also run the full stack on any server with Docker Compose using the included production configuration.
 
-```bash
-# Build and start all services in production mode
-docker-compose -f docker-compose.prod.yml up -d --build
-```
-*(Note: You need to create `docker-compose.prod.yml` slightly modified from the dev version to remove volume bindings for code)*
+1.  **Configure Environment:**
+    Ensure you have a `.env` file in the root directory with the necessary variables (see above or `.env.example`).
+    **Crucial:** For the client build, `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SOCKET_URL` must be set in your `.env` file *before* running the build command.
+
+2.  **Deploy:**
+    ```bash
+    # Build and start all services in production mode
+    docker-compose -f docker-compose.prod.yml up -d --build
+    ```
+
+    The `docker-compose.prod.yml` is configured to:
+    - Use production-ready images (Postgres 15, Redis 7).
+    - Persist data using named volumes (`postgres_data`, `redis_data`).
+    - Restart services automatically (`restart: always`).
+    - Build the client with provided environment variables.
+
