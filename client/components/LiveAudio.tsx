@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Track, RoomEvent, ConnectionState, Participant } from 'livekit-client';
+import { Track, RoomEvent, ConnectionState, Participant, LocalTrack } from 'livekit-client';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -103,8 +103,8 @@ function CustomPublisher({
 
     const publishVideo = async () => {
       if (!videoEnabled) {
-        const existing = localParticipant.getTrack(Track.Source.Camera);
-        if (existing) await localParticipant.unpublishTrack(existing.track!);
+        const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Camera);
+        if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
         return;
       }
 
@@ -126,8 +126,8 @@ function CustomPublisher({
 
       if (trackToPublish) {
          try {
-           const existing = localParticipant.getTrack(Track.Source.Camera);
-           if (existing) await localParticipant.unpublishTrack(existing.track!);
+           const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Camera);
+           if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
            await localParticipant.publishTrack(trackToPublish, { name: 'camera', source: Track.Source.Camera });
          } catch(e) { console.error("Publish video error", e); }
       }
@@ -146,8 +146,8 @@ function CustomPublisher({
 
     const publishAudio = async () => {
         if (!audioEnabled) {
-            const existing = localParticipant.getTrack(Track.Source.Microphone);
-            if (existing) await localParticipant.unpublishTrack(existing.track!);
+            const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Microphone);
+            if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
             return;
         }
 
@@ -161,8 +161,8 @@ function CustomPublisher({
 
         if (trackToPublish) {
             try {
-                const existing = localParticipant.getTrack(Track.Source.Microphone);
-                if (existing) await localParticipant.unpublishTrack(existing.track!);
+                const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Microphone);
+                if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
                 await localParticipant.publishTrack(trackToPublish, { name: 'microphone', source: Track.Source.Microphone });
             } catch(e) { console.error("Publish audio error", e); }
         }
