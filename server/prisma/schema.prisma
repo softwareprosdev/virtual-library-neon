@@ -1,96 +1,94 @@
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+}
+
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  name      String?
-  birthDate DateTime?
-  ageVerified Boolean @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
-  ownedRooms Room[]   @relation("RoomHost")
-  messages   Message[]
-  books      Book[]
-  participants Participant[]
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  ageVerified  Boolean       @default(false)
+  birthDate    DateTime?
+  books        Book[]
+  messages     Message[]
   moderators   Moderator[]
+  participants Participant[]
+  ownedRooms   Room[]        @relation("RoomHost")
 }
 
 model Room {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  hostId      String
-  host        User      @relation("RoomHost", fields: [hostId], references: [id])
-  genreId     String?
-  genre       Genre?    @relation(fields: [genreId], references: [id])
-  isLive      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  messages     Message[]
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  hostId       String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  genreId      String?
+  isLive       Boolean       @default(true)
   books        Book[]
-  participants Participant[]
+  messages     Message[]
   moderators   Moderator[]
+  participants Participant[]
+  genre        Genre?        @relation(fields: [genreId], references: [id])
+  host         User          @relation("RoomHost", fields: [hostId], references: [id])
 }
 
 model Genre {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  isAdult     Boolean  @default(false)
+  id          String  @id @default(uuid())
+  name        String  @unique
+  isAdult     Boolean @default(false)
   description String?
   rooms       Room[]
 }
 
 model Participant {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
-  joinedAt  DateTime @default(now())
+  id       String   @id @default(uuid())
+  userId   String
+  roomId   String
+  joinedAt DateTime @default(now())
+  room     Room     @relation(fields: [roomId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, roomId])
 }
 
 model Moderator {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
+  id         String   @id @default(uuid())
+  userId     String
+  roomId     String
   assignedAt DateTime @default(now())
+  room       Room     @relation(fields: [roomId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, roomId])
 }
 
 model Book {
-  id          String   @id @default(uuid())
-  title       String
-  author      String?
-  fileUrl     String
-  fileType    String
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id])
-  roomId      String?
-  room        Room?    @relation(fields: [roomId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  title     String
+  author    String?
+  fileUrl   String
+  fileType  String
+  ownerId   String
+  roomId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id])
+  room      Room?    @relation(fields: [roomId], references: [id])
 }
 
 model Message {
   id        String   @id @default(uuid())
   text      String
   senderId  String
-  sender    User     @relation(fields: [senderId], references: [id])
   roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
   createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id])
+  sender    User     @relation(fields: [senderId], references: [id])
 }

@@ -13,6 +13,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@livekit/components-react": "^2.9.17",
+    "@livekit/components-styles": "^1.2.0",
     "@mui/material": "^7.3.6",
     "@mui/material-nextjs": "^7.3.6",
     "livekit-client": "^2.16.1",

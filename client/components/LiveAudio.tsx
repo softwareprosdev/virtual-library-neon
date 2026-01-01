@@ -6,11 +6,16 @@ import {
   VideoConference, 
   RoomAudioRenderer,
   ControlBar,
-  useTracks
+  useTracks,
+  LayoutContextProvider,
+  CarouselLayout,
+  ConnectionQualityIndicator,
+  ParticipantTile,
+  Chat
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
-import '@livekit/components-styles/dist/index.css';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import '@livekit/components-styles';
+import { Box, CircularProgress, Typography, Paper } from '@mui/material';
 import { api } from '../lib/api';
 
 interface LiveAudioProps {
@@ -27,32 +32,55 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         const data = await resp.json();
         setToken(data.token);
       } catch (e) {
-        console.error(e);
+        console.error("LiveKit Token Error:", e);
       }
     })();
   }, [roomId]);
 
   if (!token) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'black' }}>
         <CircularProgress color="primary" />
-        <Typography variant="caption" sx={{ mt: 2, color: 'text.secondary' }}>INITIALIZING_AUDIO_STREAM...</Typography>
+        <Typography variant="caption" sx={{ mt: 2, color: 'primary.main' }} className="neon-text">ESTABLISHING_NEURAL_LINK...</Typography>
       </Box>
     );
   }
 
   return (
-    <LiveKitRoom
-      video={true}
-      audio={true}
-      token={token}
-      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://your-project.livekit.cloud'}
-      connect={true}
-      style={{ height: '100%' }}
-    >
-      <VideoConference />
-      <RoomAudioRenderer />
-      {/* Custom Control Bar styled for Cyberpunk can be added here */}
-    </LiveKitRoom>
+    <Box sx={{ height: '100%', position: 'relative' }}>
+      <LiveKitRoom
+        video={true}
+        audio={true}
+        token={token}
+        serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://your-project.livekit.cloud'}
+        connect={true}
+        style={{ height: '100%', backgroundColor: '#000' }}
+      >
+        <LayoutContextProvider>
+          <div className="lk-video-conference" style={{ height: 'calc(100% - 80px)' }}>
+            <div className="lk-video-conference-inner">
+              <div className="lk-grid-layout-wrapper">
+                <VideoConference />
+              </div>
+            </div>
+          </div>
+          
+          {/* Enhanced Control Bar */}
+          <Box sx={{ 
+            height: 80, 
+            bgcolor: '#0a0a0a', 
+            borderTop: '1px solid #333',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2
+          }}>
+            <ControlBar variation="minimal" controls={{ camera: true, microphone: true, screenShare: true, leave: true }} />
+          </Box>
+
+          <RoomAudioRenderer />
+        </LayoutContextProvider>
+      </LiveKitRoom>
+    </Box>
   );
 }

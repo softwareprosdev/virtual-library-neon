@@ -21,7 +21,7 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
   }
 });
 
-// List all rooms
+// List all active rooms
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const rooms = await prisma.room.findMany({
@@ -35,6 +35,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
     });
     res.json(rooms);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -73,6 +74,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
     const room = await prisma.room.findUnique({
       where: { id },
       include: {
+        genre: true,
         messages: {
           take: 50,
           orderBy: { createdAt: 'asc' },

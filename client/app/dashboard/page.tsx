@@ -55,29 +55,45 @@ export default function Dashboard() {
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
+      console.log('Fetching discovery data...');
       const [roomsRes, genresRes] = await Promise.all([
         api('/rooms'),
         api('/rooms/genres')
       ]);
       
-      if (roomsRes.ok) setRooms(await roomsRes.json());
-      if (genresRes.ok) setGenres(await genresRes.json());
+      const roomsData = await roomsRes.json();
+      const genresData = await genresRes.json();
+      
+      console.log('Rooms received:', roomsData);
+      console.log('Genres received:', genresData);
+
+      if (roomsRes.ok) setRooms(roomsData);
+      if (genresRes.ok) setGenres(genresData);
     } catch (error) {
       console.error("Discovery Error:", error);
     }
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     const token = getToken();
     if (!token) {
       router.push('/');
       return;
     }
-    fetchData();
+    
+    const init = async () => {
+      await fetchData();
+    };
+    
+    init();
   }, [router, fetchData]);
+
+  if (!mounted) return null;
 
   const handleCreateRoom = async () => {
     try {

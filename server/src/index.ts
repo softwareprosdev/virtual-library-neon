@@ -7,6 +7,7 @@ import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import bookRoutes from './routes/books';
 import livekitRoutes from './routes/livekit';
+import newsletterRoutes from './routes/newsletter';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -32,6 +33,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/livekit', livekitRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
