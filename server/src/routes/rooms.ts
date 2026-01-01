@@ -7,6 +7,7 @@ const router = Router();
 // List all genres with live room counts
 router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('Backend: Fetching genres...');
     const genres = await prisma.genre.findMany({
       include: {
         _count: {
@@ -15,8 +16,10 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
       },
       orderBy: { name: 'asc' }
     });
+    console.log(`Backend: Found ${genres.length} genres`);
     res.json(genres);
   } catch (error) {
+    console.error('Backend Genre Error:', error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -24,6 +27,7 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
 // List all active rooms
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('Backend: Fetching live rooms...');
     const rooms = await prisma.room.findMany({
       where: { isLive: true },
       include: {
@@ -33,9 +37,10 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
       },
       orderBy: { createdAt: 'desc' }
     });
+    console.log(`Backend: Found ${rooms.length} live rooms`);
     res.json(rooms);
   } catch (error) {
-    console.error(error);
+    console.error('Backend Room Error:', error);
     res.status(500).json({ message: "Server error" });
   }
 });
