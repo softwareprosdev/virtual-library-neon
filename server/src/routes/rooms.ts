@@ -74,7 +74,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 // Create a room
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, description, genreId } = req.body;
+    const { name, description, genreId, bookData } = req.body;
     
     if (!name) {
       res.status(400).json({ message: "Room name is required" });
@@ -87,13 +87,26 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         description,
         hostId: req.user.id,
         genreId: genreId || null,
-        isLive: true
+        isLive: true,
+        // If bookData exists, create the book relation immediately
+        books: bookData ? {
+          create: {
+            title: bookData.title,
+            author: bookData.authors?.join(', '),
+            description: bookData.description,
+            coverUrl: bookData.imageLinks?.thumbnail,
+            googleId: bookData.id,
+            isbn: bookData.industryIdentifiers?.find((id: any) => id.type === 'ISBN_13')?.identifier,
+            ownerId: req.user.id,
+          }
+        } : undefined
       },
-      include: { genre: true }
+      include: { genre: true, books: true }
     });
 
     res.status(201).json(room);
   } catch (error) {
+    console.error("Create Room Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -106,6 +119,7 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
       where: { id },
       include: {
         genre: true,
+        books: true, // Include associated books
         messages: {
           take: 50,
           orderBy: { createdAt: 'asc' },

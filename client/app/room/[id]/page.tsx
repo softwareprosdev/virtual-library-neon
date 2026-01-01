@@ -5,21 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { connectSocket, getSocket } from '../../../lib/socket';
 import { api } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
-import nextDynamic from 'next/dynamic';
-import {
-  Box,
-  TextField,
-  Paper,
-  Typography,
-  AppBar,
-  Toolbar,
-  Button,
-  Avatar,
-  Tooltip,
-  Stack,
-  IconButton
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
+import BookPanel from '../../../components/BookPanel';
 
 const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
   ssr: false,
@@ -29,6 +15,21 @@ const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
 export const dynamic = 'force-dynamic';
 
 const DeleteIcon = () => <span style={{ fontSize: '0.8rem' }}>🗑️</span>;
+
+interface RoomData {
+    id: string;
+    name: string;
+    description: string;
+    books?: {
+        id: string;
+        title: string;
+        author?: string;
+        coverUrl?: string;
+        description?: string;
+        isbn?: string;
+    }[];
+    messages?: Message[];
+}
 
 interface Message {
   id: string;
@@ -53,7 +54,7 @@ export default function RoomPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [inputText, setInputText] = useState('');
-  const [roomName, setRoomName] = useState('Loading...');
+  const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
@@ -70,7 +71,7 @@ export default function RoomPage() {
         const res = await api(`/rooms/${roomId}`);
         if (res.ok) {
           const data = await res.json();
-          setRoomName(data.name);
+          setRoomData(data);
           setMessages(data.messages || []);
           scrollToBottom();
         }
@@ -177,7 +178,7 @@ export default function RoomPage() {
         <Toolbar>
           <Button onClick={() => router.push('/dashboard')} sx={{ color: 'text.secondary', mr: 2 }}>← HUB</Button>
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
-            {roomName.toUpperCase()}
+            {roomData?.name?.toUpperCase() || 'LOADING...'}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -195,8 +196,15 @@ export default function RoomPage() {
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.paper',
-          height: { xs: '50vh', md: '100%' }
+          height: { xs: '50vh', md: '100%' },
+          position: 'relative'
         }}>
+           {/* Book Overlay/Header */}
+           {roomData?.books && roomData.books.length > 0 && (
+               <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, p: 2, background: 'linear-gradient(to bottom, rgba(0,0,0,0.9), transparent)' }}>
+                   <BookPanel book={roomData.books[0]} />
+               </Box>
+           )}
            <LiveAudio roomId={roomId} />
         </Grid>
 

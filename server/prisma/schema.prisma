@@ -113,17 +113,21 @@ model Moderator {
 }
 
 model Book {
-  id        String   @id @default(uuid())
-  title     String
-  author    String?
-  fileUrl   String
-  fileType  String
-  ownerId   String
-  roomId    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  owner     User     @relation(fields: [ownerId], references: [id])
-  room      Room?    @relation(fields: [roomId], references: [id])
+  id          String   @id @default(uuid())
+  title       String
+  author      String?
+  fileUrl     String?
+  fileType    String?
+  coverUrl    String?
+  description String?
+  isbn        String?
+  googleId    String?
+  ownerId     String
+  roomId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation(fields: [ownerId], references: [id])
+  room        Room?    @relation(fields: [roomId], references: [id])
 }
 
 model Message {

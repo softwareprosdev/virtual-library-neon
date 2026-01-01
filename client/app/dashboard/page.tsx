@@ -73,99 +73,53 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
+    const [selectedGenre, setSelectedGenre] = useState('');
+    const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
+    
+    const [mounted, setMounted] = useState(false);
+  // ...
+    const handleDiscussBook = (book: GoogleBook) => {
+      setNewRoomName(`Reading: ${book.volumeInfo.title}`);
+      setNewRoomDesc(`Discussion room for "${book.volumeInfo.title}" by ${book.volumeInfo.authors?.join(', ')}. Join us to read and discuss!`);
+      setSelectedBook(book); // Store selected book
+      setOpen(true);
+    };
   
-  const [mounted, setMounted] = useState(false);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [roomsRes, genresRes] = await Promise.all([
-        api('/rooms'),
-        api('/rooms/genres')
-      ]);
-      
-      if (!roomsRes.ok || !genresRes.ok) throw new Error("Link synchronization failed.");
-
-      const roomsData = await roomsRes.json();
-      const genresData = await genresRes.json();
-      
-      setRooms(roomsData);
-      setGenres(genresData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Neural connection lost.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-    if (!getToken()) {
-      router.push('/');
-      return;
-    }
-    fetchData();
-  }, [router, fetchData]);
-
-  const handleGenreClick = async (genre: Genre) => {
-    setLoading(true);
-    setActiveGenreName(genre.name);
-    try {
-      const books = await searchBooks(`subject:${genre.name}`);
-      setBookList(books);
-      setViewMode('books');
-      // Pre-select genre for creation
-      setSelectedGenre(genre.id);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setLoading(true);
-    setActiveGenreName(`SEARCH: "${searchQuery}"`);
-    try {
-      const books = await searchBooks(searchQuery);
-      setBookList(books);
-      setViewMode('books');
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDiscussBook = (book: GoogleBook) => {
-    setNewRoomName(`Reading: ${book.volumeInfo.title}`);
-    setNewRoomDesc(`Discussion room for "${book.volumeInfo.title}" by ${book.volumeInfo.authors?.join(', ')}. Join us to read and discuss!`);
-    setOpen(true);
-  };
-
-  const handleCreateRoom = async () => {
-    try {
-      const res = await api('/rooms', {
-        method: 'POST',
-        body: JSON.stringify({ name: newRoomName, description: newRoomDesc, genreId: selectedGenre })
-      });
-      if (res.ok) {
-        setOpen(false);
-        setNewRoomName('');
-        setNewRoomDesc('');
-        // Don't reset genre here so they stay in context
-        fetchData();
-        // Optionally redirect to the new room?
-        const room = await res.json();
-        router.push(`/room/${room.id}`);
+    const handleCreateRoom = async () => {
+      try {
+        const body: any = { 
+            name: newRoomName, 
+            description: newRoomDesc, 
+            genreId: selectedGenre 
+        };
+  
+        // Pass raw Google Book data if available
+        if (selectedBook) {
+            body.bookData = {
+                id: selectedBook.id,
+                ...selectedBook.volumeInfo
+            };
+        }
+  
+        const res = await api('/rooms', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          setOpen(false);
+          setNewRoomName('');
+          setNewRoomDesc('');
+          setSelectedBook(null);
+          // Don't reset genre here so they stay in context
+          fetchData();
+          // Optionally redirect to the new room?
+          const room = await res.json();
+          router.push(`/room/${room.id}`);
+        }
+      } catch {
+        // Failed to create room
       }
-    } catch {
-      // Failed to create room
-    }
-  };
+    };
 
   if (!mounted) return null;
 
