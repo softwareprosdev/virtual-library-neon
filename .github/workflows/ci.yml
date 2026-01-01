@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    # Backend
+    - name: Install Server Dependencies
+      run: |
+        cd server
+        npm ci
+
+    - name: Generate Prisma Client
+      run: |
+        cd server
+        npx prisma generate
+
+    - name: Build Server
+      run: |
+        cd server
+        npm run build
+
+    # Frontend
+    - name: Install Client Dependencies
+      run: |
+        cd client
+        npm ci
+
+    - name: Build Client
+      run: |
+        cd client
+        npm run build

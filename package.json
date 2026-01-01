@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client"
+  },
+  "dependencies": {
+    "@genkit-ai/mcp": "^1.27.0",
+    "mui": "^0.0.1",
+    "next-auth": "^4.24.13",
+    "simple-peer": "^9.11.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
