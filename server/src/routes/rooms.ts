@@ -94,13 +94,13 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         // If bookData exists, create the book relation immediately
         books: bookData && bookData.title ? {
           create: {
-            title: bookData.title,
-            author: Array.isArray(bookData.authors) ? bookData.authors.join(', ') : (bookData.authors || null),
-            description: bookData.description || null,
-            coverUrl: bookData.imageLinks?.thumbnail || null,
-            googleId: bookData.id || null,
+            title: String(bookData.title).substring(0, 255),
+            author: Array.isArray(bookData.authors) ? bookData.authors.join(', ').substring(0, 255) : null,
+            description: bookData.description ? String(bookData.description).substring(0, 1000) : null,
+            coverUrl: bookData.imageLinks?.thumbnail ? String(bookData.imageLinks.thumbnail) : null,
+            googleId: bookData.id ? String(bookData.id) : null,
             isbn: Array.isArray(bookData.industryIdentifiers) 
-                  ? bookData.industryIdentifiers.find((id: any) => id.type === 'ISBN_13')?.identifier 
+                  ? (bookData.industryIdentifiers.find((id: any) => id.type === 'ISBN_13')?.identifier || null)
                   : null,
             ownerId: req.user.id,
           }
