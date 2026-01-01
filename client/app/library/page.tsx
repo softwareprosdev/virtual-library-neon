@@ -9,7 +9,6 @@ import {
   Typography, 
   Button, 
   Container, 
-  Grid, 
   Card, 
   CardContent, 
   CardActions,
@@ -23,6 +22,7 @@ import {
   Chip,
   IconButton
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,9 +1,3 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { api } from '../lib/api';
-import { setToken } from '../lib/auth';
 import { 
   Box, 
   Button, 
@@ -12,7 +6,9 @@ import {
   TextField, 
   Typography, 
   Alert,
-  Container
+  Container,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 
 export default function AuthPage() {
@@ -21,15 +17,21 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [ageVerified, setAgeVerified] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    if (!isLogin && !ageVerified) {
+      setError('You must confirm you are 18 or older');
+      return;
+    }
+
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const body = isLogin ? { email, password } : { email, password, name };
+      const body = isLogin ? { email, password } : { email, password, name, ageVerified };
 
       const res = await api(endpoint, {
         method: 'POST',
@@ -44,8 +46,12 @@ export default function AuthPage() {
 
       setToken(data.token);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     }
   };
 
@@ -65,7 +71,7 @@ export default function AuthPage() {
             V-LIBRARY
           </Typography>
           <Typography variant="subtitle1" sx={{ color: 'secondary.light', letterSpacing: 2 }}>
-            NEURAL INTERFACE LINK
+            ADULT NEURAL INTERFACE (18+)
           </Typography>
         </Box>
 
@@ -79,7 +85,7 @@ export default function AuthPage() {
         >
           <CardContent sx={{ p: 4 }}>
             <Typography variant="h5" sx={{ textAlign: 'center', mb: 3, color: 'text.primary' }}>
-              {isLogin ? 'AUTHENTICATE' : 'INITIALIZE NEW USER'}
+              {isLogin ? 'AUTHENTICATE' : 'INITIALIZE MATURE ACCOUNT'}
             </Typography>
 
             {error && <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5' }}>{error}</Alert>}
@@ -113,6 +119,23 @@ export default function AuthPage() {
                 required
                 variant="outlined"
               />
+
+              {!isLogin && (
+                <FormControlLabel
+                  control={
+                    <Checkbox 
+                      checked={ageVerified} 
+                      onChange={(e) => setAgeVerified(e.target.checked)} 
+                      sx={{ color: 'primary.main' }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      I certify that I am at least 18 years of age and agree to view mature content.
+                    </Typography>
+                  }
+                />
+              )}
               
               <Button 
                 type="submit" 
@@ -121,7 +144,7 @@ export default function AuthPage() {
                 fullWidth
                 sx={{ mt: 1, py: 1.5, fontSize: '1.1rem' }}
               >
-                {isLogin ? 'JACK IN' : 'REGISTER IDENTITY'}
+                {isLogin ? 'JACK IN' : 'CONFIRM ADULT ACCESS'}
               </Button>
             </form>
 

@@ -1,42 +1,52 @@
-import { useEffect, useState } from 'react';
-import { Box, TextField, Button, List, ListItem, ListItemText } from '@mui/material';
+'use client';
 
-export default function ChatPanel({ socket, myId }: { socket: any; myId: string }) {
-  const [text, setText] = useState('');
-  const [msgs, setMsgs] = useState<any[]>([]);
+import { useState } from 'react';
+import { Box, TextField, Button, Paper, Typography } from '@mui/material';
 
-  useEffect(() => {
-    socket.on('chat', (msg: any) => setMsgs(m => [...m, msg]));
-    return () => socket.off('chat');
-  }, [socket]);
+interface Message {
+  text: string;
+  senderId: string;
+}
 
-  const send = () => {
-    if (!text.trim()) return;
-    socket.emit('chat', { roomId: socket.id, text });
-    setText('');
+interface ChatPanelProps {
+  socket: {
+    emit: (event: string, data: { roomId: string; text: string }) => void;
+  };
+  myId: string;
+  roomId?: string; // Adding optional roomId
+}
+
+export default function ChatPanel({ socket, myId, roomId = 'default' }: ChatPanelProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+
+  const sendMessage = () => {
+    if (input.trim()) {
+      socket.emit('chat', { roomId, text: input });
+      setMessages([...messages, { text: input, senderId: myId }]);
+      setInput('');
+    }
   };
 
   return (
-    <Box sx={{ flex: 1 }}>
-      <List sx={{ height: 200, overflow: 'auto' }}>
-        {msgs.map((m) => (
-          <ListItem key={m.id}>
-            <ListItemText primary={`${m.senderId === myId ? 'Me' : m.senderId}: ${m.text}`} />
-          </ListItem>
+    <Box sx={{ width: 300, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.paper', p: 2 }}>
+      <Typography variant="h6" gutterBottom>Room Chat</Typography>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
+        {messages.map((msg, i) => (
+          <Paper key={i} sx={{ p: 1, mb: 1, bgcolor: msg.senderId === myId ? 'primary.dark' : 'background.default' }}>
+            <Typography variant="body2">{msg.text}</Typography>
+          </Paper>
         ))}
-      </List>
-
-      <Box sx={{ display: 'flex', mt: 1 }}>
-        <TextField
-          fullWidth
-          placeholder="Type a message…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && send()}
+      </Box>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <TextField 
+          fullWidth 
+          size="small" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Message..."
         />
-        <Button variant="contained" onClick={send} sx={{ ml: 1 }}>
-          Send
-        </Button>
+        <Button variant="contained" onClick={sendMessage}>Send</Button>
       </Box>
     </Box>
   );

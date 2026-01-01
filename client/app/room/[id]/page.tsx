@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { connectSocket, getSocket } from '../../../lib/socket';
 import { api } from '../../../lib/api';
@@ -14,10 +14,9 @@ import {
   AppBar,
   Toolbar,
   Button,
-  Grid,
-  IconButton,
   Avatar
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 
 const VideoPanel = nextDynamic(() => import('../../../components/VideoPanel'), { 
   ssr: false,
@@ -42,22 +41,16 @@ export default function RoomPage() {
   const [inputText, setInputText] = useState('');
   const [roomName, setRoomName] = useState('Loading...');
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<any>(null);
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  useEffect(() => {
-    const s = connectSocket();
-    setSocket(s);
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }, []);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push('/');
-      return;
-    }
-
     const fetchRoomData = async () => {
       try {
         const res = await api(`/rooms/${roomId}`);
@@ -72,29 +65,34 @@ export default function RoomPage() {
       }
     };
 
-    fetchRoomData();
-  }, [roomId, router]);
+    const token = getToken();
+    if (!token) {
+      router.push('/');
+      return;
+    }
 
-  useEffect(() => {
-    if (!socket) return;
+    fetchRoomData();
+    
+    // Socket setup
+    const socket = connectSocket();
 
     function onConnect() {
       setIsConnected(true);
-      socket?.emit('joinRoom', { roomId });
+      socket.emit('joinRoom', { roomId });
     }
 
     function onDisconnect() {
       setIsConnected(false);
     }
 
-    function onMessage(message: any) {
+    function onMessage(message: Message) {
       setMessages((prev) => [...prev, message]);
       scrollToBottom();
     }
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
-    socket.on('message', onMessage);
+    socket.on('message', (data: unknown) => onMessage(data as Message));
 
     if (socket.connected) {
       onConnect();
@@ -103,21 +101,17 @@ export default function RoomPage() {
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('message', onMessage);
+      socket.off('message');
       socket.emit('leaveRoom', { roomId });
+      socket.disconnect();
     };
-  }, [roomId, socket]);
-
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
+  }, [roomId, router, scrollToBottom]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputText.trim()) {
-      socket?.emit('chat', { roomId, text: inputText });
+    const socket = getSocket();
+    if (inputText.trim() && socket) {
+      socket.emit('chat', { roomId, text: inputText });
       setInputText('');
     }
   };
@@ -156,7 +150,7 @@ export default function RoomPage() {
       <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {/* Main Content Area (Video) */}
         <Grid item xs={12} md={8} sx={{ borderRight: '1px solid #333', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', bgcolor: 'background.paper' }}>
-           {socket && <VideoPanel roomId={roomId} socket={socket} />}
+           <VideoPanel roomId={roomId} socket={getSocket()} />
         </Grid>
 
         {/* Chat Panel */}
@@ -164,11 +158,11 @@ export default function RoomPage() {
           <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {messages.map((msg, index) => (
               <Box key={msg.id || index} sx={{ display: 'flex', gap: 1 }}>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>{msg.sender.name[0]}</Avatar>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>{msg.sender.name ? msg.sender.name[0] : '?'}</Avatar>
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                     <Typography variant="caption" sx={{ color: 'primary.light', fontWeight: 'bold' }}>
-                      {msg.sender.name}
+                      {msg.sender.name || 'Anonymous'}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>
                       {new Date(msg.createdAt).toLocaleTimeString()}

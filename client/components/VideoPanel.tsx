@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Peer from 'simple-peer';
 import { Box, Typography, IconButton, Paper, Button } from '@mui/material';
 
 // Placeholders for icons
@@ -10,47 +9,58 @@ const VideocamIcon = () => <span>📹</span>;
 
 interface VideoPanelProps {
   roomId: string;
-  socket: any;
+  socket: {
+    on: (event: string, callback: (data: { userId: string, signal: unknown }) => void) => void;
+    off: (event: string, callback?: unknown) => void;
+    emit: (event: string, data: unknown) => void;
+  };
 }
 
 export default function VideoPanel({ roomId, socket }: VideoPanelProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [peers, setPeers] = useState<{ [key: string]: Peer.Instance }>({});
-  const [remoteStreams, setRemoteStreams] = useState<{ [key: string]: MediaStream }>({});
+  const [remoteStreams] = useState<{ [key: string]: MediaStream }>({});
   
   const userVideo = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     // 1. Get User Media
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((currentStream) => {
+    const getMedia = async () => {
+      try {
+        const currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setStream(currentStream);
         if (userVideo.current) {
           userVideo.current.srcObject = currentStream;
         }
 
-        socket.on('userJoined', ({ userId, email }: any) => {
-          console.log('User joined, creating offer...', userId);
+        socket.on('userJoined', (data: { userId: string }) => {
+          console.log('User joined, creating offer...', data.userId);
         });
 
-        socket.on('signal', ({ from, signal }: any) => {
+        socket.on('signal', (data: { userId: string, signal: unknown }) => {
           // Handle incoming WebRTC signal
+          console.log('Received signal', data.signal);
         });
-      })
-      .catch((err) => {
+      } catch (err: unknown) {
         console.error("Media Access Error:", err);
-        if (err.name === 'NotAllowedError') {
+        if (err instanceof Error && err.name === 'NotAllowedError') {
           setError("Camera/Mic access denied. Please enable permissions in your browser settings to use video features.");
         } else {
           setError("Could not access camera or microphone. Please check your hardware.");
         }
-      });
+      }
+    };
+
+    getMedia();
 
     return () => {
-      stream?.getTracks().forEach(track => track.stop());
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      socket.off('userJoined');
+      socket.off('signal');
     };
-  }, [roomId, socket]);
+  }, [roomId, socket, stream]);
 
   if (error) {
     return (
@@ -75,7 +85,7 @@ export default function VideoPanel({ roomId, socket }: VideoPanelProps) {
           </Box>
         </Paper>
 
-        {/* Remote Videos would go here */}
+        {/* Remote Videos */}
         {Object.keys(remoteStreams).map(id => (
            <Paper key={id} sx={{ width: 300, height: 225, bgcolor: '#000', border: '1px solid #ec4899' }}>
               <video playsInline autoPlay ref={el => { if(el) el.srcObject = remoteStreams[id] }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

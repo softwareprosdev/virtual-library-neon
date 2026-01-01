@@ -5,8 +5,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from '../lib/theme';
 import "./globals.css";
 
-import { Viewport } from 'next';
-
 export const metadata = {
   title: "Virtual Library | Neon",
   description: "Collaborative study rooms.",

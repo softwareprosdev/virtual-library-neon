@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
-import {
-  Typography,
-  Button,
-  Container,
-  Grid,
-  Card,
-  CardContent,
+import { 
+  Typography, 
+  Button, 
+  Container, 
+  Card, 
+  CardContent, 
   CardActions,
   Dialog,
   DialogTitle,
@@ -22,10 +21,10 @@ import {
   Box,
   Chip
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 
 export const dynamic = 'force-dynamic';
 
-// Using a generic Add icon replacement since we haven't set up icons yet
 const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
 const UserIcon = () => <span>👤</span>;
 
@@ -52,17 +51,7 @@ export default function Dashboard() {
   const [newRoomDesc, setNewRoomDesc] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push('/');
-      return;
-    }
-    fetchRooms();
-    fetchCategories();
-  }, [router]);
-
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       const res = await api('/rooms');
       if (res.ok) {
@@ -72,9 +61,9 @@ export default function Dashboard() {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const res = await api('/rooms/categories');
       if (res.ok) {
@@ -84,14 +73,29 @@ export default function Dashboard() {
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      router.push('/');
+      return;
+    }
+    
+    const init = async () => {
+      await fetchRooms();
+      await fetchCategories();
+    };
+    
+    init();
+  }, [router, fetchRooms, fetchCategories]);
 
   const handleCreateRoom = async () => {
     try {
       const res = await api('/rooms', {
         method: 'POST',
-        body: JSON.stringify({
-          name: newRoomName,
+        body: JSON.stringify({ 
+          name: newRoomName, 
           description: newRoomDesc,
           categoryId: selectedCat
         })
@@ -131,11 +135,17 @@ export default function Dashboard() {
                   flexDirection: 'column',
                   background: 'linear-gradient(180deg, rgba(10,10,10,1) 0%, rgba(20,20,20,1) 100%)',
                 }}
-              >                <CardContent sx={{ flexGrow: 1 }}>
+              >
+                <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h5" component="div" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
                     {room.name}
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                    <Chip 
+                      label="MATURE CONTENT" 
+                      size="small" 
+                      sx={{ bgcolor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.6rem', border: '1px solid #ef4444' }} 
+                    />
                     {room.category && (
                       <Chip 
                         label={room.category.name} 

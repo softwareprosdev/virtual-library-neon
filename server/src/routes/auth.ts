@@ -10,11 +10,16 @@ const router = Router();
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   console.log('Received register request:', req.body.email); // Debug log
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, ageVerified } = req.body;
 
     if (!email || !password) {
       console.log('Missing email or password');
       res.status(400).json({ message: "Email and password are required" });
+      return;
+    }
+
+    if (!ageVerified) {
+      res.status(400).json({ message: "You must be 18 or older to join this platform" });
       return;
     }
 
@@ -35,7 +40,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       data: {
         email,
         password: hashedPassword,
-        name
+        name,
+        ageVerified: true
       }
     });
     console.log('User created:', user.id);

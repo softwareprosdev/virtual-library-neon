@@ -4,10 +4,11 @@ async function main() {
   console.log('Seeding categories...');
   
   const categories = [
-    { name: 'Science Fiction', description: 'Discussing the future, space, and technology.' },
+    { name: 'Erotica & Dark Romance', description: 'Explicit adult literature and intense romantic themes.' },
+    { name: 'Mature Sci-Fi & Cyberpunk', description: 'Grit, noir, and adult themes in futuristic settings.' },
+    { name: 'Horror & Taboo', description: 'Graphic horror and controversial literary explorations.' },
+    { name: 'Philosophy & Counter-Culture', description: 'Deep intellectual dives into radical and mature concepts.' },
     { name: 'Technical Docs', description: 'Deep dives into code, architecture, and engineering.' },
-    { name: 'Classical Literature', description: 'Analysis of timeless literary works.' },
-    { name: 'History & Research', description: 'Archival discussions and historical research.' },
   ];
 
   for (const cat of categories) {
