@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Track, RoomEvent, RoomState } from 'livekit-client';
+import { Track, RoomEvent, ConnectionState } from 'livekit-client';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -66,7 +66,7 @@ function CustomPublisher({
   useEffect(() => {
     if (!room) return;
     const updateState = () => {
-       setIsRoomConnected(room.state === RoomState.Connected);
+       setIsRoomConnected(room.state === ConnectionState.Connected);
     };
     updateState();
     room.on(RoomEvent.StateChanged, updateState);
