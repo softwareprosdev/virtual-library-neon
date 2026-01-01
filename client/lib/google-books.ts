@@ -19,16 +19,60 @@ export interface GoogleBook {
   };
 }
 
-export async function searchBooks(query: string): Promise<GoogleBook[]> {
+export interface SearchBooksResult {
+  books: GoogleBook[];
+  totalItems: number;
+  hasMore: boolean;
+}
+
+export async function searchBooks(
+  query: string,
+  startIndex: number = 0,
+  maxResults: number = 20
+): Promise<SearchBooksResult> {
   try {
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`);
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&startIndex=${startIndex}&maxResults=${maxResults}`
+    );
     if (!res.ok) {
       throw new Error(`Google Books API error: ${res.statusText}`);
     }
     const data = await res.json();
-    return data.items || [];
+    const books = data.items || [];
+    const totalItems = data.totalItems || 0;
+    return {
+      books,
+      totalItems,
+      hasMore: startIndex + books.length < totalItems
+    };
   } catch (error) {
     console.error("Failed to fetch books:", error);
+    return { books: [], totalItems: 0, hasMore: false };
+  }
+}
+
+export async function getTrendingBooks(): Promise<GoogleBook[]> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=subject:fiction&orderBy=relevance&maxResults=10`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getNewReleases(): Promise<GoogleBook[]> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=subject:fiction&orderBy=newest&maxResults=10`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.items || [];
+  } catch {
     return [];
   }
 }

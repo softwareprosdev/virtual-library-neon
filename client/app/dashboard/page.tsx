@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
-import { searchBooks, GoogleBook } from '../../lib/google-books';
+import { searchBooks, getTrendingBooks, getNewReleases, GoogleBook } from '../../lib/google-books';
 import type { FormEvent } from 'react';
 import {
   Typography,
@@ -34,6 +34,31 @@ export const dynamic = 'force-dynamic';
 const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
 const SearchIcon = () => <span>🔍</span>;
 const BackIcon = () => <span>←</span>;
+const FireIcon = () => <span>🔥</span>;
+const NewIcon = () => <span>✨</span>;
+const BookIcon = () => <span>📚</span>;
+
+// Popular book categories for browsing
+const POPULAR_CATEGORIES = [
+  { id: 'fiction', name: 'Fiction', icon: '📖' },
+  { id: 'science-fiction', name: 'Science Fiction', icon: '🚀' },
+  { id: 'fantasy', name: 'Fantasy', icon: '🐉' },
+  { id: 'mystery', name: 'Mystery', icon: '🔍' },
+  { id: 'thriller', name: 'Thriller', icon: '😱' },
+  { id: 'romance', name: 'Romance', icon: '💕' },
+  { id: 'horror', name: 'Horror', icon: '👻' },
+  { id: 'biography', name: 'Biography', icon: '👤' },
+  { id: 'history', name: 'History', icon: '🏛️' },
+  { id: 'philosophy', name: 'Philosophy', icon: '🤔' },
+  { id: 'psychology', name: 'Psychology', icon: '🧠' },
+  { id: 'self-help', name: 'Self Help', icon: '💪' },
+  { id: 'business', name: 'Business', icon: '💼' },
+  { id: 'technology', name: 'Technology', icon: '💻' },
+  { id: 'poetry', name: 'Poetry', icon: '✒️' },
+  { id: 'comics', name: 'Comics & Manga', icon: '🎨' },
+  { id: 'young-adult', name: 'Young Adult', icon: '🌟' },
+  { id: 'classics', name: 'Classics', icon: '📜' },
+];
 
 interface Room {
   id: string;
@@ -67,38 +92,52 @@ export default function Dashboard() {
   const [bookList, setBookList] = useState<GoogleBook[]>([]);
   const [activeGenreName, setActiveGenreName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [, setIsSearching] = useState(false);
-  
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Infinite scroll state
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const bookListRef = useRef<HTMLDivElement>(null);
+
+  // Featured sections
+  const [trendingBooks, setTrendingBooks] = useState<GoogleBook[]>([]);
+  const [newReleases, setNewReleases] = useState<GoogleBook[]>([]);
+
   // Room Creation State
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
-    const [selectedGenre, setSelectedGenre] = useState('');
-    const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
+
+  const [mounted, setMounted] = useState(false);
     
-      const [mounted, setMounted] = useState(false);
-    
-      const fetchData = useCallback(async () => {
-        try {
-          setLoading(true);
-          const [roomsRes, genresRes] = await Promise.all([
-            api('/rooms'),
-            api('/rooms/genres')
-          ]);
-          
-          if (!roomsRes.ok || !genresRes.ok) throw new Error("Link synchronization failed.");
-    
-          const roomsData = await roomsRes.json();
-          const genresData = await genresRes.json();
-          
-          setRooms(roomsData);
-          setGenres(genresData);
-        } catch (err: unknown) {
-          setError(err instanceof Error ? err.message : 'Neural connection lost.');
-        } finally {
-          setLoading(false);
-        }
-      }, []);
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [roomsRes, genresRes, trending, releases] = await Promise.all([
+        api('/rooms'),
+        api('/rooms/genres'),
+        getTrendingBooks(),
+        getNewReleases()
+      ]);
+
+      if (!roomsRes.ok || !genresRes.ok) throw new Error("Link synchronization failed.");
+
+      const roomsData = await roomsRes.json();
+      const genresData = await genresRes.json();
+
+      setRooms(roomsData);
+      setGenres(genresData);
+      setTrendingBooks(trending);
+      setNewReleases(releases);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Neural connection lost.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
     
       useEffect(() => {
         setMounted(true);
@@ -109,35 +148,85 @@ export default function Dashboard() {
         fetchData();
       }, [router, fetchData]);
     
-      const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!searchQuery.trim()) return;
-      try {
-        setIsSearching(true);
-        const results = await searchBooks(searchQuery);
-        setBookList(results);
-        setActiveGenreName(`Search: "${searchQuery}"`);
-        setViewMode('books');
-      } catch {
-        // Search failed
-      } finally {
-        setIsSearching(false);
+    const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    try {
+      setIsSearching(true);
+      const result = await searchBooks(searchQuery, 0, 20);
+      setBookList(result.books);
+      setHasMore(result.hasMore);
+      setCurrentQuery(searchQuery);
+      setActiveGenreName(`Search: "${searchQuery}"`);
+      setViewMode('books');
+    } catch {
+      // Search failed
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleGenreClick = async (genre: Genre) => {
+    try {
+      setIsSearching(true);
+      const result = await searchBooks(genre.name, 0, 20);
+      setBookList(result.books);
+      setHasMore(result.hasMore);
+      setCurrentQuery(genre.name);
+      setActiveGenreName(genre.name);
+      setViewMode('books');
+    } catch {
+      // Genre search failed
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleCategoryClick = async (category: { id: string; name: string }) => {
+    try {
+      setIsSearching(true);
+      const result = await searchBooks(`subject:${category.id}`, 0, 20);
+      setBookList(result.books);
+      setHasMore(result.hasMore);
+      setCurrentQuery(`subject:${category.id}`);
+      setActiveGenreName(category.name);
+      setViewMode('books');
+    } catch {
+      // Category search failed
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const loadMoreBooks = useCallback(async () => {
+    if (loadingMore || !hasMore || !currentQuery) return;
+    try {
+      setLoadingMore(true);
+      const result = await searchBooks(currentQuery, bookList.length, 20);
+      setBookList(prev => [...prev, ...result.books]);
+      setHasMore(result.hasMore);
+    } catch {
+      // Load more failed
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, currentQuery, bookList.length]);
+
+  // Infinite scroll detection
+  useEffect(() => {
+    if (viewMode !== 'books') return;
+
+    const handleScroll = () => {
+      if (!bookListRef.current) return;
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      if (scrollTop + clientHeight >= scrollHeight - 500) {
+        loadMoreBooks();
       }
     };
 
-    const handleGenreClick = async (genre: Genre) => {
-      try {
-        setIsSearching(true);
-        const results = await searchBooks(genre.name);
-        setBookList(results);
-        setActiveGenreName(genre.name);
-        setViewMode('books');
-      } catch {
-        // Genre search failed
-      } finally {
-        setIsSearching(false);
-      }
-    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [viewMode, loadMoreBooks]);
 
     const handleDiscussBook = (book: GoogleBook) => {
       setNewRoomName(`Reading: ${book.volumeInfo.title}`);
@@ -246,81 +335,234 @@ export default function Dashboard() {
         ) : (
           <>
             {viewMode === 'genres' ? (
-                // Genre Grid
-                <Box sx={{ mb: 10 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.light', mb: 4 }}>SELECT_GENRE_MODULE</Typography>
+              <>
+                {/* Trending Books Section */}
+                {trendingBooks.length > 0 && (
+                  <Box sx={{ mb: 6 }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                      <FireIcon />
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'error.light' }}>TRENDING_NOW</Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
+                      {trendingBooks.map((book) => (
+                        <Card key={book.id} sx={{ minWidth: 180, maxWidth: 180, bgcolor: '#050505', border: '1px solid #333', flexShrink: 0 }}>
+                          {book.volumeInfo.imageLinks?.thumbnail && (
+                            <CardMedia
+                              component="img"
+                              height="200"
+                              image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                              alt={book.volumeInfo.title}
+                              sx={{ objectFit: 'contain', bgcolor: '#000', pt: 1 }}
+                            />
+                          )}
+                          <CardContent sx={{ p: 1.5 }}>
+                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold', display: 'block', lineHeight: 1.2, mb: 0.5 }} noWrap>
+                              {book.volumeInfo.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {book.volumeInfo.authors?.[0] || 'Unknown'}
+                            </Typography>
+                            <Button size="small" variant="outlined" color="primary" fullWidth sx={{ mt: 1, fontSize: '0.65rem' }} onClick={() => handleDiscussBook(book)}>
+                              DISCUSS
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+
+                {/* New Releases Section */}
+                {newReleases.length > 0 && (
+                  <Box sx={{ mb: 6 }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                      <NewIcon />
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'secondary.light' }}>NEW_RELEASES</Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
+                      {newReleases.map((book) => (
+                        <Card key={book.id} sx={{ minWidth: 180, maxWidth: 180, bgcolor: '#050505', border: '1px solid #333', flexShrink: 0 }}>
+                          {book.volumeInfo.imageLinks?.thumbnail && (
+                            <CardMedia
+                              component="img"
+                              height="200"
+                              image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                              alt={book.volumeInfo.title}
+                              sx={{ objectFit: 'contain', bgcolor: '#000', pt: 1 }}
+                            />
+                          )}
+                          <CardContent sx={{ p: 1.5 }}>
+                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold', display: 'block', lineHeight: 1.2, mb: 0.5 }} noWrap>
+                              {book.volumeInfo.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {book.volumeInfo.authors?.[0] || 'Unknown'}
+                            </Typography>
+                            <Button size="small" variant="outlined" color="secondary" fullWidth sx={{ mt: 1, fontSize: '0.65rem' }} onClick={() => handleDiscussBook(book)}>
+                              DISCUSS
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+
+                {/* Popular Categories */}
+                <Box sx={{ mb: 6 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                    <BookIcon />
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.light' }}>BROWSE_BY_CATEGORY</Typography>
+                  </Stack>
                   <Grid container spacing={2}>
-                    {genres.map((genre) => (
-                      <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={genre.id}>
-                        <Box 
-                          onClick={() => handleGenreClick(genre)}
-                          sx={{ 
-                            position: 'relative', height: 200, borderRadius: '4px', 
+                    {POPULAR_CATEGORIES.map((category) => (
+                      <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={category.id}>
+                        <Box
+                          onClick={() => handleCategoryClick(category)}
+                          sx={{
+                            position: 'relative', height: 120, borderRadius: '4px',
                             cursor: 'pointer', transition: 'all 0.2s ease',
                             border: '1px solid #333',
                             bgcolor: '#0a0a0a',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexDirection: 'column',
                             textAlign: 'center', p: 2,
-                            '&:hover': { 
-                                borderColor: 'primary.main', 
-                                boxShadow: '0 0 20px rgba(0, 243, 255, 0.2)',
-                                transform: 'scale(1.02)'
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              boxShadow: '0 0 20px rgba(0, 243, 255, 0.2)',
+                              transform: 'scale(1.02)'
                             }
                           }}
                         >
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 900, color: 'white' }}>{genre.name.toUpperCase()}</Typography>
-                                {genre.isAdult && <Chip label="18+" size="small" sx={{ mt: 1, height: 16, fontSize: '0.6rem', bgcolor: 'error.main' }} />}
-                            </Box>
+                          <Typography sx={{ fontSize: '2rem', mb: 1 }}>{category.icon}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'white' }}>{category.name.toUpperCase()}</Typography>
                         </Box>
                       </Grid>
                     ))}
                   </Grid>
                 </Box>
+
+                {/* Room Genres (from API) */}
+                {genres.length > 0 && (
+                  <Box sx={{ mb: 6 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 3 }}>ROOM_GENRES</Typography>
+                    <Grid container spacing={2}>
+                      {genres.map((genre) => (
+                        <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={genre.id}>
+                          <Box
+                            onClick={() => handleGenreClick(genre)}
+                            sx={{
+                              position: 'relative', height: 100, borderRadius: '4px',
+                              cursor: 'pointer', transition: 'all 0.2s ease',
+                              border: '1px solid #222',
+                              bgcolor: '#050505',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              textAlign: 'center', p: 2,
+                              '&:hover': {
+                                borderColor: 'secondary.main',
+                                boxShadow: '0 0 15px rgba(217, 70, 239, 0.2)',
+                                transform: 'scale(1.02)'
+                              }
+                            }}
+                          >
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 900, color: 'white' }}>{genre.name.toUpperCase()}</Typography>
+                              {genre.isAdult && <Chip label="18+" size="small" sx={{ mt: 0.5, height: 14, fontSize: '0.55rem', bgcolor: 'error.main' }} />}
+                              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>{genre._count.rooms} rooms</Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                )}
+              </>
             ) : (
-                // Book Grid
-                <Box sx={{ mb: 10 }}>
+                // Book Grid with Infinite Scroll
+                <Box ref={bookListRef} sx={{ mb: 10 }}>
                     <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
                         <Button startIcon={<BackIcon />} onClick={() => setViewMode('genres')} color="inherit">BACK</Button>
                         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'secondary.light' }}>
                             {activeGenreName.toUpperCase()}
                         </Typography>
+                        <Chip label={`${bookList.length} books`} size="small" sx={{ ml: 'auto' }} />
                     </Stack>
-                    
-                    <Grid container spacing={3}>
-                        {bookList.map((book) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={book.id}>
-                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#050505', border: '1px solid #222' }}>
-                                    {book.volumeInfo.imageLinks?.thumbnail && (
-                                        <CardMedia
-                                            component="img"
-                                            height="240"
-                                            image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                                            alt={book.volumeInfo.title}
-                                            sx={{ objectFit: 'contain', bgcolor: '#000', pt: 2 }}
-                                        />
-                                    )}
-                                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                                        <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', lineHeight: 1.2, mb: 1 }}>
-                                            {book.volumeInfo.title}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                                            {book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
-                                        </Typography>
-                                        <Button 
-                                            variant="outlined" 
-                                            color="primary" 
-                                            fullWidth 
-                                            sx={{ mt: 'auto' }}
-                                            onClick={() => handleDiscussBook(book)}
-                                        >
-                                            START DISCUSSION
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
+
+                    {isSearching && bookList.length === 0 ? (
+                      <Grid container spacing={3}>
+                        {[1,2,3,4,5,6,7,8].map(i => (
+                          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
+                            <Skeleton variant="rectangular" height={350} sx={{ bgcolor: '#111', borderRadius: 1 }} />
+                          </Grid>
                         ))}
-                    </Grid>
+                      </Grid>
+                    ) : (
+                      <>
+                        <Grid container spacing={3}>
+                            {bookList.map((book, index) => (
+                                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`${book.id}-${index}`}>
+                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#050505', border: '1px solid #222', transition: 'all 0.2s ease', '&:hover': { borderColor: 'primary.main', transform: 'translateY(-4px)' } }}>
+                                        {book.volumeInfo.imageLinks?.thumbnail && (
+                                            <CardMedia
+                                                component="img"
+                                                height="240"
+                                                image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                                                alt={book.volumeInfo.title}
+                                                sx={{ objectFit: 'contain', bgcolor: '#000', pt: 2 }}
+                                            />
+                                        )}
+                                        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', lineHeight: 1.2, mb: 1 }}>
+                                                {book.volumeInfo.title}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                                                {book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
+                                            </Typography>
+                                            {book.volumeInfo.publishedDate && (
+                                              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block', opacity: 0.7 }}>
+                                                {book.volumeInfo.publishedDate.split('-')[0]}
+                                              </Typography>
+                                            )}
+                                            <Button
+                                                variant="outlined"
+                                                color="primary"
+                                                fullWidth
+                                                sx={{ mt: 'auto' }}
+                                                onClick={() => handleDiscussBook(book)}
+                                            >
+                                                START DISCUSSION
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+
+                        {/* Load More Indicator */}
+                        {loadingMore && (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: '#333' }} />
+                              <Typography variant="body2" color="text.secondary">LOADING_MORE_BOOKS...</Typography>
+                            </Stack>
+                          </Box>
+                        )}
+
+                        {hasMore && !loadingMore && (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <Button variant="outlined" onClick={loadMoreBooks}>
+                              LOAD_MORE
+                            </Button>
+                          </Box>
+                        )}
+
+                        {!hasMore && bookList.length > 0 && (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                            <Typography variant="caption" color="text.secondary">END_OF_RESULTS</Typography>
+                          </Box>
+                        )}
+                      </>
+                    )}
                 </Box>
             )}
 
