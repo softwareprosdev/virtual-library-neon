@@ -1,5 +1,8 @@
 'use client';
 
+// Polyfill DOMMatrix for environments where it's missing (like some SSR contexts or older browsers)
+import 'dommatrix/dist/dommatrix.js';
+
 import { useState, useRef, forwardRef, useEffect } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { Document, Page, pdfjs } from 'react-pdf';
