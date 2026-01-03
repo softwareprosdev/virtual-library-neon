@@ -19,6 +19,9 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 4000;
 
+// Trust Proxy for Coolify/Traefik
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet());
 
