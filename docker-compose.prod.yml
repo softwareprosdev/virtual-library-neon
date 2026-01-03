@@ -1,35 +1,9 @@
 version: '3.9'
 
 services:
-  postgres:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app_network
-
-  redis:
-    image: redis:7
-    restart: always
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app_network
+  # PostgreSQL and Redis are provided by Coolify as managed services
+  # No need to define them here for Coolify deployments
+  # For self-hosted deployments, use docker-compose.yml instead
 
   server:
     build:
@@ -50,15 +24,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
     volumes:
       - uploads_data:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     ports:
       - "4000:4000"
-    networks:
-      - app_network
 
   client:
     build:
@@ -75,14 +42,6 @@ services:
       - "3000:3000"
     depends_on:
       - server
-    networks:
-      - app_network
 
 volumes:
-  postgres_data:
-  redis_data:
   uploads_data:
-
-networks:
-  app_network:
-    driver: bridge
