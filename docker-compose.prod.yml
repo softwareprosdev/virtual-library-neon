@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - vlib_network
+      - app_network
 
   redis:
     image: redis:7
@@ -29,7 +29,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - vlib_network
+      - app_network
 
   server:
     build:
@@ -58,7 +58,7 @@ services:
     ports:
       - "4000:4000"
     networks:
-      - vlib_network
+      - app_network
 
   client:
     build:
@@ -76,7 +76,7 @@ services:
     depends_on:
       - server
     networks:
-      - vlib_network
+      - app_network
 
 volumes:
   postgres_data:
@@ -84,5 +84,5 @@ volumes:
   uploads_data:
 
 networks:
-  vlib_network:
+  app_network:
     driver: bridge
