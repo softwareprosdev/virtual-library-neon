@@ -137,12 +137,25 @@ export default function LibraryPage() {
 
   return (
     <MainLayout>
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography variant="h2" component="h1" gutterBottom className="neon-text" sx={{ color: 'white' }}>
+          <Typography
+            variant="h2"
+            component="h1"
+            gutterBottom
+            className="neon-text"
+            sx={{
+              color: 'white',
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3.75rem' }
+            }}
+          >
             MY ARCHIVES
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}
+          >
             Manage your synchronized knowledge modules
           </Typography>
           <Box sx={{ mt: 4, maxWidth: 600, mx: 'auto' }}>
@@ -205,9 +218,14 @@ export default function LibraryPage() {
         </Grid>
       </Container>
 
-      <Fab 
-        color="secondary" 
-        sx={{ position: 'fixed', bottom: 32, right: 32 }}
+      <Fab
+        color="secondary"
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 16, sm: 32 },
+          right: { xs: 16, sm: 32 },
+          zIndex: 1000
+        }}
         onClick={() => setOpen(true)}
       >
         <AddIcon />

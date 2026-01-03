@@ -62,21 +62,39 @@ export default function AuthPage() {
   };
 
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at center, #1a0526 0%, #000000 100%)'
+        background: 'radial-gradient(circle at center, #1a0526 0%, #000000 100%)',
+        px: 2,
+        py: 4
       }}
     >
-      <Container maxWidth="xs">
+      <Container maxWidth="xs" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main', textShadow: '0 0 20px rgba(217, 70, 239, 0.5)' }}>
+          <Typography
+            variant="h3"
+            component="h1"
+            sx={{
+              fontWeight: 'bold',
+              color: 'primary.main',
+              textShadow: '0 0 20px rgba(217, 70, 239, 0.5)',
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+            }}
+          >
             V-LIBRARY
           </Typography>
-          <Typography variant="subtitle1" sx={{ color: 'secondary.light', letterSpacing: 2 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              color: 'secondary.light',
+              letterSpacing: 2,
+              fontSize: { xs: '0.75rem', sm: '1rem' }
+            }}
+          >
             ADULT NEURAL INTERFACE (18+)
           </Typography>
         </Box>

@@ -289,41 +289,64 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Header Section */}
         <Box sx={{ mb: 6 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            spacing={{ xs: 3, md: 0 }}
+          >
             <Box>
-                <Typography variant="overline" color="primary.main" sx={{ letterSpacing: 4, fontWeight: 'bold' }}>
-                    SYSTEM_STATUS: OPERATIONAL // BOOK_DB_ONLINE
-                </Typography>
-                <Typography variant="h2" className="neon-text" sx={{ fontWeight: 900, mb: 1, color: 'white' }}>
-                    LITERARY_NEXUS
-                </Typography>
+              <Typography
+                variant="overline"
+                color="primary.main"
+                sx={{
+                  letterSpacing: { xs: 2, sm: 4 },
+                  fontWeight: 'bold',
+                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                  display: 'block'
+                }}
+              >
+                SYSTEM_STATUS: OPERATIONAL // BOOK_DB_ONLINE
+              </Typography>
+              <Typography
+                variant="h2"
+                className="neon-text"
+                sx={{
+                  fontWeight: 900,
+                  mb: 1,
+                  color: 'white',
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3.75rem' }
+                }}
+              >
+                LITERARY_NEXUS
+              </Typography>
             </Box>
-            <form onSubmit={handleSearch}>
-                <TextField 
-                    placeholder="SEARCH_DATABASE..." 
-                    variant="outlined" 
-                    size="small"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    sx={{ 
-                        width: 300, 
-                        '& .MuiOutlinedInput-root': { bgcolor: '#050505', color: 'white' } 
-                    }}
-                    slotProps={{
-                        input: {
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton type="submit" edge="end" sx={{ color: 'primary.main' }}>
-                                        <SearchIcon />
-                                    </IconButton>
-                                </InputAdornment>
-                            )
-                        }
-                    }}
-                />
+            <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '300px' }}>
+              <TextField
+                placeholder="SEARCH_DATABASE..."
+                variant="outlined"
+                size="small"
+                fullWidth
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': { bgcolor: '#050505', color: 'white' }
+                }}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton type="submit" edge="end" sx={{ color: 'primary.main' }}>
+                          <SearchIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }
+                }}
+              />
             </form>
           </Stack>
         </Box>
@@ -587,13 +610,18 @@ export default function Dashboard() {
         )}
       </Container>
 
-      <Fab 
-        color="secondary" 
-        sx={{ position: 'fixed', bottom: 32, right: 32 }}
+      <Fab
+        color="secondary"
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 16, sm: 32 },
+          right: { xs: 16, sm: 32 },
+          zIndex: 1000
+        }}
         onClick={() => {
-            setNewRoomName('');
-            setNewRoomDesc('');
-            setOpen(true);
+          setNewRoomName('');
+          setNewRoomDesc('');
+          setOpen(true);
         }}
       >
         <AddIcon />
