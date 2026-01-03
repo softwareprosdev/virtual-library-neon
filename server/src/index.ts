@@ -85,7 +85,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Initialize Socket Logic
 setupSocket(io).catch(err => {
-  if (!isProduction) console.error('Socket setup failed:', err);
+  console.error('Socket setup failed:', err);
 });
 
 // Basic Health Check
@@ -100,5 +100,5 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Start Server
 httpServer.listen(port, () => {
-  if (!isProduction) console.log(`[server]: Server is running at http://localhost:${port}`);
+  console.log(`[server]: Server is running on port ${port}`);
 });

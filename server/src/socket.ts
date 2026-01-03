@@ -18,14 +18,14 @@ export const setupSocket = async (io: Server) => {
 
   // Add error handlers for Redis clients
   pubClient.on('error', (err) => {
-    if (!isProduction) console.error('Redis pub client error:', err);
+    console.error('Redis pub client error:', err);
   });
   subClient.on('error', (err) => {
-    if (!isProduction) console.error('Redis sub client error:', err);
+    console.error('Redis sub client error:', err);
   });
 
   await Promise.all([pubClient.connect(), subClient.connect()]);
-  if (!isProduction) console.log('[redis]: Connected to Redis Adapter');
+  console.log('[redis]: Connected to Redis Adapter');
   io.adapter(createAdapter(pubClient, subClient));
 
   io.use((socket: AuthSocket, next) => {
