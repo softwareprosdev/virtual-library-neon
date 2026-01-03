@@ -61,7 +61,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
-    if (!isProduction) console.error("Register Error:", error);
+    console.error("Register Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -97,7 +97,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
-    if (!isProduction) console.error("Login Error:", error);
+    console.error("Login Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
