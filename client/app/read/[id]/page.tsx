@@ -29,7 +29,7 @@ export default function ReadPage() {
             api('/books').then(async (res) => {
                 if(res.ok) {
                     const books = await res.json();
-                    const found = books.find((b: any) => b.id === id);
+                    const found = books.find((b: Book) => b.id === id);
                     if(found) setBook(found);
                 }
             });

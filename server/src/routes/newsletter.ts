@@ -1,17 +1,28 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { Resend } from 'resend';
 import { authenticateToken, AuthRequest } from '../middlewares/auth';
 
 const router = Router();
-const resend = new Resend(process.env.RESEND_API_KEY);
+const isProduction = process.env.NODE_ENV === 'production';
 
 router.post('/subscribe', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      res.status(500).json({ message: "Email service not configured" });
+      return;
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { email } = req.user;
 
-    // 1. Send Welcome Email via Resend
+    // Send Welcome Email via Resend
     await resend.emails.send({
-      from: 'V-Library <onboarding@resend.dev>', // Update with your verified domain
+      from: 'V-Library <onboarding@resend.dev>',
       to: email,
       subject: 'Welcome to the Virtual Library Archives',
       html: `
@@ -29,7 +40,7 @@ router.post('/subscribe', authenticateToken, async (req: AuthRequest, res: Respo
 
     res.json({ message: "Subscription transmission successful" });
   } catch (error) {
-    console.error(error);
+    if (!isProduction) console.error(error);
     res.status(500).json({ message: "Failed to process subscription" });
   }
 });

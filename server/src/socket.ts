@@ -4,26 +4,37 @@ import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
 import prisma from './db';
 import { getRoomRole, Role } from './permissions';
+import { JWTPayload } from './middlewares/auth';
 
 interface AuthSocket extends Socket {
-  user?: { id: string; email: string };
+  user?: JWTPayload;
 }
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const setupSocket = async (io: Server) => {
   const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6380' });
   const subClient = pubClient.duplicate();
 
+  // Add error handlers for Redis clients
+  pubClient.on('error', (err) => {
+    if (!isProduction) console.error('Redis pub client error:', err);
+  });
+  subClient.on('error', (err) => {
+    if (!isProduction) console.error('Redis sub client error:', err);
+  });
+
   await Promise.all([pubClient.connect(), subClient.connect()]);
-  console.log('🚀[redis]: Connected to Redis Adapter');
+  if (!isProduction) console.log('[redis]: Connected to Redis Adapter');
   io.adapter(createAdapter(pubClient, subClient));
 
   io.use((socket: AuthSocket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("Authentication error"));
+    if (!token) return next(new Error("Authentication error: missing token"));
 
-    jwt.verify(token, process.env.JWT_SECRET as string, (err: any, decoded: any) => {
-      if (err) return next(new Error("Authentication error"));
-      socket.user = decoded;
+    jwt.verify(token, process.env.JWT_SECRET as string, (err: jwt.VerifyErrors | null, decoded: string | jwt.JwtPayload | undefined) => {
+      if (err) return next(new Error("Authentication error: invalid token"));
+      socket.user = decoded as JWTPayload;
       next();
     });
   });
@@ -59,21 +70,25 @@ export const setupSocket = async (io: Server) => {
           role
         });
       } catch (error) {
-        console.error("Join Error:", error);
+        if (!isProduction) console.error("Join Error:", error);
+        socket.emit('error', { message: "Failed to join room" });
       }
     });
 
     socket.on('leaveRoom', async ({ roomId }) => {
       if (!roomId || !socket.user) return;
-      
+
       socket.leave(roomId);
-      
+
       try {
         await prisma.participant.deleteMany({
           where: { userId: socket.user.id, roomId }
         });
         io.to(roomId).emit('userLeft', { userId: socket.user.id });
-      } catch (e) { /* ignore if already deleted */ }
+      } catch (error) {
+        // Ignore if already deleted, but log in development
+        if (!isProduction) console.error("Leave room cleanup error:", error);
+      }
     });
 
     socket.on('chat', async ({ roomId, text }) => {
@@ -101,13 +116,14 @@ export const setupSocket = async (io: Server) => {
     socket.on('deleteMessage', async ({ roomId, messageId }) => {
       if (!socket.user) return;
       const role = await getRoomRole(socket.user.id, roomId);
-      
+
       if (role === Role.ADMIN || role === Role.MODERATOR) {
         try {
           await prisma.message.delete({ where: { id: messageId } });
           io.to(roomId).emit('messageDeleted', { messageId });
-        } catch (e) {
-          console.error("Delete Error:", e);
+        } catch (error) {
+          if (!isProduction) console.error("Delete Error:", error);
+          socket.emit('error', { message: "Failed to delete message" });
         }
       }
     });
@@ -125,7 +141,9 @@ export const setupSocket = async (io: Server) => {
       if (socket.user) {
         try {
           await prisma.participant.deleteMany({ where: { userId: socket.user.id } });
-        } catch (e) {}
+        } catch (error) {
+          if (!isProduction) console.error("Disconnect cleanup error:", error);
+        }
       }
     });
   });

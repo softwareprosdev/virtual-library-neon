@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
@@ -48,6 +48,30 @@ export default function LibraryPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const fetchBooks = useCallback(async () => {
+    try {
+      const res = await api('/books');
+      if (res.ok) {
+        const data = await res.json();
+        setBooks(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  const handleSearch = useCallback(async () => {
+    try {
+      const res = await api(`/books/search?q=${encodeURIComponent(searchQuery)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBooks(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [searchQuery]);
+
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -55,7 +79,7 @@ export default function LibraryPage() {
       return;
     }
     fetchBooks();
-  }, [router]);
+  }, [router, fetchBooks]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -67,31 +91,7 @@ export default function LibraryPage() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const fetchBooks = async () => {
-    try {
-      const res = await api('/books');
-      if (res.ok) {
-        const data = await res.json();
-        setBooks(data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleSearch = async () => {
-    try {
-      const res = await api(`/books/search?q=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setBooks(data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  }, [searchQuery, handleSearch, fetchBooks]);
 
   const handleUpload = async () => {
     if (!file) return;

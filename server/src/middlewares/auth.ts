@@ -1,8 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
+// JWT payload interface for type safety
+export interface JWTPayload {
+  id: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: JWTPayload;
 }
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction): void => {
@@ -14,12 +22,12 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return;
   }
 
-  jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
     if (err) {
       res.sendStatus(403);
-      return; 
+      return;
     }
-    req.user = user;
+    req.user = decoded as JWTPayload;
     next();
   });
 };

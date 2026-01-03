@@ -3,7 +3,7 @@
 // Polyfill DOMMatrix for environments where it's missing (like some SSR contexts or older browsers)
 import 'dommatrix/dist/dommatrix.js';
 
-import { useState, useRef, forwardRef, useEffect } from 'react';
+import { useState, forwardRef } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -68,6 +68,7 @@ export default function BookReader3D({ url }: BookReaderProps) {
         error={<Typography color="error">Failed to load archive module.</Typography>}
       >
         {numPages > 0 && (
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore - react-pageflip types can be finicky
             <HTMLFlipBook
                 width={450}
@@ -101,7 +102,7 @@ export default function BookReader3D({ url }: BookReaderProps) {
                     </div>
                 </Cover>
 
-                {Array.from(new Array(numPages), (el, index) => (
+                {Array.from(new Array(numPages), (_, index) => (
                     <PDFPage key={`page_${index + 1}`} pageNumber={index + 1} />
                 ))}
 

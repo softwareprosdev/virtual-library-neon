@@ -3,11 +3,17 @@ import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
 
 const router = Router();
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Industry identifier type for Google Books API
+interface IndustryIdentifier {
+  type: string;
+  identifier: string;
+}
 
 // List all genres with live room counts
 router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    console.log('Backend: Fetching genres...');
     const genres = await prisma.genre.findMany({
       include: {
         _count: {
@@ -16,10 +22,9 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
       },
       orderBy: { name: 'asc' }
     });
-    console.log(`Backend: Found ${genres.length} genres`);
     res.json(genres);
   } catch (error) {
-    console.error('Backend Genre Error:', error);
+    if (!isProduction) console.error('Genre Error:', error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -27,8 +32,11 @@ router.get('/genres', authenticateToken, async (req: AuthRequest, res: Response)
 // List all active rooms with personalization
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    console.log('Backend: Fetching live rooms...');
-    
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     // 1. Get user's top genres from interactions
     const topInteractions = await prisma.interaction.groupBy({
       by: ['genreId'],
@@ -48,12 +56,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
         genre: true,
         _count: { select: { messages: true, participants: true } }
       },
-      orderBy: [
-        {
-          // Custom sort: rooms in interested genres first (simulated via application logic or prisma sort)
-          createdAt: 'desc'
-        }
-      ]
+      orderBy: [{ createdAt: 'desc' }]
     });
 
     // 3. Simple sorting in JS for personalized ordering
@@ -63,10 +66,9 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
       return bInt - aInt;
     });
 
-    console.log(`Backend: Found ${rooms.length} live rooms`);
     res.json(personalizedRooms);
   } catch (error) {
-    console.error('Backend Room Error:', error);
+    if (!isProduction) console.error('Room Error:', error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -74,20 +76,28 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 // Create a room
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     const { name, description, genreId, bookData } = req.body;
-    
-    if (!name) {
+
+    if (!name || typeof name !== 'string') {
       res.status(400).json({ message: "Room name is required" });
       return;
     }
 
-    console.log(`Backend: Creating room "${name}" with genre "${genreId}"`);
-    if (bookData) console.log('Backend: Received book data:', JSON.stringify(bookData).substring(0, 200) + '...');
+    // Validate room name length
+    if (name.length < 3 || name.length > 100) {
+      res.status(400).json({ message: "Room name must be 3-100 characters" });
+      return;
+    }
 
     const room = await prisma.room.create({
       data: {
-        name,
-        description,
+        name: name.trim(),
+        description: description ? String(description).substring(0, 500) : null,
         hostId: req.user.id,
         genreId: genreId || null,
         isLive: true,
@@ -99,8 +109,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
             description: bookData.description ? String(bookData.description).substring(0, 1000) : null,
             coverUrl: bookData.imageLinks?.thumbnail ? String(bookData.imageLinks.thumbnail) : null,
             googleId: bookData.id ? String(bookData.id) : null,
-            isbn: Array.isArray(bookData.industryIdentifiers) 
-                  ? (bookData.industryIdentifiers.find((id: any) => id.type === 'ISBN_13')?.identifier || null)
+            isbn: Array.isArray(bookData.industryIdentifiers)
+                  ? ((bookData.industryIdentifiers as IndustryIdentifier[]).find((id) => id.type === 'ISBN_13')?.identifier || null)
                   : null,
             ownerId: req.user.id,
           }
@@ -111,13 +121,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
 
     res.status(201).json(room);
   } catch (error) {
-    console.error("Create Room Error:", error);
-    const fs = require('fs');
-    fs.appendFileSync('error.log', `${new Date().toISOString()} - ${error}\n`);
-    if (error instanceof Error) {
-        fs.appendFileSync('error.log', `${error.stack}\n`);
-    }
-    res.status(500).json({ message: "Server error", details: error instanceof Error ? error.message : String(error) });
+    if (!isProduction) console.error("Create Room Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

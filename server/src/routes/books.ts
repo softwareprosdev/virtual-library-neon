@@ -4,9 +4,10 @@ import { AuthRequest, authenticateToken } from '../middlewares/auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 const router = Router();
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Configure Multer for local storage
 const storage = multer.diskStorage({
@@ -30,6 +31,11 @@ const upload = multer({
 // Search Books (Title, Author, Content)
 router.get('/search', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     const { q } = req.query;
     if (!q || typeof q !== 'string') {
       res.status(400).json({ message: "Query required" });
@@ -56,7 +62,7 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res: Response)
     });
     res.json(books);
   } catch (error) {
-    console.error(error);
+    if (!isProduction) console.error(error);
     res.status(500).json({ message: "Search failed" });
   }
 });
@@ -64,6 +70,11 @@ router.get('/search', authenticateToken, async (req: AuthRequest, res: Response)
 // List User's Books
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     const books = await prisma.book.findMany({
       where: { ownerId: req.user.id },
       orderBy: { createdAt: 'desc' }
@@ -77,6 +88,11 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 // Upload Book
 router.post('/upload', authenticateToken, upload.single('file'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     if (!req.file) {
       res.status(400).json({ message: "No file uploaded" });
       return;
@@ -89,10 +105,12 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
     if (req.file.mimetype === 'application/pdf' || req.file.filename.endsWith('.pdf')) {
       try {
         const dataBuffer = fs.readFileSync(req.file.path);
-        const data = await pdf(dataBuffer);
-        content = data.text;
+        const parser = new PDFParse({ data: dataBuffer });
+        const result = await parser.getText();
+        content = result.text;
+        await parser.destroy();
       } catch (err) {
-        console.error("PDF Parse Error:", err);
+        if (!isProduction) console.error("PDF Parse Error:", err);
       }
     }
 
@@ -109,7 +127,7 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
 
     res.status(201).json(book);
   } catch (error) {
-    console.error(error);
+    if (!isProduction) console.error(error);
     res.status(500).json({ message: "Upload failed" });
   }
 });
@@ -117,6 +135,11 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
 // Delete Book
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
     const { id } = req.params;
     const book = await prisma.book.findUnique({ where: { id } });
 
