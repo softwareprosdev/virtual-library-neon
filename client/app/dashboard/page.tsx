@@ -202,9 +202,12 @@ export default function Dashboard() {
     if (viewMode !== 'books') return;
 
     const handleScroll = () => {
-      if (!bookListRef.current) return;
-      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-      if (scrollTop + clientHeight >= scrollHeight - 500) {
+      // Use window.innerHeight and window.scrollY for better compatibility
+      const { innerHeight, scrollY } = window;
+      const { scrollHeight } = document.body;
+      
+      // If we are near the bottom of the page (within 500px)
+      if (scrollY + innerHeight >= scrollHeight - 500) {
         loadMoreBooks();
       }
     };
