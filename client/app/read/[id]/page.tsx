@@ -49,7 +49,9 @@ export default function ReadPage() {
         </MainLayout>
     );
 
-    const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${book.fileUrl}`;
+    const fullUrl = book.fileUrl.startsWith('http') 
+        ? book.fileUrl 
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${book.fileUrl}`;
 
     return (
         <MainLayout>
