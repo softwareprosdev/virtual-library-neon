@@ -104,6 +104,16 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Catch-all 404 handler (Must be last)
+app.use((req: Request, res: Response) => {
+  console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    message: "Route not found", 
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
 // Start Server
 httpServer.listen(port, () => {
   console.log(`[server]: Server is running on port ${port}`);
