@@ -13,7 +13,13 @@ interface AuthSocket extends Socket {
 const isProduction = process.env.NODE_ENV === 'production';
 
 export const setupSocket = async (io: Server) => {
-  const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6380' });
+  const pubClient = createClient({ 
+    url: process.env.REDIS_URL || 'redis://localhost:6380',
+    socket: {
+      tls: process.env.REDIS_URL?.startsWith('rediss://'),
+      rejectUnauthorized: false
+    }
+  });
   const subClient = pubClient.duplicate();
 
   // Add error handlers for Redis clients
