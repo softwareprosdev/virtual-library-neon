@@ -1,5 +1,9 @@
 version: '3.9'
 
+networks:
+  coolify:
+    external: true
+
 services:
   # PostgreSQL and Redis are provided by Coolify as managed services
   # No need to define them here for Coolify deployments
@@ -26,6 +30,8 @@ services:
       - uploads_data:/app/uploads
     ports:
       - "4000:4000"
+    networks:
+      - coolify
 
   client:
     build:
@@ -42,6 +48,8 @@ services:
       - "3000:3000"
     depends_on:
       - server
+    networks:
+      - coolify
 
 volumes:
   uploads_data:
