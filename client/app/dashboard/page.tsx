@@ -464,7 +464,9 @@ export default function Dashboard() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                         {bookList.map((book) => (
                           <Card key={book.id} className="flex flex-col h-full hover:border-primary transition-colors">
-                            <div className="h-[280px] bg-black p-4 flex items-center justify-center rounded-t-lg relative group">
+                            <div className="h-[280px] bg-black p-4 flex items-center justify-center rounded-t-lg relative group"
+                                onClick={() => handleDiscussBook(book)}
+                            >
                               {book.volumeInfo.imageLinks?.thumbnail ? (
                                 <img
                                   src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
@@ -476,8 +478,11 @@ export default function Dashboard() {
                               )}
                               <Button
                                 size="icon"
-                                className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-lg"
-                                onClick={() => handleDiscussBook(book)}
+                                className="absolute bottom-4 right-4 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDiscussBook(book);
+                                }}
                               >
                                 <Plus size={20} />
                               </Button>
