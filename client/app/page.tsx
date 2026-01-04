@@ -8,7 +8,6 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Checkbox } from '../components/ui/checkbox';
 import { AlertCircle } from 'lucide-react';
 
 export default function AuthPage() {
@@ -17,21 +16,15 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [ageVerified, setAgeVerified] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!isLogin && !ageVerified) {
-      setError('You must confirm you are 18 or older');
-      return;
-    }
-
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const body = isLogin ? { email, password } : { email, password, name, ageVerified };
+      const body = isLogin ? { email, password } : { email, password, name };
 
       const res = await api(endpoint, {
         method: 'POST',
@@ -59,19 +52,19 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-primary">V-LIBRARY</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-primary">IndexBin</h1>
           <p className="mt-2 text-sm text-muted-foreground tracking-widest">
-            ADULT NEURAL INTERFACE (18+)
+            DIGITAL KNOWLEDGE ARCHIVE
           </p>
         </div>
 
         <Card className="w-full shadow-lg border-muted">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              {isLogin ? 'Authenticate' : 'Initialize Account'}
+              {isLogin ? 'Welcome Back' : 'Create Account'}
             </CardTitle>
             <CardDescription className="text-center">
-              {isLogin ? 'Enter your credentials to access the library' : 'Create a new identity to join the network'}
+              {isLogin ? 'Enter your credentials to access the library' : 'Join our community of readers'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -85,68 +78,55 @@ export default function AuthPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">Identity Name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="Enter your name"
-                  />
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Protocol</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="name@example.com"
+                  placeholder="Enter your name"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Passkey</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {!isLogin && (
-                <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox 
-                    id="age-verified" 
-                    checked={ageVerified} 
-                    onCheckedChange={(checked) => setAgeVerified(checked as boolean)} 
-                  />
-                  <Label htmlFor="age-verified" className="text-sm font-normal text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    I certify that I am at least 18 years of age and agree to view mature content.
-                  </Label>
-                </div>
-              )}
-              
-              <Button type="submit" className="w-full mt-4" size="lg">
-                {isLogin ? 'Jack In' : 'Confirm Access'}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <Button 
-                variant="link" 
-                onClick={() => setIsLogin(!isLogin)} 
-                className="text-primary"
-              >
-                {isLogin ? 'No identity? Register' : 'Has identity? Login'}
-              </Button>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="name@example.com"
+              />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            
+            <Button type="submit" className="w-full mt-4" size="lg">
+              {isLogin ? 'Login' : 'Sign Up'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Button 
+              variant="link" 
+              onClick={() => setIsLogin(!isLogin)} 
+              className="text-primary"
+            >
+              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
+            </Button>
+          </div>
           </CardContent>
         </Card>
       </div>

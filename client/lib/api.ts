@@ -1,6 +1,11 @@
 import { getToken } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const isProduction = process.env.NODE_ENV === 'production';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (isProduction ? '' : 'http://localhost:4000/api');
+
+if (isProduction && !API_URL) {
+  console.error('CRITICAL: NEXT_PUBLIC_API_URL is missing in production environment. API calls will fail.');
+}
 
 export const api = async (endpoint: string, options: RequestInit = {}) => {
   const token = getToken();

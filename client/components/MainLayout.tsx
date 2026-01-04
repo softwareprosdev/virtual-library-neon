@@ -28,7 +28,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
       <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-        <div className="font-bold text-xl text-primary">V-Library</div>
+        <div className="font-bold text-xl text-primary">IndexBin</div>
         <button onClick={toggleMobileMenu} className="p-2 text-foreground hover:bg-accent rounded-md">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -43,7 +43,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       >
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-border hidden md:block">
-            <h1 className="font-bold text-2xl text-primary">V-Library</h1>
+            <h1 className="font-bold text-2xl text-primary">IndexBin</h1>
           </div>
 
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

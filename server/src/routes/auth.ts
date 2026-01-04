@@ -10,7 +10,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Register
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, ageVerified } = req.body;
+    const { email, password, name } = req.body;
 
     if (!email || !password) {
       res.status(400).json({ message: "Email and password are required" });
@@ -30,11 +30,6 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (!ageVerified) {
-      res.status(400).json({ message: "You must be 18 or older to join this platform" });
-      return;
-    }
-
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({ message: "User already exists" });
@@ -48,7 +43,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         email,
         password: hashedPassword,
         name,
-        ageVerified: true
+        // ageVerified defaults to false in schema
       }
     });
 
