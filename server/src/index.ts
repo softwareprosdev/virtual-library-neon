@@ -71,11 +71,17 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use('/api/auth', authLimiter as any, authRoutes);
+app.use('/auth', authLimiter as any, authRoutes); // Fallback for old clients
 app.use('/api/rooms', roomRoutes);
+app.use('/rooms', roomRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/books', bookRoutes);
 app.use('/api/livekit', livekitRoutes);
+app.use('/livekit', livekitRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/newsletter', newsletterRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/ai', aiRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
