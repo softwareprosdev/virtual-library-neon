@@ -6,12 +6,14 @@
   },
   "dependencies": {
     "@genkit-ai/mcp": "^1.27.0",
+    "bcryptjs": "^3.0.3",
     "mui": "^0.0.1",
     "next-auth": "^4.24.13",
     "simple-peer": "^9.11.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "concurrently": "^9.2.1"
   }
 }
