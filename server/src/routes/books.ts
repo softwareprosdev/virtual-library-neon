@@ -5,17 +5,43 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { PDFParse } from 'pdf-parse';
+import { S3Client } from '@aws-sdk/client-s3';
+import multerS3 from 'multer-s3';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Configure Multer for local storage
-const storage = multer.diskStorage({
-  destination: 'uploads/',
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
+// Configure Storage (S3 or Local)
+const isS3Enabled = !!process.env.AWS_S3_BUCKET;
+let storage;
+
+if (isS3Enabled) {
+  const s3 = new S3Client({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+  });
+
+  storage = multerS3({
+    s3: s3,
+    bucket: process.env.AWS_S3_BUCKET!,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (req, file, cb) {
+      cb(null, `books/${Date.now()}-${file.originalname}`);
+    }
+  });
+  console.log('✅ S3 Storage Enabled for Books');
+} else {
+  storage = multer.diskStorage({
+    destination: 'uploads/',
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    }
+  });
+  console.log('⚠️ Local Storage Enabled (Not persistent across deployments)');
+}
 
 const upload = multer({ 
   storage,
@@ -100,9 +126,14 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
 
     const { title, author } = req.body;
     let content = '';
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileLocation = (req.file as any).location;
+    const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
 
-    // Extract text if PDF
-    if (req.file.mimetype === 'application/pdf' || req.file.filename.endsWith('.pdf')) {
+    // Extract text if PDF (Local storage only)
+    // TODO: Implement S3 stream reading for text extraction
+    if ((req.file.mimetype === 'application/pdf' || req.file.filename?.endsWith('.pdf')) && !fileLocation && req.file.path) {
       try {
         const dataBuffer = fs.readFileSync(req.file.path);
         const parser = new PDFParse({ data: dataBuffer });
@@ -118,7 +149,7 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
       data: {
         title: title || req.file.originalname,
         author: author || 'Unknown',
-        fileUrl: `/uploads/${req.file.filename}`,
+        fileUrl: fileUrl,
         fileType: path.extname(req.file.originalname).substring(1),
         ownerId: req.user.id,
         content: content || null
