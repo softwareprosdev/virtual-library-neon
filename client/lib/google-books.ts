@@ -16,6 +16,8 @@ export interface GoogleBook {
     }>;
     pageCount?: number;
     publisher?: string;
+    averageRating?: number;
+    ratingsCount?: number;
   };
 }
 

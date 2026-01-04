@@ -1,11 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Box, Typography, IconButton, Paper, Button } from '@mui/material';
-
-// Placeholders for icons
-const MicIcon = () => <span>🎙️</span>;
-const VideocamIcon = () => <span>📹</span>;
+import { Button } from './ui/button';
+import { Mic, Video } from 'lucide-react';
 
 interface VideoPanelProps {
   roomId: string;
@@ -64,39 +61,43 @@ export default function VideoPanel({ roomId, socket }: VideoPanelProps) {
 
   if (error) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center' }}>
-        <Paper sx={{ p: 4, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', maxWidth: 400 }}>
-          <Typography variant="h6" color="error" gutterBottom>PERMISSION REQUIRED</Typography>
-          <Typography variant="body2" sx={{ mb: 3 }}>{error}</Typography>
-          <Button variant="outlined" color="error" onClick={() => window.location.reload()}>Retry Connection</Button>
-        </Paper>
-      </Box>
+      <div className="h-full flex items-center justify-center p-4 text-center">
+        <div className="p-8 bg-destructive/10 border border-destructive max-w-sm rounded-lg">
+          <h6 className="text-destructive font-bold mb-2">PERMISSION REQUIRED</h6>
+          <p className="text-sm mb-6 text-foreground/80">{error}</p>
+          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10" onClick={() => window.location.reload()}>Retry Connection</Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+    <div className="h-full flex flex-col gap-4 p-4">
+      <div className="flex gap-4 flex-wrap">
         {/* Local Video */}
-        <Paper sx={{ width: 300, height: 225, bgcolor: '#000', position: 'relative', overflow: 'hidden', border: '1px solid #d946ef' }}>
-          <video playsInline muted ref={userVideo} autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <Box sx={{ position: 'absolute', bottom: 8, left: 8, bgcolor: 'rgba(0,0,0,0.5)', px: 1, borderRadius: 1 }}>
-            <Typography variant="caption" color="white">YOU (Local)</Typography>
-          </Box>
-        </Paper>
+        <div className="w-[300px] h-[225px] bg-black relative overflow-hidden border border-[#d946ef] rounded-lg shadow-md">
+          <video playsInline muted ref={userVideo} autoPlay className="w-full h-full object-cover" />
+          <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-0.5 rounded text-xs text-white">
+            YOU (Local)
+          </div>
+        </div>
 
         {/* Remote Videos */}
         {Object.keys(remoteStreams).map(id => (
-           <Paper key={id} sx={{ width: 300, height: 225, bgcolor: '#000', border: '1px solid #ec4899' }}>
-              <video playsInline autoPlay ref={el => { if(el) el.srcObject = remoteStreams[id] }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-           </Paper>
+           <div key={id} className="w-[300px] h-[225px] bg-black border border-[#ec4899] rounded-lg overflow-hidden shadow-md">
+              <video playsInline autoPlay ref={el => { if(el) el.srcObject = remoteStreams[id] }} className="w-full h-full object-cover" />
+           </div>
         ))}
-      </Box>
+      </div>
 
-      <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'center', gap: 2 }}>
-        <IconButton sx={{ bgcolor: 'background.paper', border: '1px solid #333' }}><MicIcon /></IconButton>
-        <IconButton sx={{ bgcolor: 'background.paper', border: '1px solid #333' }}><VideocamIcon /></IconButton>
-      </Box>
-    </Box>
+      <div className="mt-auto flex justify-center gap-4">
+        <Button variant="outline" size="icon" className="rounded-full w-12 h-12">
+          <Mic className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" size="icon" className="rounded-full w-12 h-12">
+          <Video className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
   );
 }

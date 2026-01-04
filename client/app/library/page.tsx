@@ -1,100 +1,90 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
-import { 
-  Typography, 
-  Button, 
-  Container, 
-  Card, 
-  CardContent, 
-  CardActions,
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardFooter } from '../../components/ui/card';
+import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Fab,
-  Box,
-  Chip,
-  IconButton
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-
-export const dynamic = 'force-dynamic';
-
-const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
-const BookIcon = () => <span>📖</span>;
-const DeleteIcon = () => <span>🗑️</span>;
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import { Search, Plus, Trash2, BookOpen, Loader2, Book as BookIcon } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface Book {
-  id: string;
+  id: number;
   title: string;
-  author: string | null;
-  fileType: string | null;
-  fileUrl: string | null;
+  author: string;
+  filename: string;
+  cover_image?: string;
+  category?: string;
 }
 
 export default function LibraryPage() {
   const router = useRouter();
   const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchBooks = useCallback(async () => {
+  const fetchBooks = useCallback(async (query = '') => {
     try {
-      const res = await api('/books');
+      setLoading(true);
+      const token = getToken();
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const url = query 
+        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books/search?q=${encodeURIComponent(query)}`
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books`;
+
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         setBooks(data);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching books:', error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [router]);
 
-  const handleSearch = useCallback(async () => {
-    try {
-      const res = await api(`/books/search?q=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setBooks(data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }, [searchQuery]);
-
+  // Debounce search
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push('/');
-      return;
-    }
-    fetchBooks();
-  }, [router, fetchBooks]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery) {
-        handleSearch();
-      } else {
-        fetchBooks();
-      }
+    const timer = setTimeout(() => {
+      fetchBooks(search);
     }, 500);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, handleSearch, fetchBooks]);
+    return () => clearTimeout(timer);
+  }, [search, fetchBooks]);
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !title || !author) return;
     setIsUploading(true);
     
     try {
@@ -125,11 +115,20 @@ export default function LibraryPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this archive permanently?")) return;
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this book?')) return;
+
     try {
-      const res = await api(`/books/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchBooks();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
+
+      if (res.ok) {
+        setBooks(books.filter(book => book.id !== id));
+      }
     } catch (error) {
       console.error(error);
     }
@@ -137,135 +136,125 @@ export default function LibraryPage() {
 
   return (
     <MainLayout>
-      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography
-            variant="h2"
-            component="h1"
-            gutterBottom
-            className="neon-text"
-            sx={{
-              color: 'white',
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3.75rem' }
-            }}
-          >
-            MY ARCHIVES
-          </Typography>
-          <Typography
-            variant="h6"
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' } }}
-          >
-            Manage your synchronized knowledge modules
-          </Typography>
-          <Box sx={{ mt: 4, maxWidth: 600, mx: 'auto' }}>
-             <TextField
-               fullWidth
-               label="Search Archives (Content & Metadata)"
-               variant="outlined"
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               sx={{ 
-                 '& .MuiOutlinedInput-root': { 
-                   color: 'white',
-                   '& fieldset': { borderColor: '#333' },
-                   '&:hover fieldset': { borderColor: '#00ff41' },
-                 },
-                 '& .MuiInputLabel-root': { color: '#666' }
-               }}
-             />
-          </Box>
-        </Box>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full sm:w-72">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search by title or author..."
+                    className="pl-8"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
 
-        <Grid container spacing={4}>
-          {books.map((book) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={book.id}>
-              <Card sx={{ height: '100%', position: 'relative' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <BookIcon />
-                    <Typography variant="h6" sx={{ color: 'secondary.main', fontWeight: 'bold' }}>
-                      {book.title}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    By: {book.author || 'Unknown'}
-                  </Typography>
-                  {book.fileType && (
-                    <Chip 
-                      label={book.fileType.toUpperCase()} 
-                      size="small" 
-                      sx={{ mt: 2, bgcolor: 'primary.dark', color: 'primary.light' }} 
-                    />
-                  )}
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={() => book.fileUrl && router.push(`/read/${book.id}`)}
-                    disabled={!book.fileUrl}
-                  >
-                    Read
-                  </Button>
-                  <IconButton color="error" onClick={() => handleDelete(book.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" /> Upload Book
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Upload New Book</DialogTitle>
+                        <DialogDescription>
+                            Add a new book to your library. Supported formats: PDF.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label htmlFor="title" className="text-sm font-medium">Title</label>
+                            <Input 
+                                id="title" 
+                                value={title} 
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="Enter book title"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <label htmlFor="author" className="text-sm font-medium">Author</label>
+                            <Input 
+                                id="author" 
+                                value={author} 
+                                onChange={(e) => setAuthor(e.target.value)}
+                                placeholder="Enter author name"
+                            />
+                        </div>
+                         <div className="grid gap-2">
+                            <label htmlFor="file" className="text-sm font-medium">Book File (PDF)</label>
+                            <Input 
+                                id="file" 
+                                type="file" 
+                                accept=".pdf"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)} 
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                        <Button onClick={handleUpload} disabled={isUploading || !file || !title || !author}>
+                            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Upload
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
 
-      <Fab
-        color="secondary"
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 16, sm: 32 },
-          right: { xs: 16, sm: 32 },
-          zIndex: 1000
-        }}
-        onClick={() => setOpen(true)}
-      >
-        <AddIcon />
-      </Fab>
-
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ color: 'primary.main' }}>UPLOAD ARCHIVE</DialogTitle>
-        <DialogContent>
-          <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <input 
-              type="file" 
-              accept=".pdf,.epub" 
-              onChange={(e) => setFile(e.target.files?.[0] || null)} 
-              style={{ color: 'white' }}
-            />
-            <TextField 
-              label="Archive Title" 
-              fullWidth 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)} 
-            />
-            <TextField 
-              label="Author/Source" 
-              fullWidth 
-              value={author} 
-              onChange={(e) => setAuthor(e.target.value)} 
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpen(false)} color="inherit">Abort</Button>
-          <Button 
-            onClick={handleUpload} 
-            variant="contained" 
-            disabled={!file || isUploading}
-          >
-            {isUploading ? 'Uploading...' : 'Synchronize'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        {loading && books.length === 0 ? (
+             <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        ) : (
+            <>
+                {books.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                        <BookIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p>No books found. Upload one to get started!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                        {books.map((book) => (
+                            <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
+                                <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
+                                    {book.cover_image ? (
+                                        <img src={book.cover_image} alt={book.title} className="object-cover w-full h-full" />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
+                                            <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
+                                        </div>
+                                    )}
+                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+                                        <Button 
+                                            size="sm" 
+                                            className="w-full" 
+                                            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/uploads/${book.filename}`, '_blank')}
+                                        >
+                                            Read
+                                        </Button>
+                                     </div>
+                                </div>
+                                <CardContent className="p-3 sm:p-4 flex-1">
+                                    <h3 className="font-semibold text-sm sm:text-base truncate" title={book.title}>{book.title}</h3>
+                                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{book.author}</p>
+                                </CardContent>
+                                <CardFooter className="p-3 sm:p-4 pt-0 flex justify-end">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors" 
+                                        onClick={() => handleDelete(book.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </>
+        )}
+      </div>
     </MainLayout>
   );
 }

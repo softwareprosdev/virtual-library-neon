@@ -6,7 +6,7 @@ import 'dommatrix/dist/dommatrix.js';
 import { useState, forwardRef } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 
 // Configure PDF worker to load from CDN to avoid build issues
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -18,15 +18,15 @@ interface BookReaderProps {
 // Custom Page component for FlipBook to wrap PDF Page
 const PDFPage = forwardRef<HTMLDivElement, { pageNumber: number }>((props, ref) => {
   return (
-    <div ref={ref} style={{ backgroundColor: 'white', overflow: 'hidden' }}>
+    <div ref={ref} className="bg-white overflow-hidden shadow-sm">
        <Page 
          pageNumber={props.pageNumber} 
          width={450} 
          renderAnnotationLayer={false} 
          renderTextLayer={false} 
-         error={<div style={{padding: 20}}>Error loading page</div>}
+         error={<div className="p-5 text-destructive">Error loading page</div>}
        />
-       <div style={{ position: 'absolute', bottom: 10, right: 10, color: '#333', fontSize: 12 }}>
+       <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
          {props.pageNumber}
        </div>
     </div>
@@ -36,7 +36,7 @@ PDFPage.displayName = 'PDFPage';
 
 const Cover = forwardRef<HTMLDivElement, { children: React.ReactNode }>((props, ref) => {
     return (
-        <div ref={ref} style={{ backgroundColor: '#1a1a1a', color: '#00ff41', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #00ff41' }}>
+        <div ref={ref} className="bg-secondary/50 text-primary flex items-center justify-center border-2 border-primary/20 h-full">
             {props.children}
         </div>
     )
@@ -53,19 +53,21 @@ export default function BookReader3D({ url }: BookReaderProps) {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '80vh', bgcolor: '#000', p: 4 }}>
+    <div className="flex flex-col items-center min-h-[80vh] bg-background p-4">
       
       {/* Hidden Document Loader */}
-      <Box sx={{ display: loading ? 'block' : 'none' }}>
-        <CircularProgress color="secondary" />
-        <Typography sx={{ mt: 2, color: 'secondary.main' }}>Loading Neural Archive...</Typography>
-      </Box>
+      {loading && (
+        <div className="flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-primary font-medium">Loading Book...</p>
+        </div>
+      )}
 
       <Document
         file={url}
         onLoadSuccess={onDocumentLoadSuccess}
         loading={null}
-        error={<Typography color="error">Failed to load archive module.</Typography>}
+        error={<p className="text-destructive font-medium">Failed to load book file.</p>}
       >
         {numPages > 0 && (
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -81,7 +83,7 @@ export default function BookReader3D({ url }: BookReaderProps) {
                 maxShadowOpacity={0.5}
                 showCover={true}
                 mobileScrollSupport={true}
-                className="flip-book"
+                className="flip-book shadow-2xl"
                 style={{ margin: '0 auto' }}
                 startPage={0}
                 drawShadow={true}
@@ -96,9 +98,9 @@ export default function BookReader3D({ url }: BookReaderProps) {
                 disableFlipByClick={false}
             >
                 <Cover>
-                    <div style={{ textAlign: 'center' }}>
-                        <Typography variant="h4" sx={{ fontFamily: 'monospace' }}>NEURAL ARCHIVE</Typography>
-                        <Typography variant="caption">CONFIDENTIAL</Typography>
+                    <div className="text-center">
+                        <h1 className="text-2xl font-mono font-bold">V-LIBRARY</h1>
+                        <p className="text-sm tracking-widest mt-2">ARCHIVE</p>
                     </div>
                 </Cover>
 
@@ -107,11 +109,11 @@ export default function BookReader3D({ url }: BookReaderProps) {
                 ))}
 
                 <Cover>
-                    <Typography>END OF TRANSMISSION</Typography>
+                    <p className="font-mono">END</p>
                 </Cover>
             </HTMLFlipBook>
         )}
       </Document>
-    </Box>
+    </div>
   );
 }

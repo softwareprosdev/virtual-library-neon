@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, Typography, Card, CardMedia, CardContent, Chip } from '@mui/material';
+import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
 
 interface Book {
   id: string;
@@ -17,39 +18,36 @@ interface BookPanelProps {
 
 export default function BookPanel({ book }: BookPanelProps) {
   return (
-    <Card sx={{ 
-      display: 'flex', 
-      flexDirection: { xs: 'column', md: 'row' }, 
-      bgcolor: '#0a0a0a', 
-      border: '1px solid #333',
-      mb: 2 
-    }}>
+    <Card className="flex flex-col md:flex-row mb-4 overflow-hidden">
       {book.coverUrl && (
-        <CardMedia
-          component="img"
-          sx={{ width: { xs: '100%', md: 120 }, height: { xs: 200, md: 'auto' }, objectFit: 'contain', bgcolor: '#000', p: 1 }}
-          image={book.coverUrl.replace('http:', 'https:')}
-          alt={book.title}
-        />
+        <div className="w-full md:w-[120px] h-[200px] md:h-auto bg-black p-2 flex-shrink-0">
+          <img
+            src={book.coverUrl.replace('http:', 'https:')}
+            alt={book.title}
+            className="w-full h-full object-contain"
+          />
+        </div>
       )}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-        <CardContent>
-          <Typography component="div" variant="h6" color="primary.main" fontWeight="bold">
+      <div className="flex flex-col flex-grow">
+        <CardContent className="p-4">
+          <h3 className="text-xl font-bold text-primary">
             {book.title}
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary" component="div">
+          </h3>
+          <p className="text-muted-foreground font-medium">
             {book.author || 'Unknown Author'}
-          </Typography>
+          </p>
           {book.isbn && (
-             <Chip label={`ISBN: ${book.isbn}`} size="small" variant="outlined" sx={{ mt: 1, borderColor: '#333', color: '#666' }} />
+             <Badge variant="outline" className="mt-2">
+               ISBN: {book.isbn}
+             </Badge>
           )}
           {book.description && (
-             <Typography variant="body2" color="text.secondary" sx={{ mt: 2, maxHeight: 100, overflowY: 'auto' }}>
+             <p className="mt-4 text-sm text-muted-foreground max-h-[100px] overflow-y-auto">
                 {book.description}
-             </Typography>
+             </p>
           )}
         </CardContent>
-      </Box>
+      </div>
     </Card>
   );
 }
