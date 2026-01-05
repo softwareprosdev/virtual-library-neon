@@ -85,6 +85,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/ai', aiRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/gamification', gamificationRoutes);
+app.use('/api/reading-list', readingListRoutes);
+app.use('/reading-list', readingListRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

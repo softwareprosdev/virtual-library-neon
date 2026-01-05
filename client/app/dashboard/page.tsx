@@ -502,6 +502,9 @@ export default function Dashboard() {
                               >
                                 <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                               </Button>
+                              <div className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                <AddToReadingList book={book} />
+                              </div>
                             </div>
                             <CardContent className="flex-1 p-3 sm:p-4">
                               <h3 className="text-sm sm:text-base font-bold line-clamp-2 mb-1" title={book.volumeInfo.title}>
