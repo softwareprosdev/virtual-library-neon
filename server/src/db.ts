@@ -7,12 +7,7 @@ import path from 'path';
 // Explicitly load .env from server directory if available
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-let connectionString = process.env.DATABASE_URL;
-
-// Fix for local dev: Force 5433 if it is mistakenly 5432
-if (connectionString && connectionString.includes('localhost:5432')) {
-  connectionString = connectionString.replace('localhost:5432', 'localhost:5433');
-}
+const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
