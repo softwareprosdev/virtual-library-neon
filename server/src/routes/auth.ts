@@ -93,7 +93,11 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error" });
+    // Return actual error in dev/prod for debugging this issue
+    res.status(500).json({ 
+        message: "Server error", 
+        error: error instanceof Error ? error.message : String(error) 
+    });
   }
 });
 
