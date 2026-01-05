@@ -55,9 +55,17 @@ const authLimiter = rateLimit({
 app.use(limiter as any);
 
 // CORS Configuration
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://www.indexbin.com',
+  'https://indexbin.com',
+  'https://api.indexbin.com'
+];
+
 const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(',')
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  ? [...defaultAllowedOrigins, ...process.env.CLIENT_URL.split(',').map(url => url.trim())]
+  : defaultAllowedOrigins;
 
 app.use(cors({
   origin: allowedOrigins,
