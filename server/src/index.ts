@@ -11,6 +11,7 @@ import bookRoutes from './routes/books';
 import livekitRoutes from './routes/livekit';
 import newsletterRoutes from './routes/newsletter';
 import aiRoutes from './routes/ai';
+import gamificationRoutes from './routes/gamification';
 import { setupSocket } from './socket';
 import path from 'path';
 
