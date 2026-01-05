@@ -119,9 +119,40 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Virtual Library Server is Running');
 });
 
+import prisma from './db';
+
 // Health check endpoint for Coolify/Docker
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Diagnostics endpoint (Protected by simple key or open for now if critical)
+app.get('/diagnostics', async (req: Request, res: Response) => {
+    try {
+        // Check DB connection by running a simple query
+        const userCount = await prisma.user.count();
+        const tableList = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`;
+        
+        res.json({
+            status: 'ok',
+            database: {
+                connected: true,
+                userCount,
+                tables: tableList
+            },
+            env: {
+                node_env: process.env.NODE_ENV,
+                database_url_set: !!process.env.DATABASE_URL,
+                client_url: process.env.CLIENT_URL,
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Diagnostics failed',
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
 });
 
 // Catch-all 404 handler (Must be last)
