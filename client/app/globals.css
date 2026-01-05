@@ -38,6 +38,7 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes accordion-down {
     from {
@@ -55,42 +56,76 @@
       height: 0;
     }
   }
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+    }
+    50% {
+      opacity: .5;
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.8);
+    }
+  }
 }
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* Cyberpunk Palette - Dark Mode Default */
+  --background: 260 50% 5%; /* Deep dark purple/black */
+  --foreground: 180 100% 90%; /* Pale Cyan */
 
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card: 260 50% 8%;
+  --card-foreground: 180 100% 90%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover: 260 50% 8%;
+  --popover-foreground: 180 100% 90%;
 
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 316 100% 50%; /* Neon Pink */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 180 100% 50%; /* Neon Cyan */
+  --secondary-foreground: 260 50% 5%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 260 30% 20%;
+  --muted-foreground: 260 20% 65%;
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 280 80% 60%; /* Bright Purple */
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 100% 50%; /* Neon Red */
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --border: 280 60% 30%;
+  --input: 260 50% 15%;
+  --ring: 316 100% 50%;
 
-  --radius: 0.5rem;
+  --radius: 0px; /* Sharp edges for cyberpunk feel */
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  background-image: 
+    linear-gradient(rgba(18, 16, 31, 0.95), rgba(18, 16, 31, 0.95)),
+    linear-gradient(0deg, transparent 24%, rgba(255, 0, 255, .03) 25%, rgba(255, 0, 255, .03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, .03) 75%, rgba(0, 255, 255, .03) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, rgba(255, 0, 255, .03) 25%, rgba(255, 0, 255, .03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, .03) 75%, rgba(0, 255, 255, .03) 76%, transparent 77%, transparent);
+  background-size: 100% 100%, 50px 50px, 50px 50px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--primary) / 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
 }

@@ -22,6 +22,42 @@ model User {
   participants Participant[]
   moderators   Moderator[]
   interactions Interaction[]
+  
+  // Gamification & Social
+  points      Int       @default(0)
+  level       Int       @default(1)
+  badges      Badge[]   @relation("UserBadges")
+  followedBy  Follows[] @relation("following")
+  following   Follows[] @relation("follower")
+  activity    Activity[]
+}
+
+model Follows {
+  followerId  String
+  followingId String
+  follower    User @relation("follower", fields: [followerId], references: [id])
+  following   User @relation("following", fields: [followingId], references: [id])
+  assignedAt  DateTime @default(now())
+
+  @@id([followerId, followingId])
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  iconUrl     String
+  users       User[]   @relation("UserBadges")
+  createdAt   DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE"
+  details   String?
+  createdAt DateTime @default(now())
 }
 
 model Interaction {
