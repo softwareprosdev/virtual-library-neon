@@ -20,6 +20,8 @@ import {
 } from '../../components/ui/dialog';
 import { Search, ArrowLeft, Flame, Sparkles, Book, User, Plus } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import UserStatsCard from '../../components/Gamification/UserStatsCard';
+import Leaderboard from '../../components/Gamification/Leaderboard';
 
 export const dynamic = 'force-dynamic';
 
