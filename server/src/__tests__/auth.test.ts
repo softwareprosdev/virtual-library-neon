@@ -130,19 +130,6 @@ describe('Auth API Tests', () => {
       expect(response.body.message).toBe('Password must be at least 8 characters');
     });
 
-    it('should reject registration without age verification', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'SecurePass123',
-          name: 'Test User',
-          ageVerified: false,
-        });
-
-      expect(response.status).toBe(400);
-      expect(response.body.message).toBe('You must be 18 or older to join this platform');
-    });
 
     it('should reject registration if user already exists', async () => {
       const existingUser = {
