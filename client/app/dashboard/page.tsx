@@ -45,6 +45,10 @@ const POPULAR_CATEGORIES = [
   { id: 'comics', name: 'Comics & Manga', icon: '🎨' },
   { id: 'young-adult', name: 'Young Adult', icon: '🌟' },
   { id: 'classics', name: 'Classics', icon: '📜' },
+  { id: 'erotica', name: 'Erotica', icon: '💋' },
+  { id: 'dark-romance', name: 'Dark Romance', icon: '🥀' },
+  { id: 'lgbtq', name: 'LGBTQ+', icon: '🏳️‍🌈' },
+  { id: 'adult-fiction', name: 'Adult Fiction', icon: '🔞' },
 ];
 
 interface Room {

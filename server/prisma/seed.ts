@@ -25,6 +25,9 @@ async function main() {
     { name: 'Graphic Horror', isAdult: true, description: 'Visceral horror and supernatural adult themes.' },
     { name: 'Classic Sci-Fi', isAdult: false, description: 'Traditional science fiction exploration.' },
     { name: 'Tech & Engineering', isAdult: false, description: 'Coding, hardware, and engineering deep dives.' },
+    { name: 'Erotica', isAdult: true, description: 'Explicit adult literature and erotic themes.' },
+    { name: 'Dark Romance', isAdult: true, description: 'Intense romantic themes with mature content.' },
+    { name: 'Graphic Horror', isAdult: true, description: 'Visceral horror and supernatural adult themes.' },
   ];
 
   console.log('🌱 Seeding genres and initial rooms...');
