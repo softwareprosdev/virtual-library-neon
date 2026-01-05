@@ -12,6 +12,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "start:prod": "npx prisma migrate deploy && node dist/index.js",
+    "db:hard-reset": "npx prisma migrate reset --force",
     "dev": "ts-node src/index.ts"
   },
   "keywords": [],
