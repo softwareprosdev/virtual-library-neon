@@ -19,10 +19,7 @@ async function main() {
 
   // 2. Genres (Phase 1 Task)
   const genresData = [
-    { name: 'Erotica', isAdult: true, description: 'Explicit adult literature and erotic themes.' },
-    { name: 'Dark Romance', isAdult: true, description: 'Intense romantic themes with mature content.' },
     { name: 'Cyberpunk Noir', isAdult: true, description: 'Grit, tech, and adult themes in futuristic settings.' },
-    { name: 'Graphic Horror', isAdult: true, description: 'Visceral horror and supernatural adult themes.' },
     { name: 'Classic Sci-Fi', isAdult: false, description: 'Traditional science fiction exploration.' },
     { name: 'Tech & Engineering', isAdult: false, description: 'Coding, hardware, and engineering deep dives.' },
     { name: 'Erotica', isAdult: true, description: 'Explicit adult literature and erotic themes.' },
@@ -48,6 +45,24 @@ async function main() {
         genreId: genre.id,
         isLive: true
       }
+    });
+  }
+
+  // 4. Badges (Gamification)
+  console.log('🏆 Seeding badges...');
+  const badges = [
+    { name: 'Early Adopter', description: 'Joined during the beta phase', iconUrl: '🚀' },
+    { name: 'Bookworm', description: 'Read 10 books', iconUrl: '🐛' },
+    { name: 'Social Butterfly', description: 'Joined 5 discussion rooms', iconUrl: '🦋' },
+    { name: 'Night Owl', description: 'Active after midnight', iconUrl: '🦉' },
+    { name: 'Critic', description: 'Left 5 reviews', iconUrl: '✍️' },
+  ];
+
+  for (const b of badges) {
+    await prisma.badge.upsert({
+      where: { name: b.name },
+      update: {},
+      create: b
     });
   }
 
