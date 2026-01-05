@@ -12,6 +12,7 @@ import livekitRoutes from './routes/livekit';
 import newsletterRoutes from './routes/newsletter';
 import aiRoutes from './routes/ai';
 import gamificationRoutes from './routes/gamification';
+import readingListRoutes from './routes/readingList';
 import { setupSocket } from './socket';
 import path from 'path';
 

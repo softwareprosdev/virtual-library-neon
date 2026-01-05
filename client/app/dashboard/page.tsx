@@ -22,6 +22,7 @@ import { Search, ArrowLeft, Flame, Sparkles, Book, User, Plus } from 'lucide-rea
 import { cn } from '../../lib/utils';
 import UserStatsCard from '../../components/Gamification/UserStatsCard';
 import Leaderboard from '../../components/Gamification/Leaderboard';
+import AddToReadingList from '../../components/ReadingList/AddToReadingList';
 
 export const dynamic = 'force-dynamic';
 
