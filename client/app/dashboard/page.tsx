@@ -361,9 +361,9 @@ export default function Dashboard() {
                       <Sparkles className="text-secondary-foreground" />
                       <h2 className="text-2xl font-bold text-secondary-foreground">NEW_RELEASES</h2>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4">
+                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
                       {newReleases.map((book) => (
-                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0">
+                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0 snap-start">
                           <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg">
                             {book.volumeInfo.imageLinks?.thumbnail && (
                               <img
@@ -455,16 +455,16 @@ export default function Dashboard() {
                     </div>
 
                     {isSearching && bookList.length === 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[1,2,3,4,5,6,7,8].map(i => (
-                          <div key={i} className="h-[400px] bg-muted animate-pulse rounded-lg" />
+                          <div key={i} className="h-[250px] sm:h-[400px] bg-muted animate-pulse rounded-lg" />
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                         {bookList.map((book) => (
                           <Card key={book.id} className="flex flex-col h-full hover:border-primary transition-colors">
-                            <div className="h-[280px] bg-black p-4 flex items-center justify-center rounded-t-lg relative group"
+                            <div className="h-[180px] sm:h-[280px] bg-black p-2 sm:p-4 flex items-center justify-center rounded-t-lg relative group"
                                 onClick={() => handleDiscussBook(book)}
                             >
                               {book.volumeInfo.imageLinks?.thumbnail ? (
@@ -478,17 +478,17 @@ export default function Dashboard() {
                               )}
                               <Button
                                 size="icon"
-                                className="absolute bottom-4 right-4 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-lg"
+                                className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 h-8 w-8 sm:h-10 sm:w-10 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-lg"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDiscussBook(book);
                                 }}
                               >
-                                <Plus size={20} />
+                                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                               </Button>
                             </div>
-                            <CardContent className="flex-1 p-4">
-                              <h3 className="font-bold line-clamp-2 mb-1" title={book.volumeInfo.title}>
+                            <CardContent className="flex-1 p-3 sm:p-4">
+                              <h3 className="text-sm sm:text-base font-bold line-clamp-2 mb-1" title={book.volumeInfo.title}>
                                 {book.volumeInfo.title}
                               </h3>
                               <p className="text-sm text-muted-foreground mb-2">

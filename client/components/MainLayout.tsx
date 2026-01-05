@@ -92,7 +92,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-[calc(100vh-64px)] md:h-screen p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto h-[calc(100dvh-64px)] md:h-screen p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
