@@ -289,7 +289,7 @@ export default function Dashboard() {
                 LITERARY_NEXUS
               </h1>
             </div>
-            <form onSubmit={handleSearch} className="w-full max-w-xs relative">
+            <form onSubmit={handleSearch} className="w-full md:max-w-xs relative">
               <Input
                 placeholder="SEARCH_DATABASE..."
                 value={searchQuery}
@@ -301,6 +301,16 @@ export default function Dashboard() {
               </button>
             </form>
           </div>
+        </div>
+
+        {/* Gamification Dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+           <div className="lg:col-span-2">
+              <UserStatsCard />
+           </div>
+           <div className="lg:col-span-1">
+              <Leaderboard />
+           </div>
         </div>
 
         {loading ? (

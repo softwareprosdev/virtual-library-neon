@@ -82,6 +82,8 @@ app.use('/api/newsletter', newsletterRoutes);
 app.use('/newsletter', newsletterRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/ai', aiRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/gamification', gamificationRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
