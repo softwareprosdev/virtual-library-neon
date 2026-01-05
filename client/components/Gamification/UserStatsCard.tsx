@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Progress } from '../ui/progress';
-import { Trophy, Star, Award, Zap } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { cn } from '../../lib/utils';
+import { Progress } from '@/components/ui/progress';
+import { Zap } from 'lucide-react';
 
 interface UserStats {
   points: number;

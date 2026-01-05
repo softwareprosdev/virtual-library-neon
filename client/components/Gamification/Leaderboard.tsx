@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Trophy, Medal, Crown } from 'lucide-react';
+import { Trophy, Crown } from 'lucide-react';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { cn } from '../../lib/utils';
 
