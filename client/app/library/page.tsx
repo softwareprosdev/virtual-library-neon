@@ -115,7 +115,19 @@ export default function LibraryPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleRead = (book: Book) => {
+    if (!book.fileUrl) return;
+    
+    if (book.fileUrl.startsWith('http')) {
+      window.open(book.fileUrl, '_blank');
+    } else {
+      // Local upload
+      const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+      window.open(`${baseUrl}${book.fileUrl}`, '_blank');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this book?')) return;
 
     try {
