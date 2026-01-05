@@ -265,18 +265,21 @@ export default function Dashboard() {
           body: JSON.stringify(body)
         });
         if (res.ok) {
+          const room = await res.json();
           setOpen(false);
           setNewRoomName('');
           setNewRoomDesc('');
           setSelectedBook(null);
           // Don't reset genre here so they stay in context
           fetchData();
-          // Optionally redirect to the new room?
-          const room = await res.json();
           router.push(`/room/${room.id}`);
+        } else {
+            const err = await res.json();
+            alert(`Failed to create club: ${err.message}`);
         }
-      } catch {
-        // Failed to create room
+      } catch (err) {
+        console.error(err);
+        alert("Failed to connect to the neural network. Please try again.");
       }
     };
 
