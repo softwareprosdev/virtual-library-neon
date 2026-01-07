@@ -137,6 +137,19 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Virtual Library Server is Running');
 });
 
+// Status page - works without database
+app.get('/status', (req: Request, res: Response) => {
+  res.json({
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development',
+    cors: {
+      allowedOrigins: allowedOrigins
+    }
+  });
+});
+
 import prisma from './db';
 
 // Health check endpoint for Coolify/Docker
