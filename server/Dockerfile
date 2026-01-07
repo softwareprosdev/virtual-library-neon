@@ -25,7 +25,6 @@ RUN npm ci --only=production
 # Copy built artifacts and necessary prisma files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.js ./prisma.config.js
 
 # Generate client again for the production environment (linux-musl)
 RUN npx prisma generate
