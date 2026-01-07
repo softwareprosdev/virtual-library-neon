@@ -30,8 +30,30 @@ const port = process.env.PORT || 4000;
 // Trust Proxy for Coolify/Traefik
 app.set('trust proxy', 1);
 
+// CORS Configuration - MUST be before helmet and other middleware
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://www.indexbin.com',
+  'https://indexbin.com',
+  'https://api.indexbin.com'
+];
+
+const allowedOrigins = process.env.CLIENT_URL
+  ? [...defaultAllowedOrigins, ...process.env.CLIENT_URL.split(',').map(url => url.trim())]
+  : defaultAllowedOrigins;
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -53,26 +75,6 @@ const authLimiter = rateLimit({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(limiter as any);
-
-// CORS Configuration
-const defaultAllowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://www.indexbin.com',
-  'https://indexbin.com',
-  'https://api.indexbin.com'
-];
-
-const allowedOrigins = process.env.CLIENT_URL
-  ? [...defaultAllowedOrigins, ...process.env.CLIENT_URL.split(',').map(url => url.trim())]
-  : defaultAllowedOrigins;
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
 app.use(express.json({ limit: '10mb' }));
 
 // Serve Static Uploads
