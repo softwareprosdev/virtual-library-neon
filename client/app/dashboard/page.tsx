@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
@@ -18,8 +19,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '../../components/ui/dialog';
-import { Search, ArrowLeft, Flame, Sparkles, Book, User, Plus } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Search, ArrowLeft, Flame, Sparkles, Book, Plus } from 'lucide-react';
 import UserStatsCard from '../../components/Gamification/UserStatsCard';
 import Leaderboard from '../../components/Gamification/Leaderboard';
 import AddToReadingList from '../../components/ReadingList/AddToReadingList';
@@ -74,7 +74,7 @@ type ViewMode = 'genres' | 'books';
 
 export default function Dashboard() {
   const router = useRouter();
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [, setRooms] = useState<Room[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
+  const [selectedGenre] = useState('');
   const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
 
   const [mounted, setMounted] = useState(false);
@@ -343,12 +343,14 @@ export default function Dashboard() {
                     <div className="flex gap-4 overflow-x-auto pb-4">
                       {trendingBooks.map((book) => (
                         <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0">
-                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg">
+                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
                             {book.volumeInfo.imageLinks?.thumbnail && (
-                              <img
+                              <Image
                                 src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
                                 alt={book.volumeInfo.title}
-                                className="h-full object-contain"
+                                fill
+                                className="object-contain p-2"
+                                sizes="180px"
                               />
                             )}
                           </div>
@@ -359,10 +361,10 @@ export default function Dashboard() {
                             <p className="text-xs text-muted-foreground truncate mb-2">
                               {book.volumeInfo.authors?.[0] || 'Unknown'}
                             </p>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="w-full text-xs" 
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-xs"
                               onClick={() => handleDiscussBook(book)}
                             >
                               DISCUSS
@@ -384,12 +386,14 @@ export default function Dashboard() {
                     <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
                       {newReleases.map((book) => (
                         <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0 snap-start">
-                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg">
+                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
                             {book.volumeInfo.imageLinks?.thumbnail && (
-                              <img
+                              <Image
                                 src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
                                 alt={book.volumeInfo.title}
-                                className="h-full object-contain"
+                                fill
+                                className="object-contain p-2"
+                                sizes="180px"
                               />
                             )}
                           </div>
@@ -484,14 +488,16 @@ export default function Dashboard() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                         {bookList.map((book) => (
                           <Card key={book.id} className="flex flex-col h-full hover:border-primary transition-colors">
-                            <div className="h-[180px] sm:h-[280px] bg-black p-2 sm:p-4 flex items-center justify-center rounded-t-lg relative group"
+                            <div className="h-[180px] sm:h-[280px] bg-black p-2 sm:p-4 flex items-center justify-center rounded-t-lg relative group cursor-pointer"
                                 onClick={() => handleDiscussBook(book)}
                             >
                               {book.volumeInfo.imageLinks?.thumbnail ? (
-                                <img
+                                <Image
                                   src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
                                   alt={book.volumeInfo.title}
-                                  className="h-full object-contain shadow-md group-hover:scale-105 transition-transform"
+                                  fill
+                                  className="object-contain p-2 group-hover:scale-105 transition-transform"
+                                  sizes="(max-width: 640px) 50vw, 200px"
                                 />
                               ) : (
                                 <div className="text-muted-foreground text-sm">No Cover</div>
@@ -556,7 +562,7 @@ export default function Dashboard() {
           <DialogHeader>
             <DialogTitle>Start a Book Discussion</DialogTitle>
             <DialogDescription>
-              Create a room to discuss "{selectedBook?.volumeInfo.title}".
+              Create a room to discuss &quot;{selectedBook?.volumeInfo.title}&quot;.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
 import { Button } from '../../components/ui/button';
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from "../../components/ui/dialog";
 import { Search, Plus, Trash2, BookOpen, Loader2, Book as BookIcon } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 interface Book {
   id: string;
@@ -230,7 +230,7 @@ export default function LibraryPage() {
                             <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
                                 <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
                                     {book.coverUrl ? (
-                                        <img src={book.coverUrl} alt={book.title} className="object-cover w-full h-full" />
+                                        <Image src={book.coverUrl} alt={book.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
                                     ) : (
                                         <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
                                             <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />

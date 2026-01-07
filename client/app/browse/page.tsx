@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import MainLayout from '../../components/MainLayout';
-import { Book, Compass, Search } from 'lucide-react';
+import { Compass, Search } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
 
 const POPULAR_CATEGORIES = [
   { id: 'fiction', name: 'Fiction', icon: '📖' },

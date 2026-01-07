@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { api } from '../../lib/api';
 import MainLayout from '../../components/MainLayout';
 import { Card, CardContent } from '../../components/ui/card';
@@ -102,7 +103,7 @@ export default function ReadingListPage() {
                   <Card key={entry.id} className="group relative overflow-hidden border-transparent hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.1)]">
                     <div className="aspect-[2/3] w-full bg-black relative">
                       {entry.coverUrl ? (
-                        <img src={entry.coverUrl} alt={entry.title} className="object-cover w-full h-full opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <Image src={entry.coverUrl} alt={entry.title} fill className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" sizes="(max-width: 640px) 50vw, 200px" />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">No Cover</div>
                       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 
@@ -20,11 +21,13 @@ export default function BookPanel({ book }: BookPanelProps) {
   return (
     <Card className="flex flex-col md:flex-row mb-4 overflow-hidden">
       {book.coverUrl && (
-        <div className="w-full md:w-[120px] h-[200px] md:h-auto bg-black p-2 flex-shrink-0">
-          <img
+        <div className="w-full md:w-[120px] h-[200px] md:h-auto bg-black p-2 flex-shrink-0 relative">
+          <Image
             src={book.coverUrl.replace('http:', 'https:')}
             alt={book.title}
-            className="w-full h-full object-contain"
+            fill
+            className="object-contain p-2"
+            sizes="120px"
           />
         </div>
       )}

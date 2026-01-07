@@ -9,7 +9,7 @@ import BookPanel from '../../../components/BookPanel';
 import nextDynamic from 'next/dynamic';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
+import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../components/ui/tooltip';
 import { Trash2, ArrowLeft, Send } from 'lucide-react';
 import { cn } from '../../../lib/utils';

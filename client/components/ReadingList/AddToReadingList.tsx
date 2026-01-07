@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '../../lib/api';
 import { Button } from '../ui/button';
 import {
@@ -69,12 +70,14 @@ export default function AddToReadingList({ book, onUpdate, variant = 'icon' }: A
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Track "{book.volumeInfo.title}"</DialogTitle>
+          <DialogTitle>Track &quot;{book.volumeInfo.title}&quot;</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex items-center gap-4">
             {book.volumeInfo.imageLinks?.thumbnail && (
-                <img src={book.volumeInfo.imageLinks.thumbnail} alt="Cover" className="h-24 w-16 object-cover rounded shadow-md" />
+                <div className="relative h-24 w-16">
+                  <Image src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')} alt="Cover" fill className="object-cover rounded shadow-md" sizes="64px" />
+                </div>
             )}
             <div className="flex-1">
                 <label className="text-sm font-medium mb-2 block">Reading Status</label>
