@@ -15,11 +15,15 @@ if (!connectionString) {
 }
 
 // Create PostgreSQL connection pool with error handling
+// Neon requires SSL
 const pool = new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  ssl: {
+    rejectUnauthorized: false, // Required for Neon
+  },
 });
 
 pool.on('error', (err) => {
