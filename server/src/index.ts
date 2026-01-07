@@ -44,7 +44,8 @@ const allowedOrigins = process.env.CLIENT_URL
   : defaultAllowedOrigins;
 
 // Explicit preflight handler - MUST be first to ensure CORS works
-app.options('*', (req: Request, res: Response) => {
+// Express 5 requires '{*path}' instead of '*' for wildcards
+app.options('{*path}', (req: Request, res: Response) => {
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
