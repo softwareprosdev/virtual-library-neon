@@ -15,14 +15,15 @@ if (!connectionString) {
 }
 
 // Create PostgreSQL connection pool with error handling
-// Neon requires SSL
+// Coolify PostgreSQL with SSL verification
 const pool = new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  // SSL configuration for Coolify PostgreSQL
   ssl: {
-    rejectUnauthorized: false, // Required for Neon
+    rejectUnauthorized: true, // Use the provided CA certificate
   },
 });
 
