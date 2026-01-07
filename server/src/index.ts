@@ -43,16 +43,32 @@ const allowedOrigins = process.env.CLIENT_URL
   ? [...defaultAllowedOrigins, ...process.env.CLIENT_URL.split(',').map(url => url.trim())]
   : defaultAllowedOrigins;
 
+// Explicit preflight handler - MUST be first to ensure CORS works
+app.options('*', (req: Request, res: Response) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  res.sendStatus(204);
+});
+
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Security Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
 }));
 
 // Rate Limiting
@@ -157,11 +173,28 @@ app.get('/diagnostics', async (req: Request, res: Response) => {
     }
 });
 
+// Global error handler - ensures CORS headers are sent even on errors
+app.use((err: Error, req: Request, res: Response, _next: express.NextFunction) => {
+  console.error('Global error handler:', err);
+
+  // Ensure CORS headers are set
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.status(500).json({
+    message: 'Internal server error',
+    error: process.env.NODE_ENV !== 'production' ? err.message : undefined
+  });
+});
+
 // Catch-all 404 handler (Must be last)
 app.use((req: Request, res: Response) => {
   console.log(`[404] Route not found: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ 
-    message: "Route not found", 
+  res.status(404).json({
+    message: "Route not found",
     path: req.originalUrl,
     method: req.method
   });

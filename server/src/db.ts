@@ -11,10 +11,21 @@ const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.error("FATAL: DATABASE_URL is not defined.");
+  process.exit(1);
 }
 
-// Create PostgreSQL connection pool
-const pool = new Pool({ connectionString });
+// Create PostgreSQL connection pool with error handling
+const pool = new Pool({
+  connectionString,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL pool error:', err);
+});
+
 const adapter = new PrismaPg(pool);
 
 // Prevent multiple instances of Prisma Client in development
