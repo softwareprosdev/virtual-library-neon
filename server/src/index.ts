@@ -81,20 +81,11 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Stricter rate limit for auth routes
+// Rate limit for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 auth requests per windowMs
+  max: 20, // Limit each IP to 20 auth requests per windowMs
   message: { message: 'Too many authentication attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Even stricter rate limit for registration
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 registration attempts per hour
-  message: { message: 'Too many registration attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -108,8 +99,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-app.use('/api/auth/register', registerLimiter as any, authRoutes);
-app.use('/auth/register', registerLimiter as any, authRoutes); // Fallback for old clients
 app.use('/api/auth', authLimiter as any, authRoutes);
 app.use('/auth', authLimiter as any, authRoutes); // Fallback for old clients
 app.use('/api/rooms', roomRoutes);

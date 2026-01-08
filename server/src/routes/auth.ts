@@ -2,14 +2,25 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Stricter rate limit for registration
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 registration attempts per hour
+  message: { message: 'Too many registration attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Register
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.post('/register', registerLimiter as any, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
 
@@ -100,11 +111,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
     console.error("Login Error:", error);
-    // Return actual error in dev/prod for debugging this issue
-    res.status(500).json({ 
-        message: "Server error", 
-        error: error instanceof Error ? error.message : String(error) 
-    });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

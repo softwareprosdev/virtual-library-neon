@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
-import { setToken } from '../lib/auth';
+import { setToken, setUser } from '../lib/auth';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -38,6 +38,9 @@ export default function AuthPage() {
       }
 
       setToken(data.token);
+      if (data.user) {
+        setUser(data.user);
+      }
       router.push('/dashboard');
     } catch (err: unknown) {
       if (err instanceof Error) {
