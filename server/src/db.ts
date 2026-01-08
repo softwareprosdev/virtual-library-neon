@@ -15,16 +15,20 @@ if (!connectionString) {
 }
 
 // Create PostgreSQL connection pool with error handling
-// Coolify PostgreSQL with SSL verification
+// Determine SSL configuration based on DATABASE_URL
+const requiresSsl = connectionString.includes('sslmode=require') ||
+                    connectionString.includes('ssl=true') ||
+                    process.env.DATABASE_SSL === 'true';
+
 const pool = new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  // SSL configuration for Coolify PostgreSQL
-  ssl: {
-    rejectUnauthorized: true, // Use the provided CA certificate
-  },
+  // SSL configuration - use rejectUnauthorized: false for self-signed certs in Docker/Coolify
+  ssl: requiresSsl ? {
+    rejectUnauthorized: false,
+  } : false,
 });
 
 pool.on('error', (err) => {
