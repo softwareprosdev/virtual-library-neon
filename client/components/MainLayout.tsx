@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout } from '../lib/auth';
 
@@ -30,9 +30,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
-        <div className="font-bold text-xl text-primary">IndexBin</div>
-        <button onClick={toggleMobileMenu} className="p-2 text-foreground hover:bg-accent rounded-md">
+      <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card relative">
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#fcee0a] to-transparent" />
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 5px #fcee0a)' }} />
+          <span className="font-bold text-xl text-[#fcee0a] uppercase tracking-wider">IndexBin</span>
+        </div>
+        <button
+          onClick={toggleMobileMenu}
+          className="p-2 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors"
+        >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </header>
@@ -44,12 +51,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
+        {/* Sidebar accent line */}
+        <div className="absolute top-0 right-0 bottom-0 w-px bg-gradient-to-b from-[#fcee0a] via-[#00f0ff] to-[#ff00a0]" />
+
         <div className="h-full flex flex-col">
-          <div className="p-6 border-b border-border hidden md:block">
-            <h1 className="font-bold text-2xl text-primary">IndexBin</h1>
+          {/* Logo */}
+          <div className="p-6 border-b border-border hidden md:block relative">
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[#fcee0a] to-transparent" />
+            <div className="flex items-center gap-3">
+              <Zap className="w-8 h-8 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 8px #fcee0a)' }} />
+              <div>
+                <h1 className="font-bold text-2xl text-[#fcee0a] uppercase tracking-wider">IndexBin</h1>
+                <p className="text-[10px] text-[#00f0ff] uppercase tracking-[0.2em]">Neural Archive</p>
+              </div>
+            </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 px-2">
+              // Navigation
+            </div>
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.path;
@@ -61,26 +83,41 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     setIsMobileMenuOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                    "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all group relative",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-[#fcee0a]/10 text-[#fcee0a] border-l-2 border-[#fcee0a]"
+                      : "text-muted-foreground hover:text-[#00f0ff] hover:bg-[#00f0ff]/5 border-l-2 border-transparent hover:border-[#00f0ff]/50"
                   )}
                 >
-                  <Icon size={20} />
-                  {item.text}
+                  <Icon size={18} className={isActive ? "text-[#fcee0a]" : "group-hover:text-[#00f0ff]"} />
+                  <span className="uppercase tracking-wider text-xs">{item.text}</span>
+                  {isActive && (
+                    <ChevronRight size={14} className="ml-auto text-[#fcee0a]" />
+                  )}
                 </button>
               );
             })}
           </nav>
 
+          {/* System Status */}
+          <div className="px-4 py-3 border-t border-border">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">
+              // System Status
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />
+              <span className="text-[#00f0ff]">Connected</span>
+            </div>
+          </div>
+
+          {/* Logout */}
           <div className="p-4 border-t border-border">
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#ff003c] hover:bg-[#ff003c]/10 border border-transparent hover:border-[#ff003c]/30 transition-all group"
             >
-              <LogOut size={20} />
-              Logout
+              <LogOut size={18} />
+              <span className="uppercase tracking-wider text-xs">Disconnect</span>
             </button>
           </div>
         </div>
@@ -88,14 +125,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+        <div
+          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-[calc(100dvh-64px)] md:h-screen p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto h-[calc(100dvh-64px)] md:h-screen p-4 md:p-8 relative">
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent" />
+
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
