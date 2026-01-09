@@ -66,21 +66,54 @@ function CustomPublisher({
   // Acquire Media
   useEffect(() => {
     let stream: MediaStream | null = null;
+    let cancelled = false;
+
     const acquire = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setRawStream(stream);
-        
+        const constraints: MediaStreamConstraints = {
+          video: videoEnabled,
+          audio: audioEnabled,
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch {
+        // If camera permission/device fails (common on mic-only), retry audio-only
+        if (audioEnabled) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          } catch {
+            stream = null;
+          }
+        } else {
+          stream = null;
+        }
+      }
+
+      if (cancelled) {
+        stream?.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      setRawStream(stream);
+
+      // Only prepare a video element if we actually have a video track
+      if (stream && stream.getVideoTracks().length > 0) {
         const vid = document.createElement('video');
         vid.srcObject = stream;
         vid.muted = true;
         vid.play().catch(() => {});
         videoRef.current = vid;
-      } catch { /* Media acquisition failed */ }
+      } else {
+        videoRef.current = null;
+      }
     };
+
     acquire();
-    return () => { stream?.getTracks().forEach(t => t.stop()); };
-  }, []);
+    return () => {
+      cancelled = true;
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+  }, [videoEnabled, audioEnabled]);
 
   // Publish Video
   useEffect(() => {
@@ -255,21 +288,40 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
 
     const startPreview = async () => {
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (!isCancelled) {
-          setPreviewStream(localStream);
-          if (videoRef.current) videoRef.current.srcObject = localStream;
+        const constraints: MediaStreamConstraints = {
+          video: joinMode === 'video' && videoEnabled,
+          audio: joinMode !== 'listen' && audioEnabled,
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch {
+        // Fallback: mic-only if camera fails
+        if (joinMode !== 'listen' && audioEnabled) {
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          } catch {
+            localStream = null;
+          }
         } else {
-          localStream.getTracks().forEach(t => t.stop());
+          localStream = null;
         }
-      } catch { /* Media access failed */ }
+      }
+
+      if (!localStream) return;
+
+      if (!isCancelled) {
+        setPreviewStream(localStream);
+        if (videoRef.current) videoRef.current.srcObject = localStream;
+      } else {
+        localStream.getTracks().forEach(t => t.stop());
+      }
     };
     startPreview();
     return () => {
       isCancelled = true;
       localStream?.getTracks().forEach(t => t.stop());
     };
-  }, [isJoined]);
+  }, [isJoined, joinMode, videoEnabled, audioEnabled]);
 
   useEffect(() => {
     if (!videoRef.current || !canvasRef.current || isJoined) return;
