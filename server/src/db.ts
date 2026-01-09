@@ -14,21 +14,26 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Create PostgreSQL connection pool with error handling
-// Determine SSL configuration based on DATABASE_URL
-const requiresSsl = connectionString.includes('sslmode=require') ||
+// Determine TLS configuration based on DATABASE_URL or environment
+// For internal Coolify/Docker networks, TLS is typically not needed
+const requiresTls = connectionString.includes('sslmode=require') ||
+                    connectionString.includes('sslmode=verify') ||
                     connectionString.includes('ssl=true') ||
-                    process.env.DATABASE_SSL === 'true';
+                    process.env.DATABASE_TLS === 'true';
 
+console.log(`[db]: Connecting to PostgreSQL (TLS: ${requiresTls ? 'enabled' : 'disabled'})`);
+
+// Create PostgreSQL connection pool with error handling
 const pool = new Pool({
   connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  // SSL configuration - use rejectUnauthorized: false for self-signed certs in Docker/Coolify
-  ssl: requiresSsl ? {
-    rejectUnauthorized: false,
-  } : false,
+  // TLS configuration - disabled by default for internal Docker networks
+  // Enable with DATABASE_TLS=true or sslmode in connection string
+  ssl: requiresTls ? {
+    rejectUnauthorized: false, // Allow self-signed certs
+  } : undefined,
 });
 
 pool.on('error', (err) => {
@@ -42,9 +47,19 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({
   adapter,
-  log: ['query', 'info', 'warn', 'error'],
+  log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error'],
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Test database connection on startup
+pool.connect()
+  .then(client => {
+    console.log('[db]: PostgreSQL connection successful');
+    client.release();
+  })
+  .catch(err => {
+    console.error('[db]: PostgreSQL connection failed:', err.message);
+  });
 
 export default prisma;
