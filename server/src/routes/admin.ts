@@ -16,7 +16,7 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: () => void) =
     select: { role: true }
   });
 
-  if (!user || user.role !== 'ADMIN') {
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'ELITE_ADMIN')) {
     res.status(403).json({ message: 'Admin access required' });
     return;
   }
