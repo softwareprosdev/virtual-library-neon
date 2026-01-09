@@ -11,7 +11,7 @@
     "test:api:prod": "API_URL=https://api.indexbin.com/api npx ts-node src/__tests__/manual-test-api.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:prod": "sh -c \"npx prisma migrate deploy || echo 'Migration failed, continuing...'; if [ \\\"$RUN_ADMIN_SETUP\\\" = \\\"true\\\" ]; then node app/scripts/setupAdmin.js || echo 'Admin setup failed (continuing)'; fi; node dist/index.js\"",
+    "start:prod": "sh -c \"echo 'RUN_ADMIN_SETUP='\\\"$RUN_ADMIN_SETUP\\\"''; npx prisma migrate deploy || echo 'Migration failed, continuing...'; if [ -n \\\"$RUN_ADMIN_SETUP\\\" ] && echo \\\"$RUN_ADMIN_SETUP\\\" | grep -Eqi '^(1|true|yes|y)$'; then echo 'Running admin setup...'; node app/scripts/setupAdmin.js || echo 'Admin setup failed (continuing)'; else echo 'Skipping admin setup.'; fi; node dist/index.js\"",
     "db:hard-reset": "npx prisma migrate reset --force",
     "dev": "ts-node src/index.ts",
     "setup:admin": "node app/scripts/setupAdmin.js"
