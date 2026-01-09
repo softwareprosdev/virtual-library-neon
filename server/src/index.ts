@@ -14,6 +14,7 @@ import aiRoutes from './routes/ai';
 import gamificationRoutes from './routes/gamification';
 import readingListRoutes from './routes/readingList';
 import userRoutes from './routes/users';
+import freeBooksRoutes from './routes/freeBooks';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -120,6 +121,8 @@ app.use('/api/users', userRoutes);
 app.use('/users', userRoutes);
 app.use('/api/profiles', userRoutes); // For compatibility with some frontend calls
 app.use('/profiles', userRoutes);
+app.use('/api/free-books', freeBooksRoutes);
+app.use('/free-books', freeBooksRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
