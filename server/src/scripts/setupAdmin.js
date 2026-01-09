@@ -1,4 +1,6 @@
-import { prisma } from '../db';
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 const ELITE_BADGES = [
   {
@@ -72,7 +74,7 @@ async function ensureBadgesExist() {
   return badges;
 }
 
-async function awardBadgesToUser(userId: string, badgeCount: number) {
+async function awardBadgesToUser(userId, badgeCount) {
   const badges = await ensureBadgesExist();
   const badgesToAward = badges.slice(0, badgeCount);
   
@@ -260,5 +262,5 @@ if (require.main === module) {
   setupAllRoles();
 }
 
-export { setupEliteAdmin, setupModerator };
-export default setupAllRoles;
+module.exports = { setupEliteAdmin, setupModerator };
+module.exports.default = setupAllRoles;
