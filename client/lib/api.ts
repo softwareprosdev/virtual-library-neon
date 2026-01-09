@@ -1,7 +1,7 @@
 import { getToken, clearAuth } from './auth';
 
 const isProduction = process.env.NODE_ENV === 'production';
-let API_URL = process.env.NEXT_PUBLIC_API_URL || (isProduction ? '' : 'http://localhost:4000/api');
+let API_URL = process.env.NEXT_PUBLIC_API_URL || (isProduction ? 'https://api.indexbin.com/api' : 'http://localhost:4000/api');
 
 // Auto-fix missing /api suffix if user forgot it
 if (isProduction && API_URL && !API_URL.endsWith('/api')) {
