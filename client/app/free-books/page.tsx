@@ -383,18 +383,10 @@ export default function FreeBooksPage() {
                   ))}
                 </div>
 
-                {/* Load More */}
+                {/* Infinite Scroll Loading Indicator */}
                 {loadingMore && (
                   <div className="flex justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                )}
-
-                {hasMore && !loadingMore && (
-                  <div className="flex justify-center p-8">
-                    <Button onClick={loadMore} variant="outline">
-                      Load More
-                    </Button>
                   </div>
                 )}
               </>
