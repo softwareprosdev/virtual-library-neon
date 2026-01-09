@@ -14,7 +14,7 @@
     "start:prod": "npx prisma migrate deploy || echo 'Migration failed, continuing...' && node dist/index.js",
     "db:hard-reset": "npx prisma migrate reset --force",
     "dev": "ts-node src/index.ts",
-    "setup:admin": "node src/scripts/setupAdmin.js"
+    "setup:admin": "node app/scripts/setupAdmin.js"
   },
   "keywords": [],
   "author": "",
