@@ -134,7 +134,7 @@ export default function ReadPage() {
                 <div className="flex justify-center mt-10">
                     <div className="text-center">
                         <h2 className="text-xl font-bold mb-2">Book Not Available</h2>
-                        <p className="text-muted-foreground">This book's file is not accessible.</p>
+                        <p className="text-muted-foreground">This book&apos;s file is not accessible.</p>
                         <Button onClick={() => router.back()} className="mt-4">
                             Go Back
                         </Button>

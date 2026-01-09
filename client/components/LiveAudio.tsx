@@ -219,7 +219,7 @@ function CyberpunkTile({ participant }: { participant: Participant }) {
         {audioTrack && !participant.isLocal && (
           <AudioTrack trackRef={audioTrack} />
         )}
-        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent flex gap-2 items-center">
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/80 to-transparent flex gap-2 items-center">
             <span className="text-xs text-white font-bold truncate">
                 {participant.identity} {participant.isLocal ? '(YOU)' : ''}
             </span>
