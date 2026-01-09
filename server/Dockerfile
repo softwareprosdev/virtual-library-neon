@@ -26,9 +26,13 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/app ./app
 
 # Generate client again for the production environment (linux-musl)
 RUN npx prisma generate
+
+# Run admin setup script (will exit gracefully if users don't exist)
+RUN npm run setup:admin || echo "Admin setup completed or users not found"
 
 EXPOSE 4000
 
