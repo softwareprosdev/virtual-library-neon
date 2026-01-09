@@ -1,10 +1,10 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { logout } from '../lib/auth';
+import { logout, getUser } from '../lib/auth';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -14,13 +14,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user ID for profile link
+  useEffect(() => {
+    const user = getUser();
+    if (user) setUserId(user.id);
+  }, []);
 
   const menuItems = [
     { text: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { text: 'Free Books', path: '/free-books', icon: BookOpen },
     { text: 'Browse', path: '/browse', icon: Compass },
     { text: 'Community', path: '/community', icon: Users },
     { text: 'Reading Log', path: '/reading-list', icon: Bookmark },
     { text: 'My Uploads', path: '/library', icon: Library },
+    { text: 'Profile', path: userId ? `/profile/${userId}` : '/dashboard', icon: UserCircle },
   ];
 
   const toggleMobileMenu = () => {

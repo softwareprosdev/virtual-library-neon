@@ -16,6 +16,7 @@ import readingListRoutes from './routes/readingList';
 import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
 import bookPostsRoutes from './routes/bookPosts';
+import freeBooksRoutes from './routes/freeBooks';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -126,6 +127,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/book-posts', bookPostsRoutes);
 app.use('/book-posts', bookPostsRoutes);
+app.use('/api/free-books', freeBooksRoutes);
+app.use('/free-books', freeBooksRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

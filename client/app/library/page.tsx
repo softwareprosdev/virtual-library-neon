@@ -38,19 +38,30 @@ export default function LibraryPage() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
-  const fetchBooks = useCallback(async (query = '') => {
+  const fetchBooks = useCallback(async (query = '', pageNum = 1, append = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setBooks([]);
+        setPage(1);
+      }
+
       const token = getToken();
       if (!token) {
         router.push('/login');
         return;
       }
 
-      const url = query 
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books/search?q=${encodeURIComponent(query)}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books`;
+      const url = query
+        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books/search?q=${encodeURIComponent(query)}&limit=${ITEMS_PER_PAGE}&page=${pageNum}`
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/books?limit=${ITEMS_PER_PAGE}&page=${pageNum}`;
 
       const res = await fetch(url, {
         headers: {
@@ -65,21 +76,59 @@ export default function LibraryPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setBooks(data);
+        const newBooks = Array.isArray(data) ? data : data.books || [];
+
+        if (append) {
+          setBooks(prev => [...prev, ...newBooks]);
+        } else {
+          setBooks(newBooks);
+        }
+
+        setHasMore(newBooks.length === ITEMS_PER_PAGE);
+        if (append && newBooks.length > 0) {
+          setPage(pageNum);
+        }
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [router]);
+  }, [router, ITEMS_PER_PAGE]);
+
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchBooks(search, page + 1, true);
+    }
+  }, [loadingMore, hasMore, search, page, fetchBooks]);
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchBooks(search);
+      setPage(1);
+      setHasMore(true);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [search, fetchBooks]);
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+
+    const handleScroll = () => {
+      const { innerHeight, scrollY } = window;
+      const { scrollHeight } = document.body;
+
+      if (scrollY + innerHeight >= scrollHeight - 1000) {
+        loadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadingMore, loadMore]);
 
   const handleUpload = async () => {
     if (!file || !title || !author) return;
@@ -221,44 +270,51 @@ export default function LibraryPage() {
                         <p>No books found. Upload one to get started!</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-                        {books.map((book) => (
-                            <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
-                                <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
-                                    {book.coverUrl ? (
-                                        <Image src={book.coverUrl} alt={book.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
-                                            <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
-                                        </div>
-                                    )}
-                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
-                                        <Button 
-                                            size="sm" 
-                                            className="w-full" 
-                                            onClick={() => handleRead(book)}
+                    <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                            {books.map((book) => (
+                                <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
+                                    <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
+                                        {book.coverUrl ? (
+                                            <Image src={book.coverUrl} alt={book.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
+                                                <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
+                                            </div>
+                                        )}
+                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+                                            <Button
+                                                size="sm"
+                                                className="w-full"
+                                                onClick={() => handleRead(book)}
+                                            >
+                                                Read
+                                            </Button>
+                                         </div>
+                                    </div>
+                                    <CardContent className="p-3 sm:p-4 flex-1">
+                                        <h3 className="font-semibold text-sm sm:text-base truncate" title={book.title}>{book.title}</h3>
+                                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{book.author}</p>
+                                    </CardContent>
+                                    <CardFooter className="p-3 sm:p-4 pt-0 flex justify-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+                                            onClick={() => handleDelete(book.id)}
                                         >
-                                            Read
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
-                                     </div>
-                                </div>
-                                <CardContent className="p-3 sm:p-4 flex-1">
-                                    <h3 className="font-semibold text-sm sm:text-base truncate" title={book.title}>{book.title}</h3>
-                                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{book.author}</p>
-                                </CardContent>
-                                <CardFooter className="p-3 sm:p-4 pt-0 flex justify-end">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors" 
-                                        onClick={() => handleDelete(book.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
+                        {loadingMore && (
+                            <div className="flex justify-center p-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            </div>
+                        )}
+                    </>
                 )}
             </>
         )}

@@ -53,7 +53,7 @@ if (isS3Enabled) {
       cb(null, `books/${Date.now()}-${file.originalname}`);
     }
   });
-  console.log('✅ S3 Storage Enabled for Books');
+  console.log(' S3 Storage Enabled for Books');
 } else {
   storage = multer.diskStorage({
     destination: 'uploads/',
@@ -61,7 +61,7 @@ if (isS3Enabled) {
       cb(null, `${Date.now()}-${file.originalname}`);
     }
   });
-  console.log('⚠️ Local Storage Enabled (Not persistent across deployments)');
+  console.log(' Local Storage Enabled (Not persistent across deployments)');
 }
 
 const upload = multer({ 
@@ -147,12 +147,12 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
 
     const { title, author } = req.body;
     let content = '';
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fileLocation = (req.file as any).location;
     const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
 
-// Extract text from PDF (both local and S3 storage)
+    // Extract text from PDF (both local and S3 storage)
     if ((req.file.mimetype === 'application/pdf' || req.file.filename?.endsWith('.pdf'))) {
       try {
         let dataBuffer: Buffer;
