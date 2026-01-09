@@ -13,6 +13,8 @@ model User {
   name      String?
   birthDate DateTime?
 
+  ageVerified Boolean?
+
   emailVerified Boolean @default(false)
   emailVerificationToken String?
   emailVerificationExpires DateTime?
@@ -255,7 +257,8 @@ model ProfileComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([id, userId])
+  @@index([userId])
+  @@index([authorId])
 }
 
 model ProfileVisit {
@@ -266,7 +269,8 @@ model ProfileVisit {
   visitor   User     @relation("ProfileVisitors", fields: [visitorId], references: [id])
   createdAt DateTime @default(now())
 
-  @@unique([id, profileId])
+  @@index([profileId])
+  @@index([visitorId])
 }
 
 model Message {
