@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import MainLayout from '../../components/MainLayout';
-import { Compass, Search, Book, User, Calendar } from 'lucide-react';
+import { Compass, Search, Book, User, Calendar, BookOpen, Globe, ExternalLink, Loader2 } from 'lucide-react';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
 import { api } from '../../lib/api';
 import Image from 'next/image';
 
-interface Book {
+interface LibraryBook {
   id: string;
   title: string;
   author: string;
@@ -28,8 +29,34 @@ interface GoogleBook {
       thumbnail?: string;
     };
     publishedDate?: string;
+    previewLink?: string;
+    infoLink?: string;
   };
 }
+
+interface GutenbergBook {
+  id: string;
+  title: string;
+  authors: string[];
+  coverImage: string | null;
+  formats: Record<string, string>;
+  downloadCount?: number;
+  source: 'gutenberg';
+}
+
+interface OpenLibraryBook {
+  id: string;
+  title: string;
+  authors: string[];
+  coverImage: string | null;
+  openLibraryId: string;
+  hasFulltext?: boolean;
+  ia?: string[];
+  publishYear?: number;
+  source: 'openlibrary';
+}
+
+type SearchResult = LibraryBook | GoogleBook | GutenbergBook | OpenLibraryBook;
 
 const POPULAR_CATEGORIES = [
   { id: 'fiction', name: 'Fiction', icon: '📖' },
@@ -53,21 +80,20 @@ const POPULAR_CATEGORIES = [
   { id: 'erotica', name: 'Erotica', icon: '💋' },
   { id: 'dark-romance', name: 'Dark Romance', icon: '🥀' },
   { id: 'lgbtq', name: 'LGBTQ+', icon: '🏳️‍🌈' },
-
 ];
 
 export default function BrowsePage() {
   const [search, setSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<(Book | GoogleBook)[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchTab, setSearchTab] = useState<'library' | 'google'>('library');
+  const [searchTab, setSearchTab] = useState<'library' | 'google' | 'gutenberg' | 'openlibrary'>('library');
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [currentQuery, setCurrentQuery] = useState('');
-  const [startIndex, setStartIndex] = useState(0);
+  const startIndexRef = useRef(0);
+  const pageRef = useRef(1);
 
   // Search user's library
-  const searchLibrary = async (query: string) => {
+  const searchLibrary = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -78,19 +104,20 @@ export default function BrowsePage() {
       const response = await api(`/books/search?q=${encodeURIComponent(query)}`);
       const data = await response.json();
       setSearchResults(data.books || []);
+      setHasMore(false);
     } catch (error) {
       console.error('Library search failed:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
 
   // Search Google Books API
   const searchGoogleBooks = useCallback(async (query: string, append = false) => {
     if (!query.trim()) {
       setSearchResults([]);
-      setStartIndex(0);
+      startIndexRef.current = 0;
       return;
     }
 
@@ -98,12 +125,13 @@ export default function BrowsePage() {
       setLoadingMore(true);
     } else {
       setIsSearching(true);
-      setStartIndex(0);
+      startIndexRef.current = 0;
       setSearchResults([]);
     }
 
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${append ? startIndex : 0}`);
+      const currentIndex = append ? startIndexRef.current : 0;
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${currentIndex}`);
       const data = await response.json();
       const newItems = data.items || [];
       
@@ -113,8 +141,8 @@ export default function BrowsePage() {
         setSearchResults(newItems);
       }
       
-      setHasMore(data.totalItems > startIndex + newItems.length);
-      setStartIndex(prev => prev + newItems.length);
+      startIndexRef.current = currentIndex + newItems.length;
+      setHasMore(data.totalItems > startIndexRef.current);
     } catch (error) {
       console.error('Google Books search failed:', error);
       if (!append) setSearchResults([]);
@@ -122,55 +150,143 @@ export default function BrowsePage() {
       setIsSearching(false);
       setLoadingMore(false);
     }
-  }, [startIndex]);
+  }, []);
 
-  // Load more results for infinite scroll
-  const loadMore = useCallback(() => {
-    if (!loadingMore && hasMore && currentQuery && searchTab === 'google') {
-      searchGoogleBooks(currentQuery, true);
+  // Search Gutenberg
+  const searchGutenberg = useCallback(async (query: string, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setIsSearching(true);
+      pageRef.current = 1;
+      setSearchResults([]);
     }
-  }, [loadingMore, hasMore, currentQuery, searchTab, searchGoogleBooks]);
 
+    try {
+      const currentPage = append ? pageRef.current : 1;
+      const searchParam = query.trim() ? `&search=${encodeURIComponent(query)}` : '';
+      const response = await api(`/free-books/gutenberg?page=${currentPage}${searchParam}`);
+      const data = await response.json();
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...(data.books || [])]);
+      } else {
+        setSearchResults(data.books || []);
+      }
+      
+      pageRef.current = currentPage + 1;
+      setHasMore(!!data.next);
+    } catch (error) {
+      console.error('Gutenberg search failed:', error);
+      if (!append) setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  // Search Open Library
+  const searchOpenLibrary = useCallback(async (query: string, append = false) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setIsSearching(true);
+      pageRef.current = 1;
+      setSearchResults([]);
+    }
+
+    try {
+      const currentPage = append ? pageRef.current : 1;
+      const response = await api(`/free-books/openlibrary?search=${encodeURIComponent(query)}&page=${currentPage}`);
+      const data = await response.json();
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...(data.books || [])]);
+      } else {
+        setSearchResults(data.books || []);
+      }
+      
+      pageRef.current = currentPage + 1;
+      const totalPages = Math.ceil((data.totalFound || 0) / 20);
+      setHasMore(currentPage < totalPages);
+    } catch (error) {
+      console.error('Open Library search failed:', error);
+      if (!append) setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  // Debounced search effect
   useEffect(() => {
-    if (search) {
-      setCurrentQuery(search);
+    const timer = setTimeout(() => {
+      setHasMore(true);
       if (searchTab === 'library') {
         searchLibrary(search);
-      } else {
+      } else if (searchTab === 'google') {
         searchGoogleBooks(search);
+      } else if (searchTab === 'gutenberg') {
+        searchGutenberg(search);
+      } else if (searchTab === 'openlibrary') {
+        if (search.trim()) {
+          searchOpenLibrary(search);
+        } else {
+          setSearchResults([]);
+        }
       }
-    } else {
-      setSearchResults([]);
-      setHasMore(true);
-      setStartIndex(0);
-    }
-  }, [search, searchTab, searchGoogleBooks]);
+    }, 500);
 
-  // Infinite scroll for Google Books
+    return () => clearTimeout(timer);
+  }, [search, searchTab, searchLibrary, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
+
+  // Infinite scroll
   useEffect(() => {
-    if (searchTab !== 'google' || !hasMore) return;
+    if (!hasMore || loadingMore || isSearching) return;
 
     const handleScroll = () => {
       const { innerHeight, scrollY } = window;
       const { scrollHeight } = document.body;
       
       if (scrollY + innerHeight >= scrollHeight - 1000) {
-        loadMore();
+        if (searchTab === 'google' && search.trim()) {
+          searchGoogleBooks(search, true);
+        } else if (searchTab === 'gutenberg') {
+          searchGutenberg(search, true);
+        } else if (searchTab === 'openlibrary' && search.trim()) {
+          searchOpenLibrary(search, true);
+        }
       }
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [searchTab, hasMore, currentQuery, loadMore]);
+  }, [searchTab, hasMore, loadingMore, isSearching, search, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
 
-  const isGoogleBook = (item: Book | GoogleBook): item is GoogleBook => {
+  const isGoogleBook = (item: SearchResult): item is GoogleBook => {
     return 'volumeInfo' in item;
   };
 
+  const isGutenbergBook = (item: SearchResult): item is GutenbergBook => {
+    return 'source' in item && item.source === 'gutenberg';
+  };
+
+  const isOpenLibraryBook = (item: SearchResult): item is OpenLibraryBook => {
+    return 'source' in item && item.source === 'openlibrary';
+  };
+
+  const isLibraryBook = (item: SearchResult): item is LibraryBook => {
+    return 'fileUrl' in item;
+  };
+
   const handleCategoryClick = (categoryId: string) => {
-    // For now, filter by category in search
     setSearch(categoryId);
-    setSearchTab('library');
+    setSearchTab('gutenberg');
   };
 
   return (
@@ -192,69 +308,88 @@ export default function BrowsePage() {
             />
         </div>
 
-        {search && (
-          <div className="mb-8">
-            <div className="flex gap-4 mb-6">
-              <button
-                onClick={() => setSearchTab('library')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  searchTab === 'library' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-card/50 text-muted-foreground hover:bg-card'
-                }`}
-              >
-                My Library
-              </button>
-              <button
-                onClick={() => setSearchTab('google')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  searchTab === 'google' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-card/50 text-muted-foreground hover:bg-card'
-                }`}
-              >
-                Google Books
-              </button>
-            </div>
+        {/* Source Tabs - Always visible */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setSearchTab('library')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+              searchTab === 'library' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-card/50 text-muted-foreground hover:bg-card'
+            }`}
+          >
+            <Book className="h-4 w-4" />
+            My Library
+          </button>
+          <button
+            onClick={() => setSearchTab('google')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+              searchTab === 'google' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-card/50 text-muted-foreground hover:bg-card'
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            Google Books
+          </button>
+          <button
+            onClick={() => setSearchTab('gutenberg')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+              searchTab === 'gutenberg' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-card/50 text-muted-foreground hover:bg-card'
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            Gutenberg
+          </button>
+          <button
+            onClick={() => setSearchTab('openlibrary')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+              searchTab === 'openlibrary' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-card/50 text-muted-foreground hover:bg-card'
+            }`}
+          >
+            <Globe className="h-4 w-4" />
+            Open Library
+          </button>
+        </div>
 
+        {/* Search Results */}
+        {(search || searchTab === 'gutenberg') && (
+          <div className="mb-8">
             {isSearching ? (
               <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
                 <p className="mt-2 text-muted-foreground">Searching...</p>
               </div>
             ) : searchResults.length > 0 ? (
-                <div className="grid gap-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">
-                      {searchResults.length} results found
-                    </h3>
-                    {hasMore && searchTab === 'google' && (
-                      <button
-                        onClick={loadMore}
-                        disabled={loadingMore}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {loadingMore && (
-                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin rounded-full" />
-                        )}
-                        Load More
-                      </button>
-                    )}
-                  </div>
+              <div className="grid gap-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">
+                    {searchResults.length}+ results found
+                  </h3>
+                </div>
                 <div className="grid gap-4">
                   {searchResults.map((item) => {
+                    // Google Books
                     if (isGoogleBook(item)) {
                       return (
                         <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
                           <div className="flex gap-4">
-                            {item.volumeInfo.imageLinks?.thumbnail && (
+                            {item.volumeInfo.imageLinks?.thumbnail ? (
                               <Image 
                                 src={item.volumeInfo.imageLinks.thumbnail} 
                                 alt={item.volumeInfo.title}
-                                width={64}
-                                height={96}
-                                className="object-cover rounded"
+                                width={80}
+                                height={120}
+                                className="object-cover rounded border border-border"
                               />
+                            ) : (
+                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
+                                <Book className="h-8 w-8 text-muted-foreground" />
+                              </div>
                             )}
                             <div className="flex-1">
                               <h4 className="font-semibold text-lg">{item.volumeInfo.title}</h4>
@@ -272,15 +407,150 @@ export default function BrowsePage() {
                                   {item.volumeInfo.description}
                                 </p>
                               )}
+                              <div className="flex gap-2 mt-3">
+                                {item.volumeInfo.previewLink && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => window.open(item.volumeInfo.previewLink, '_blank')}
+                                  >
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Preview
+                                  </Button>
+                                )}
+                                {item.volumeInfo.infoLink && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(item.volumeInfo.infoLink, '_blank')}
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    More Info
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </Card>
                       );
-                    } else {
+                    }
+                    
+                    // Gutenberg Books
+                    if (isGutenbergBook(item)) {
                       return (
                         <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
                           <div className="flex gap-4">
-                            <Book className="h-16 w-16 text-muted-foreground" />
+                            {item.coverImage ? (
+                              <Image 
+                                src={item.coverImage} 
+                                alt={item.title}
+                                width={80}
+                                height={120}
+                                className="object-cover rounded border border-border"
+                              />
+                            ) : (
+                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
+                                <BookOpen className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg">{item.title}</h4>
+                              <p className="text-muted-foreground">
+                                {item.authors?.join(', ') || 'Unknown Author'}
+                              </p>
+                              {item.downloadCount && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  📥 {item.downloadCount.toLocaleString()} downloads
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {item.formats['text/html'] && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => window.open(item.formats['text/html'], '_blank')}
+                                  >
+                                    <BookOpen className="h-4 w-4 mr-2" />
+                                    Read Online
+                                  </Button>
+                                )}
+                                {item.formats['application/epub+zip'] && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(item.formats['application/epub+zip'], '_blank')}
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Download EPUB
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    }
+                    
+                    // Open Library Books
+                    if (isOpenLibraryBook(item)) {
+                      return (
+                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
+                          <div className="flex gap-4">
+                            {item.coverImage ? (
+                              <Image 
+                                src={item.coverImage} 
+                                alt={item.title}
+                                width={80}
+                                height={120}
+                                className="object-cover rounded border border-border"
+                              />
+                            ) : (
+                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
+                                <Globe className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg">{item.title}</h4>
+                              <p className="text-muted-foreground">
+                                {item.authors?.join(', ') || 'Unknown Author'}
+                              </p>
+                              {item.publishYear && (
+                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {item.publishYear}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => window.open(`https://openlibrary.org${item.openLibraryId}`, '_blank')}
+                                >
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  View on Open Library
+                                </Button>
+                                {item.hasFulltext && item.ia && item.ia.length > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(`https://archive.org/details/${item.ia![0]}`, '_blank')}
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Read on Archive.org
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    }
+                    
+                    // Library Books (user uploads)
+                    if (isLibraryBook(item)) {
+                      return (
+                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
+                          <div className="flex gap-4">
+                            <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
+                              <Book className="h-8 w-8 text-muted-foreground" />
+                            </div>
                             <div className="flex-1">
                               <h4 className="font-semibold text-lg">{item.title}</h4>
                               <p className="text-muted-foreground flex items-center gap-1">
@@ -291,18 +561,42 @@ export default function BrowsePage() {
                                 <Calendar className="h-3 w-3" />
                                 {new Date(item.createdAt).toLocaleDateString()}
                               </p>
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => window.open(item.fileUrl, '_blank')}
+                                >
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Open
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </Card>
                       );
                     }
+                    
+                    return null;
                   })}
                 </div>
+                
+                {/* Loading more indicator */}
+                {loadingMore && (
+                  <div className="flex justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
                 <Book className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No results found for &quot;{search}&quot;</p>
+                <p className="text-muted-foreground">
+                  {searchTab === 'openlibrary' && !search.trim() 
+                    ? 'Enter a search term to browse Open Library'
+                    : search 
+                      ? `No results found for "${search}"`
+                      : 'Browse books from the selected source'}
+                </p>
               </div>
             )}
           </div>
