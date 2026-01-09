@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { logout, getCurrentUser } from '../lib/auth';
+import { logout, getUser } from '../lib/auth';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -18,15 +18,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Get current user ID for profile link
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user) setUserId(user.id);
-      } catch (error) {
-        console.error('Failed to get user:', error);
-      }
-    };
-    fetchUser();
+    const user = getUser();
+    if (user) setUserId(user.id);
   }, []);
 
   const menuItems = [

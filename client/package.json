@@ -27,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dommatrix": "^1.0.3",
+    "epubjs": "^0.3.93",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "livekit-client": "^2.16.1",
