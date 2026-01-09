@@ -85,6 +85,10 @@ export default function EpubReader({ url, title }: EpubReaderProps) {
         bookRef.current = book;
 
         // Render book
+        if (!viewerRef.current) {
+          throw new Error('Viewer element not found');
+        }
+
         const rendition = book.renderTo(viewerRef.current, {
           width: '100%',
           height: '100%',

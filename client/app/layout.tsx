@@ -3,8 +3,12 @@ import "./globals.css";
 import { cn } from "../lib/utils";
 
 export const metadata = {
-  title: "IndexBin",
-  description: "Collaborative study rooms.",
+  title: "IndexBin - The Ultimate Book Community",
+  description: "Read, discuss, and share books with a global community. Live video rooms, EPUB reader, and social features.",
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
 };
 
 export const viewport = {
