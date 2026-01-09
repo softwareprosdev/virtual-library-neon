@@ -342,6 +342,40 @@ export default function FreeBooksPage() {
                                 )}
                               </>
                             )}
+
+                            {/* Open Library Actions */}
+                            {!isGutenberg(book) && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    const olBook = book as OpenLibraryBook;
+                                    // Open Library book page
+                                    window.open(`https://openlibrary.org${olBook.openLibraryId}`, '_blank');
+                                  }}
+                                  className="gap-2"
+                                >
+                                  <BookOpen className="h-4 w-4" />
+                                  View on Open Library
+                                </Button>
+
+                                {(book as OpenLibraryBook).hasFulltext && (book as OpenLibraryBook).ia && (book as OpenLibraryBook).ia!.length > 0 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const olBook = book as OpenLibraryBook;
+                                      // Internet Archive reader
+                                      window.open(`https://archive.org/details/${olBook.ia![0]}`, '_blank');
+                                    }}
+                                    className="gap-2"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    Read on Archive.org
+                                  </Button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
