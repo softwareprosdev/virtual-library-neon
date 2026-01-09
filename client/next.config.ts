@@ -26,6 +26,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'www.gutenberg.org',
+      },
+      {
+        protocol: 'http',
+        hostname: 'www.gutenberg.org',
+      },
+      {
+        protocol: 'https',
         hostname: 'api.indexbin.com',
       },
       {
