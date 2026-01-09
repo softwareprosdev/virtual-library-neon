@@ -7,19 +7,41 @@ import path from 'path';
 // Explicitly load .env from server directory if available
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const connectionString = process.env.DATABASE_URL;
+const rawConnectionString = process.env.DATABASE_URL;
 
-if (!connectionString) {
+if (!rawConnectionString) {
   console.error("FATAL: DATABASE_URL is not defined.");
   process.exit(1);
 }
 
-// Determine TLS configuration based on DATABASE_URL or environment
-// For internal Coolify/Docker networks, TLS is typically not needed
-const requiresTls = connectionString.includes('sslmode=require') ||
-                    connectionString.includes('sslmode=verify') ||
-                    connectionString.includes('ssl=true') ||
-                    process.env.DATABASE_TLS === 'true';
+// Strip SSL certificate file references from connection string
+// pg-connection-string tries to read cert files which may not exist in container
+function sanitizeConnectionString(connStr: string): string {
+  try {
+    const url = new URL(connStr);
+    // Remove SSL cert file params that pg-connection-string tries to read
+    url.searchParams.delete('sslrootcert');
+    url.searchParams.delete('sslcert');
+    url.searchParams.delete('sslkey');
+    // For internal Docker networks, remove sslmode unless explicitly required
+    if (process.env.DATABASE_TLS !== 'true') {
+      url.searchParams.delete('sslmode');
+    }
+    return url.toString();
+  } catch {
+    // If URL parsing fails, try regex fallback
+    return connStr
+      .replace(/[?&]sslrootcert=[^&]*/g, '')
+      .replace(/[?&]sslcert=[^&]*/g, '')
+      .replace(/[?&]sslkey=[^&]*/g, '')
+      .replace(/[?&]sslmode=[^&]*/g, process.env.DATABASE_TLS === 'true' ? '$&' : '');
+  }
+}
+
+const connectionString = sanitizeConnectionString(rawConnectionString);
+
+// Determine TLS configuration
+const requiresTls = process.env.DATABASE_TLS === 'true';
 
 console.log(`[db]: Connecting to PostgreSQL (TLS: ${requiresTls ? 'enabled' : 'disabled'})`);
 
@@ -29,11 +51,10 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  // TLS configuration - disabled by default for internal Docker networks
-  // Enable with DATABASE_TLS=true or sslmode in connection string
+  // TLS configuration - only enable if DATABASE_TLS=true
   ssl: requiresTls ? {
     rejectUnauthorized: false, // Allow self-signed certs
-  } : undefined,
+  } : false,
 });
 
 pool.on('error', (err) => {
