@@ -91,6 +91,7 @@ export default function BrowsePage() {
   const [hasMore, setHasMore] = useState(true);
   const startIndexRef = useRef(0);
   const pageRef = useRef(1);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Search user's library
   const searchLibrary = useCallback(async (query: string) => {
@@ -286,6 +287,40 @@ export default function BrowsePage() {
       mainElement?.removeEventListener('scroll', handleScroll);
     };
   }, [searchTab, hasMore, loadingMore, isSearching, search, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
+
+  // Sentinel-based infinite scroll (more reliable than scroll threshold on some devices/layouts)
+  useEffect(() => {
+    if (!hasMore || loadingMore || isSearching) return;
+    if (searchTab === 'library') return;
+    if (searchTab !== 'gutenberg' && !search.trim()) return;
+    if (!sentinelRef.current) return;
+
+    const mainElement = document.querySelector('main');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (!hasMore || loadingMore || isSearching) return;
+
+        if (searchTab === 'google' && search.trim()) {
+          searchGoogleBooks(search, true);
+        } else if (searchTab === 'gutenberg') {
+          searchGutenberg(search, true);
+        } else if (searchTab === 'openlibrary' && search.trim()) {
+          searchOpenLibrary(search, true);
+        }
+      },
+      {
+        root: (mainElement as Element) || null,
+        rootMargin: '800px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [searchTab, search, hasMore, loadingMore, isSearching, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
 
   const isGoogleBook = (item: SearchResult): item is GoogleBook => {
     return 'volumeInfo' in item;
@@ -604,6 +639,11 @@ export default function BrowsePage() {
                   <div className="flex justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
+                )}
+
+                {/* Sentinel for IntersectionObserver infinite scroll */}
+                {hasMore && !loadingMore && !isSearching && (
+                  <div ref={sentinelRef} className="h-px w-full" />
                 )}
               </div>
             ) : (
