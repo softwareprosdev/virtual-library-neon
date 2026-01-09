@@ -38,11 +38,21 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
         <button
           onClick={toggleMobileMenu}
-          className="p-2 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors"
+          className="p-3 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors rounded-md"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Sidebar (Desktop & Mobile) */}
       <aside
@@ -70,7 +80,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 px-2">
-              // Navigation
+              {`// Navigation`}
             </div>
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -102,7 +112,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           {/* System Status */}
           <div className="px-4 py-3 border-t border-border">
             <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">
-              // System Status
+              {`// System Status`}
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />

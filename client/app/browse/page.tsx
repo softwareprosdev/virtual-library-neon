@@ -61,6 +61,10 @@ export default function BrowsePage() {
   const [searchResults, setSearchResults] = useState<(Book | GoogleBook)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTab, setSearchTab] = useState<'library' | 'google'>('library');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [startIndex, setStartIndex] = useState(0);
 
   // Search user's library
   const searchLibrary = async (query: string) => {
@@ -72,7 +76,8 @@ export default function BrowsePage() {
     setIsSearching(true);
     try {
       const response = await api(`/books/search?q=${encodeURIComponent(query)}`);
-      setSearchResults(response.books || []);
+      const data = await response.json();
+      setSearchResults(data.books || []);
     } catch (error) {
       console.error('Library search failed:', error);
       setSearchResults([]);
@@ -82,27 +87,53 @@ export default function BrowsePage() {
   };
 
   // Search Google Books API
-  const searchGoogleBooks = async (query: string) => {
+  const searchGoogleBooks = async (query: string, append = false) => {
     if (!query.trim()) {
       setSearchResults([]);
+      setStartIndex(0);
       return;
     }
 
-    setIsSearching(true);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setIsSearching(true);
+      setStartIndex(0);
+      setSearchResults([]);
+    }
+
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`);
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${append ? startIndex : 0}`);
       const data = await response.json();
-      setSearchResults(data.items || []);
+      const newItems = data.items || [];
+      
+      if (append) {
+        setSearchResults(prev => [...prev, ...newItems]);
+      } else {
+        setSearchResults(newItems);
+      }
+      
+      setHasMore(data.totalItems > startIndex + newItems.length);
+      setStartIndex(prev => prev + newItems.length);
     } catch (error) {
       console.error('Google Books search failed:', error);
-      setSearchResults([]);
+      if (!append) setSearchResults([]);
     } finally {
       setIsSearching(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Load more results for infinite scroll
+  const loadMore = () => {
+    if (!loadingMore && hasMore && currentQuery && searchTab === 'google') {
+      searchGoogleBooks(currentQuery, true);
     }
   };
 
   useEffect(() => {
     if (search) {
+      setCurrentQuery(search);
       if (searchTab === 'library') {
         searchLibrary(search);
       } else {
@@ -110,11 +141,36 @@ export default function BrowsePage() {
       }
     } else {
       setSearchResults([]);
+      setHasMore(true);
+      setStartIndex(0);
     }
   }, [search, searchTab]);
 
+  // Infinite scroll for Google Books
+  useEffect(() => {
+    if (searchTab !== 'google' || !hasMore) return;
+
+    const handleScroll = () => {
+      const { innerHeight, scrollY } = window;
+      const { scrollHeight } = document.body;
+      
+      if (scrollY + innerHeight >= scrollHeight - 1000) {
+        loadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [searchTab, hasMore, currentQuery, loadMore]);
+
   const isGoogleBook = (item: Book | GoogleBook): item is GoogleBook => {
     return 'volumeInfo' in item;
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    // For now, filter by category in search
+    setSearch(categoryId);
+    setSearchTab('library');
   };
 
   return (
@@ -167,10 +223,24 @@ export default function BrowsePage() {
                 <p className="mt-2 text-muted-foreground">Searching...</p>
               </div>
             ) : searchResults.length > 0 ? (
-              <div className="grid gap-4">
-                <h3 className="text-lg font-semibold mb-4">
-                  {searchResults.length} results found
-                </h3>
+                <div className="grid gap-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">
+                      {searchResults.length} results found
+                    </h3>
+                    {hasMore && searchTab === 'google' && (
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {loadingMore && (
+                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin rounded-full" />
+                        )}
+                        Load More
+                      </button>
+                    )}
+                  </div>
                 <div className="grid gap-4">
                   {searchResults.map((item) => {
                     if (isGoogleBook(item)) {
@@ -241,10 +311,14 @@ export default function BrowsePage() {
         {!search && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {POPULAR_CATEGORIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase())).map((category) => (
-                  <Card key={category.id} className="group cursor-pointer hover:border-primary transition-all hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/50">
-                      <CardContent className="flex flex-col items-center justify-center p-6 h-40">
-                          <span className="text-4xl mb-3 transform group-hover:scale-110 transition-transform">{category.icon}</span>
-                          <span className="font-bold text-center text-sm">{category.name}</span>
+                  <Card 
+                    key={category.id} 
+                    className="group cursor-pointer hover:border-primary transition-all hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] bg-card/50"
+                    onClick={() => handleCategoryClick(category.id)}
+                  >
+                      <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6 h-32 sm:h-40">
+                          <span className="text-3xl sm:text-4xl mb-2 sm:mb-3 transform group-hover:scale-110 transition-transform">{category.icon}</span>
+                          <span className="font-bold text-center text-xs sm:text-sm">{category.name}</span>
                       </CardContent>
                   </Card>
               ))}

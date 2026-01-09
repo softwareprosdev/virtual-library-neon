@@ -77,7 +77,12 @@ export default function RoomPage() {
   useEffect(() => {
     const fetchRoomData = async () => {
       try {
-        const res = await api(`/rooms/${roomId}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/rooms/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
         if (res.ok) {
           const data = await res.json();
           setRoomData(data);
@@ -85,7 +90,7 @@ export default function RoomPage() {
           scrollToBottom();
         }
       } catch (error) {
-        console.error("Failed to load room", error);
+        console.error('Failed to fetch room data:', error);
       }
     };
 
@@ -125,7 +130,7 @@ export default function RoomPage() {
       // Add system message
       setMessages((prev) => [...prev, {
         id: Math.random().toString(),
-        text: `${user.email} joined the archives.`,
+        text: `${user.email.split('@')[0]} joined the archives.`,
         sender: { name: 'SYSTEM', email: '', id: '' },
         createdAt: new Date().toISOString(),
         isSystem: true
@@ -203,9 +208,15 @@ export default function RoomPage() {
         {/* Main Content Area (Live Audio/Video) */}
         <div className="flex-1 flex flex-col bg-secondary/5 h-[50vh] md:h-full overflow-hidden border-r border-border">
            {/* Book Panel - shows book being discussed */}
-           {roomData?.books && roomData.books.length > 0 && (
-               <div className="flex-shrink-0 p-2 bg-background/95 border-b border-primary/30 z-10">
-                   <BookPanel book={roomData.books[0]} />
+            {roomData?.books && roomData.books.length > 0 && (
+                <div className="flex-shrink-0 p-2 sm:p-3 bg-background/95 border-b border-primary/30 z-10">
+                   <BookPanel 
+                     book={roomData.books[0]} 
+                     onReadBook={(book) => {
+                       // Open book in read page within same tab
+                       window.open(`/read/${book.id}`, '_blank');
+                     }}
+                   />
                </div>
            )}
            {/* LiveAudio takes remaining space */}
@@ -230,7 +241,7 @@ export default function RoomPage() {
                       </Avatar>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{p.email} ({p.role})</p>
+                      <p>{p.email.split('@')[0]} ({p.role})</p>
                     </TooltipContent>
                   </Tooltip>
                 ))}
