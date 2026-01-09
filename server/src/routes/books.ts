@@ -6,7 +6,7 @@ const multer = require('multer');
 import path from 'path';
 import fs from 'fs';
 import { PDFParse } from 'pdf-parse';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const multerS3 = require('multer-s3');
 
