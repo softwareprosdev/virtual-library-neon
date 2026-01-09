@@ -33,10 +33,10 @@ model User {
   followedBy  Follows[] @relation("following")
   following   Follows[] @relation("follower")
   activity    Activity[]
-  readingList ReadingList[]
-  profileComments ProfileComment[]
-  profileVisits ProfileVisit[]
-  receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
+    readingList ReadingList[]
+    profileComments ProfileComment[]
+    profileVisits    ProfileVisit[] @relation("ProfileVisits")
+    receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
   sentProfileComments ProfileComment[] @relation("CommentAuthor")
 
   // MySpace-style Profile Customization
@@ -61,10 +61,6 @@ model User {
   
   // Top Friends (MySpace style - ordered list of friend IDs)
   topFriends       String[]  @default([])
-  
-  // Profile Stats (MySpace style)
-  profileComments   ProfileComment[]
-  profileVisits    ProfileVisit[]
 }
 
 model ReadingList {
