@@ -1,6 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const path = require('path');
+let prisma;
+try {
+  prisma = require(path.join(__dirname, '..', '..', 'dist', 'db')).default;
+} catch (error) {
+  const { PrismaClient } = require('@prisma/client');
+  prisma = new PrismaClient();
+}
 
 const ELITE_BADGES = [
   {
