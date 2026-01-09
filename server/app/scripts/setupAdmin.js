@@ -97,21 +97,21 @@ async function awardBadgesToUser(userId, badgeCount) {
 
 async function setupEliteAdmin() {
   try {
-    console.log('🚀 Setting up Elite Admin account for GyattDamnn...\n');
+    console.log('🚀 Setting up Elite Admin account for VSimpin...\n');
 
     // Find user by email or name
     let user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: { contains: 'GyattDamnn', mode: 'insensitive' } },
-          { name: { contains: 'GyattDamnn', mode: 'insensitive' } },
-          { displayName: { contains: 'GyattDamnn', mode: 'insensitive' } }
+          { email: { contains: 'VSimpin', mode: 'insensitive' } },
+          { name: { contains: 'VSimpin', mode: 'insensitive' } },
+          { displayName: { contains: 'VSimpin', mode: 'insensitive' } }
         ]
       }
     });
 
     if (!user) {
-      console.log('❌ User "GyattDamnn" not found.');
+      console.log('❌ User "VSimpin" not found.');
       console.log('Listing all users:');
       const allUsers = await prisma.user.findMany({ select: { id: true, name: true, email: true } });
       allUsers.forEach(u => console.log(`  - ${u.name} (${u.email})`));
@@ -127,7 +127,7 @@ async function setupEliteAdmin() {
         role: 'ELITE_ADMIN',
         points: 999999,
         level: 100,
-        displayName: 'GyattDamnn 👑',
+        displayName: 'VSimpin 👑',
         bio: 'Elite Administrator & Founder of IndexBin. Building the future of digital libraries.',
         statusMessage: '📚 Always reading, always learning'
       }
