@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout, getUser } from '../lib/auth';
 
@@ -24,6 +24,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const menuItems = [
     { text: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { text: 'Free Books', path: '/free-books', icon: BookOpen },
     { text: 'Browse', path: '/browse', icon: Compass },
     { text: 'Community', path: '/community', icon: Users },
     { text: 'Reading Log', path: '/reading-list', icon: Bookmark },

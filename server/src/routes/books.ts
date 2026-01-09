@@ -5,8 +5,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { PDFParse } from 'pdf-parse';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import multerS3 from 'multer-s3';
+import virusScanService from '../services/virusScanService';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -126,10 +127,93 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
 
     const { title, author } = req.body;
     let content = '';
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fileLocation = (req.file as any).location;
     const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
+
+    // 🔒 SECURITY: Scan file for malware using VirusTotal
+    console.log('🔍 Scanning uploaded file for malware...');
+    let scanResult;
+
+    if (req.file.path) {
+      // Local file - scan directly
+      scanResult = await virusScanService.scanFile(req.file.path);
+    } else if (fileLocation && isS3Enabled) {
+      // S3 file - download temporarily and scan
+      try {
+        const s3 = new S3Client({
+          region: process.env.AWS_REGION || 'us-east-1',
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+          }
+        });
+
+        const key = fileLocation.split('/').pop();
+        const tempPath = `/tmp/${Date.now()}-${req.file.originalname}`;
+
+        const getObjectCommand = new GetObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET!,
+          Key: `books/${key}`
+        });
+
+        const response = await s3.send(getObjectCommand);
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of response.Body as any) {
+          chunks.push(chunk);
+        }
+
+        fs.writeFileSync(tempPath, Buffer.concat(chunks));
+        scanResult = await virusScanService.scanFile(tempPath);
+        fs.unlinkSync(tempPath); // Clean up temp file
+      } catch (scanError) {
+        console.error('S3 scan error:', scanError);
+        scanResult = { safe: false, malicious: 0, suspicious: 0, error: 'Scan failed' };
+      }
+    }
+
+    // If malware detected, delete file and reject upload
+    if (scanResult && !scanResult.safe) {
+      console.error(`🚨 MALWARE DETECTED! Malicious: ${scanResult.malicious}, Suspicious: ${scanResult.suspicious}`);
+
+      // Delete the uploaded file
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      } else if (fileLocation && isS3Enabled) {
+        try {
+          const s3 = new S3Client({
+            region: process.env.AWS_REGION || 'us-east-1',
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+            }
+          });
+
+          const key = fileLocation.split('/').pop();
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET!,
+            Key: `books/${key}`
+          });
+
+          await s3.send(deleteCommand);
+        } catch (deleteError) {
+          console.error('Failed to delete malicious S3 file:', deleteError);
+        }
+      }
+
+      res.status(400).json({
+        message: "File rejected: Malware or suspicious content detected",
+        details: {
+          malicious: scanResult.malicious,
+          suspicious: scanResult.suspicious
+        }
+      });
+      return;
+    }
+
+    console.log('✅ File is clean - proceeding with upload');
 
 // Extract text from PDF (both local and S3 storage)
     if ((req.file.mimetype === 'application/pdf' || req.file.filename?.endsWith('.pdf'))) {
