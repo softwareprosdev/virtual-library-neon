@@ -39,7 +39,7 @@ model User {
     receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
   sentProfileComments ProfileComment[] @relation("CommentAuthor")
 
-  // MySpace-style Profile Customization
+  // BookFriendSpace-style Profile Customization
   bio              String?   @db.Text
   avatarUrl        String?
   profileTheme     Json?     // { primaryColor, secondaryColor, backgroundColor, textColor, fontFamily, layout }
@@ -59,7 +59,7 @@ model User {
   profileLayout   String?   @default("default") // default, creative, minimalist, neon
   isProfilePublic  Boolean  @default(true) // Profile visibility
   
-  // Top Friends (MySpace style - ordered list of friend IDs)
+  // Top Friends (BookFriendSpace style - ordered list of friend IDs)
   topFriends       String[]  @default([])
 }
 

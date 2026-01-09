@@ -13,6 +13,7 @@ import newsletterRoutes from './routes/newsletter';
 import aiRoutes from './routes/ai';
 import gamificationRoutes from './routes/gamification';
 import readingListRoutes from './routes/readingList';
+import userRoutes from './routes/users';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -115,6 +116,10 @@ app.use('/api/gamification', gamificationRoutes);
 app.use('/gamification', gamificationRoutes);
 app.use('/api/reading-list', readingListRoutes);
 app.use('/reading-list', readingListRoutes);
+app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
+app.use('/api/profiles', userRoutes); // For compatibility with some frontend calls
+app.use('/profiles', userRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
