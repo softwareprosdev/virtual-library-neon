@@ -29,10 +29,10 @@ router.post('/subscribe', authenticateToken, async (req: AuthRequest, res: Respo
         <div style="background-color: #000; color: #d946ef; padding: 40px; font-family: sans-serif;">
           <h1 style="border-bottom: 2px solid #d946ef; padding-bottom: 10px;">NEURAL_LINK_ESTABLISHED</h1>
           <p style="color: #fff; font-size: 16px;">Welcome to the Archives, citizen.</p>
-          <p style="color: #cbd5e1;">You have successfully subscribed to our mature content transmissions. Your 18+ access is verified.</p>
+          <p style="color: #cbd5e1;">You have successfully subscribed to our content transmissions.</p>
           <br/>
           <div style="border: 1px solid #333; padding: 20px; color: #ec4899;">
-            <strong>ACCESS_GRANTED: MATURE_LITERATURE_NETWORKS</strong>
+            <strong>ACCESS_GRANTED: LITERATURE_NETWORKS</strong>
           </div>
         </div>
       `

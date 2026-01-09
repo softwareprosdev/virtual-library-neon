@@ -19,12 +19,11 @@ async function main() {
 
   // 2. Genres (Phase 1 Task)
   const genresData = [
-    { name: 'Cyberpunk Noir', isAdult: true, description: 'Grit, tech, and adult themes in futuristic settings.' },
-    { name: 'Classic Sci-Fi', isAdult: false, description: 'Traditional science fiction exploration.' },
-    { name: 'Tech & Engineering', isAdult: false, description: 'Coding, hardware, and engineering deep dives.' },
-    { name: 'Erotica', isAdult: true, description: 'Explicit adult literature and erotic themes.' },
-    { name: 'Dark Romance', isAdult: true, description: 'Intense romantic themes with mature content.' },
-    { name: 'Graphic Horror', isAdult: true, description: 'Visceral horror and supernatural adult themes.' },
+    { name: 'Cyberpunk Noir', description: 'Grit, tech, and themes in futuristic settings.' },
+    { name: 'Classic Sci-Fi', description: 'Traditional science fiction exploration.' },
+    { name: 'Tech & Engineering', description: 'Coding, hardware, and engineering deep dives.' },
+    { name: 'Dark Romance', description: 'Intense romantic themes.' },
+    { name: 'Graphic Horror', description: 'Visceral horror and supernatural themes.' },
   ];
 
   console.log('🌱 Seeding genres and initial rooms...');
@@ -32,7 +31,7 @@ async function main() {
   for (const genreItem of genresData) {
     const genre = await prisma.genre.upsert({
       where: { name: genreItem.name },
-      update: { isAdult: genreItem.isAdult, description: genreItem.description },
+      update: { description: genreItem.description },
       create: genreItem,
     });
 

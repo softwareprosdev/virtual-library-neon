@@ -49,7 +49,7 @@ const POPULAR_CATEGORIES = [
   { id: 'erotica', name: 'Erotica', icon: '💋' },
   { id: 'dark-romance', name: 'Dark Romance', icon: '🥀' },
   { id: 'lgbtq', name: 'LGBTQ+', icon: '🏳️‍🌈' },
-  { id: 'adult-fiction', name: 'Adult Fiction', icon: '🔞' },
+
 ];
 
 interface Room {
@@ -58,14 +58,14 @@ interface Room {
   description: string;
   host: { name: string };
   genreId?: string;
-  genre?: { name: string; isAdult: boolean };
+  genre?: { name: string };
   _count: { messages: number; participants: number };
 }
 
 interface Genre {
   id: string;
   name: string;
-  isAdult: boolean;
+
   description: string;
   _count: { rooms: number };
 }
@@ -125,7 +125,7 @@ export default function Dashboard() {
       setTrendingBooks(trending);
       setNewReleases(releases);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Neural connection lost.');
+      setError(err instanceof Error ? err.message : 'Failed to load data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -277,9 +277,9 @@ export default function Dashboard() {
             const err = await res.json();
             alert(`Failed to create club: ${err.message}`);
         }
-      } catch (err) {
-        console.error(err);
-        alert("Failed to connect to the neural network. Please try again.");
+      } catch (error) {
+        console.error(error);
+        alert("Failed to create room. Please check your connection and try again.");
       }
     };
 
@@ -451,11 +451,7 @@ export default function Dashboard() {
                           className="h-28 rounded-lg border bg-card hover:border-secondary hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center justify-center p-4 text-center relative"
                         >
                           <span className="text-sm font-bold">{genre.name.toUpperCase()}</span>
-                          {genre.isAdult && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive text-destructive-foreground mt-1">
-                              18+
-                            </span>
-                          )}
+
                           <span className="text-xs text-muted-foreground mt-1">{genre._count.rooms} rooms</span>
                         </div>
                       ))}

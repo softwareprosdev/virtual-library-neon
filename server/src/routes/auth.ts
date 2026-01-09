@@ -3,11 +3,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
+import { Resend } from 'resend';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Stricter rate limit for registration
 const registerLimiter = rateLimit({
@@ -61,9 +63,44 @@ router.post('/register', registerLimiter as any, async (req: Request, res: Respo
         name,
         emailVerificationToken: verificationToken,
         emailVerificationExpires: verificationExpires,
-        // ageVerified defaults to false in schema
+
       }
     });
+
+    // Send verification email
+    try {
+      const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+      const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
+      
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        to: [email],
+        subject: 'Verify your Virtual Library account',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Welcome to Virtual Library!</h2>
+            <p>Hi ${name},</p>
+            <p>Thank you for signing up! Please verify your email address to activate your account.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" 
+                 style="background-color: #007bff; color: white; padding: 12px 30px; 
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                Verify Email Address
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email.
+            </p>
+            <p style="color: #666; font-size: 12px;">
+              Alternatively, you can copy and paste this link: ${verificationUrl}
+            </p>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Continue with registration even if email fails
+    }
 
     const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
     const token = jwt.sign(
@@ -72,7 +109,11 @@ router.post('/register', registerLimiter as any, async (req: Request, res: Respo
       { expiresIn: expiresIn as jwt.SignOptions['expiresIn'] }
     );
 
-    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.status(201).json({ 
+      token, 
+      user: { id: user.id, name: user.name, email: user.email, emailVerified: user.emailVerified },
+      message: 'Registration successful! Please check your email to verify your account.'
+    });
   } catch (error) {
     console.error("Register Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -183,10 +224,42 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
       }
     });
 
-    // TODO: Send actual email with verification link
-    console.log(`Verification link: http://localhost:4000/api/auth/verify-email/${verificationToken}`);
-
-    res.json({ message: "Verification email sent" });
+// Send verification email
+    try {
+      const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+      const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
+      
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        to: [email],
+        subject: 'Verify your Virtual Library account',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Verify Your Email</h2>
+            <p>Hi ${user.name || 'there'},</p>
+            <p>You requested to verify your email address for Virtual Library.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" 
+                 style="background-color: #007bff; color: white; padding: 12px 30px; 
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                Verify Email Address
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              This link will expire in 24 hours.
+            </p>
+            <p style="color: #666; font-size: 12px;">
+              Alternatively, you can copy and paste this link: ${verificationUrl}
+            </p>
+          </div>
+        `
+      });
+      
+      res.json({ message: "Verification email sent successfully" });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
   } catch (error) {
     console.error("Resend verification error:", error);
     res.status(500).json({ message: "Server error" });

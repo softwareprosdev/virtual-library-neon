@@ -14,7 +14,7 @@ interface Room {
   name: string;
   description: string;
   host: { name: string };
-  genre?: { name: string; isAdult: boolean };
+  genre?: { name: string };
   _count: { messages: number; participants: number };
 }
 
@@ -27,7 +27,7 @@ export default function CommunityPage() {
     api('/rooms')
       .then(res => res.json())
       .then(setRooms)
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -54,7 +54,7 @@ export default function CommunityPage() {
                             {room.genre && (
                                 <Badge variant="outline" className="border-secondary/50 text-secondary">
                                     {room.genre.name}
-                                    {room.genre.isAdult && <span className="ml-1 text-destructive font-bold">18+</span>}
+
                                 </Badge>
                             )}
                             <div className="flex items-center text-xs text-muted-foreground gap-2">

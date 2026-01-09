@@ -12,20 +12,19 @@ model User {
   password  String
   name      String?
   birthDate DateTime?
-  ageVerified Boolean @default(false)
+
   emailVerified Boolean @default(false)
   emailVerificationToken String?
-  emailVerificationExpires DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
+      emailVerificationExpires DateTime?
+      createdAt              DateTime  @default(now())  updatedAt DateTime  @updatedAt
+
   ownedRooms   Room[]   @relation("RoomHost")
   messages     Message[]
   books        Book[]
   participants Participant[]
   moderators   Moderator[]
   interactions Interaction[]
-  
+
   // Gamification & Social
   points      Int       @default(0)
   level       Int       @default(1)
@@ -34,6 +33,19 @@ model User {
   following   Follows[] @relation("follower")
   activity    Activity[]
   readingList ReadingList[]
+
+  // MySpace-style Profile Customization
+  bio              String?   @db.Text
+  avatarUrl        String?
+  profileTheme     Json?     // { primaryColor, secondaryColor, backgroundColor, textColor, fontFamily, layout }
+  profileSong      String?   // URL to audio file
+  profileSongTitle String?   // Display name for the song
+  profileBackground String?  // URL to background image
+  customCSS        String?   @db.Text
+  profileViews     Int       @default(0)
+
+  // Top Friends (MySpace style - ordered list of friend IDs)
+  topFriends       String[]  @default([])
 }
 
 model ReadingList {
@@ -147,7 +159,7 @@ model Genre {
 
   name        String   @unique
 
-  isAdult     Boolean  @default(false)
+
 
   description String?
 

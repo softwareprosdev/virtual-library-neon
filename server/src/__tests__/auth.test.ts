@@ -37,18 +37,17 @@ describe('Auth API Tests', () => {
       email: 'test@example.com',
       password: 'SecurePass123',
       name: 'Test User',
-      ageVerified: true,
+
     };
 
     it('should register a new user successfully', async () => {
       const mockUser = {
         id: '1',
-        email: validRegistrationData.email,
-        name: validRegistrationData.name,
-        password: await bcrypt.hash(validRegistrationData.password, 10),
+        email: loginData.email,
+        name: 'Test User',
+        password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
-        ageVerified: true,
       };
 
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
@@ -82,7 +81,7 @@ describe('Auth API Tests', () => {
         .send({
           password: 'SecurePass123',
           name: 'Test User',
-          ageVerified: true,
+    
         });
 
       expect(response.status).toBe(400);
@@ -95,7 +94,7 @@ describe('Auth API Tests', () => {
         .send({
           email: 'test@example.com',
           name: 'Test User',
-          ageVerified: true,
+    
         });
 
       expect(response.status).toBe(400);
@@ -109,7 +108,7 @@ describe('Auth API Tests', () => {
           email: 'invalid-email',
           password: 'SecurePass123',
           name: 'Test User',
-          ageVerified: true,
+    
         });
 
       expect(response.status).toBe(400);
@@ -123,26 +122,14 @@ describe('Auth API Tests', () => {
           email: 'test@example.com',
           password: 'short',
           name: 'Test User',
-          ageVerified: true,
+    
         });
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBe('Password must be at least 8 characters');
     });
 
-    // it('should reject registration without age verification', async () => {
-    //   const response = await request(app)
-    //     .post('/api/auth/register')
-    //     .send({
-    //       email: 'test@example.com',
-    //       password: 'SecurePass123',
-    //       name: 'Test User',
-    //       ageVerified: false,
-    //     });
 
-    //   expect(response.status).toBe(400);
-    //   expect(response.body.message).toBe('You must be 18 or older to join this platform');
-    // });
 
     it('should reject registration if user already exists', async () => {
       const existingUser = {
@@ -152,7 +139,7 @@ describe('Auth API Tests', () => {
         password: await bcrypt.hash('password123', 10),
         createdAt: new Date(),
         updatedAt: new Date(),
-        ageVerified: true,
+  
       };
 
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
@@ -194,7 +181,7 @@ describe('Auth API Tests', () => {
         password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
-        ageVerified: true,
+  
       };
 
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
@@ -259,7 +246,7 @@ describe('Auth API Tests', () => {
         password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
-        ageVerified: true,
+  
       };
 
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
