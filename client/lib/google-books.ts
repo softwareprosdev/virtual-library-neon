@@ -16,6 +16,8 @@ export interface GoogleBook {
     }>;
     pageCount?: number;
     publisher?: string;
+    averageRating?: number;
+    ratingsCount?: number;
   };
 }
 
@@ -46,7 +48,6 @@ export async function searchBooks(
       hasMore: startIndex + books.length < totalItems
     };
   } catch (error) {
-    console.error("Failed to fetch books:", error);
     return { books: [], totalItems: 0, hasMore: false };
   }
 }

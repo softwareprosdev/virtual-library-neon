@@ -60,7 +60,6 @@ async function testRegistration() {
       email: `test${timestamp}@example.com`,
       password: 'SecurePass123',
       name: 'Test User',
-      ageVerified: true,
     });
 
     if (response.ok && response.data?.token) {
@@ -93,7 +92,6 @@ async function testRegistration() {
       email: 'invalid-email',
       password: 'SecurePass123',
       name: 'Test User',
-      ageVerified: true,
     });
 
     if (response.status === 400 && response.data?.message === 'Invalid email format') {
@@ -124,7 +122,6 @@ async function testRegistration() {
       email: 'test@example.com',
       password: 'short',
       name: 'Test User',
-      ageVerified: true,
     });
 
     if (response.status === 400 && response.data?.message?.includes('8 characters')) {

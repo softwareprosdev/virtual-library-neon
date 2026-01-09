@@ -4,15 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '../../../../lib/api';
 import MainLayout from '../../../../components/MainLayout';
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Stack,
-  Button,
-  CircularProgress
-} from '@mui/material';
+import { Button } from '../../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 interface Recap {
   summary: string;
@@ -33,8 +27,6 @@ export default function RecapPage() {
         if (res.ok) {
           setRecap(await res.json());
         }
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoading(false);
       }
@@ -43,48 +35,58 @@ export default function RecapPage() {
 
   return (
     <MainLayout>
-      <Container maxWidth="md">
-        <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography variant="overline" color="secondary.main" sx={{ letterSpacing: 4 }}>POST_SESSION_RECAP</Typography>
-          <Typography variant="h3" className="neon-text" sx={{ fontWeight: 900, color: 'white' }}>ARCHIVE_SYNTHESIS</Typography>
-        </Box>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="mb-12 text-center">
+          <p className="text-sm tracking-[0.2em] text-primary uppercase mb-2">POST_SESSION_RECAP</p>
+          <h1 className="text-4xl font-black text-foreground tracking-tighter">ARCHIVE_SYNTHESIS</h1>
+        </div>
 
         {loading ? (
-          <Box sx={{ textAlign: 'center', py: 10 }}><CircularProgress /></Box>
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         ) : !recap ? (
-          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px dashed #333' }}>
-            <Typography color="text.secondary">No synthesis data detected for this frequency.</Typography>
-            <Button onClick={() => router.push('/dashboard')} sx={{ mt: 2 }}>Return to Hub</Button>
-          </Paper>
+          <div className="p-8 text-center bg-muted/10 border border-dashed border-border rounded-lg">
+            <p className="text-muted-foreground mb-4">No synthesis data detected for this frequency.</p>
+            <Button onClick={() => router.push('/dashboard')}>Return to Hub</Button>
+          </div>
         ) : (
-          <Stack spacing={4}>
+          <div className="space-y-6">
             {/* AI Summary */}
-            <Paper sx={{ p: 4, borderLeft: '4px solid', borderColor: 'primary.main', bgcolor: '#050505' }}>
-              <Typography variant="h6" color="primary.main" gutterBottom sx={{ fontWeight: 'bold' }}>NEURAL_SUMMARY</Typography>
-              <Typography variant="body1" sx={{ lineHeight: 1.8, color: 'text.primary' }}>
-                {recap.summary}
-              </Typography>
-            </Paper>
+            <Card className="bg-background border-l-4 border-l-primary border-y border-r border-border shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-primary font-bold">NEURAL_SUMMARY</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="leading-relaxed text-foreground/90">
+                  {recap.summary}
+                </p>
+              </CardContent>
+            </Card>
 
             {/* AI Highlights */}
-            <Paper sx={{ p: 4, bgcolor: '#0a0a0a', border: '1px solid #222' }}>
-              <Typography variant="h6" color="secondary.main" gutterBottom sx={{ fontWeight: 'bold' }}>SESSION_HIGHLIGHTS</Typography>
-              <Stack spacing={2} sx={{ mt: 2 }}>
-                {recap.highlights.map((point, i) => (
-                  <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <Typography color="secondary.main" sx={{ fontWeight: 'bold' }}>[0{i+1}]</Typography>
-                    <Typography variant="body2" color="text.secondary">{point}</Typography>
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
+            <Card className="bg-muted/5 border border-border">
+              <CardHeader>
+                <CardTitle className="text-secondary-foreground font-bold">SESSION_HIGHLIGHTS</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recap.highlights.map((point, i) => (
+                    <div key={i} className="flex gap-4 items-start">
+                      <span className="text-secondary-foreground font-mono font-bold">[0{i+1}]</span>
+                      <p className="text-muted-foreground text-sm">{point}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <Box sx={{ textAlign: 'center' }}>
-               <Button variant="contained" onClick={() => router.push('/dashboard')}>DISCONNECT_LINK</Button>
-            </Box>
-          </Stack>
+            <div className="text-center pt-8">
+               <Button size="lg" onClick={() => router.push('/dashboard')}>DISCONNECT_LINK</Button>
+            </div>
+          </div>
         )}
-      </Container>
+      </div>
     </MainLayout>
   );
 }

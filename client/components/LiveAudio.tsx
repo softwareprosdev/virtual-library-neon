@@ -4,8 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { Track, RoomEvent, ConnectionState, Participant, LocalTrack } from 'livekit-client';
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
-  StartAudio,
   LayoutContextProvider,
   useLocalParticipant,
   useTracks,
@@ -17,20 +15,6 @@ import {
   AudioTrack,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Button,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  Paper,
-  IconButton
-} from '@mui/material';
 import { api } from '../lib/api';
 import CyberpunkAudioVisualizer from './CyberpunkAudioVisualizer';
 import ActiveSpeaker from './ActiveSpeaker';
@@ -40,6 +24,10 @@ import {
   VideoEffectType, 
   AudioEffectType 
 } from '../lib/media-processors';
+import { Loader2, Video, Mic, Ear, VideoOff, MicOff, Volume2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { cn } from '../lib/utils';
 
 interface LiveAudioProps {
   roomId: string;
@@ -86,9 +74,9 @@ function CustomPublisher({
         const vid = document.createElement('video');
         vid.srcObject = stream;
         vid.muted = true;
-        vid.play().catch(e => console.warn("Helper video play error", e));
+        vid.play().catch(() => {});
         videoRef.current = vid;
-      } catch (e) { console.error("Media Acquire Error:", e); }
+      } catch (e) { /* Media acquisition failed */ }
     };
     acquire();
     return () => { stream?.getTracks().forEach(t => t.stop()); };
@@ -128,7 +116,7 @@ function CustomPublisher({
            const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Camera);
            if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
            await localParticipant.publishTrack(trackToPublish, { name: 'camera', source: Track.Source.Camera });
-         } catch(e) { console.error("Publish video error", e); }
+          } catch(e) { /* Video publish failed */ }
       }
     };
 
@@ -141,7 +129,7 @@ function CustomPublisher({
     if (!localParticipant || !rawStream || !isRoomConnected) return;
 
     const audioContext = new window.AudioContext();
-    audioContext.resume().catch(e => console.warn("AudioContext resume failed", e));
+    audioContext.resume().catch(() => {});
 
     const publishAudio = async () => {
         if (!audioEnabled) {
@@ -163,7 +151,7 @@ function CustomPublisher({
                 const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Microphone);
                 if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
                 await localParticipant.publishTrack(trackToPublish, { name: 'microphone', source: Track.Source.Microphone });
-            } catch(e) { console.error("Publish audio error", e); }
+            } catch(e) { /* Audio publish failed */ }
         }
     };
 
@@ -182,44 +170,29 @@ function CyberpunkTile({ participant }: { participant: Participant }) {
 
   return (
     <ActiveSpeaker participant={participant}>
-      <Paper sx={{
-        width: '100%',
-        height: '100%',
-        bgcolor: '#000',
-        position: 'relative',
-        overflow: 'hidden',
-        border: '1px solid #333'
-      }}>
+      <div className="w-full h-full bg-black relative overflow-hidden border border-border rounded-lg shadow-sm">
         {videoTrack ? (
           <VideoTrack trackRef={videoTrack} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <Box sx={{
-                width: 80, height: 80, borderRadius: '50%',
-                bgcolor: '#1a1a1a', border: '1px solid #00f3ff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-                <Typography variant="h4" sx={{ color: '#00f3ff' }}>
+          <div className="flex items-center justify-center h-full bg-muted/20">
+            <div className="w-20 h-20 rounded-full bg-background border border-primary flex items-center justify-center">
+                <span className="text-3xl text-primary font-bold">
                     {participant.identity?.[0]?.toUpperCase() || '?'}
-                </Typography>
-            </Box>
-          </Box>
+                </span>
+            </div>
+          </div>
         )}
         {/* Render audio track for remote participants */}
         {audioTrack && !participant.isLocal && (
           <AudioTrack trackRef={audioTrack} />
         )}
-        <Box sx={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            p: 1, background: 'linear-gradient(transparent, #000)',
-            display: 'flex', gap: 1, alignItems: 'center'
-        }}>
-            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent flex gap-2 items-center">
+            <span className="text-xs text-white font-bold truncate">
                 {participant.identity} {participant.isLocal ? '(YOU)' : ''}
-            </Typography>
-            {audioTrack && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981', boxShadow: '0 0 8px #10b981' }} />}
-        </Box>
-      </Paper>
+            </span>
+            {audioTrack && <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />}
+        </div>
+      </div>
     </ActiveSpeaker>
   );
 }
@@ -228,14 +201,7 @@ function CyberpunkGrid() {
   const participants = useParticipants();
   
   return (
-    <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: 2, 
-        p: 2,
-        height: '100%',
-        alignContent: 'start'
-    }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 h-full content-start overflow-y-auto">
       <ParticipantLoop participants={participants}>
         <ParticipantContext.Consumer>
           {(participant) => (
@@ -243,7 +209,7 @@ function CyberpunkGrid() {
           )}
         </ParticipantContext.Consumer>
       </ParticipantLoop>
-    </Box>
+    </div>
   );
 }
 
@@ -269,7 +235,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         const resp = await api(`/livekit/token?roomId=${roomId}`);
         const data = await resp.json();
         setToken(data.token);
-      } catch (e) { console.error("LiveKit Token Error:", e); }
+      } catch (e) { /* Token fetch failed */ }
     })();
   }, [roomId]);
 
@@ -296,7 +262,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         } else {
           localStream.getTracks().forEach(t => t.stop());
         }
-      } catch (e) { console.warn("Media access error", e); }
+      } catch (e) { /* Media access failed */ }
     };
     startPreview();
     return () => {
@@ -320,10 +286,10 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
 
   if (!token) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'black' }}>
-        <CircularProgress color="primary" />
-        <Typography variant="caption" sx={{ mt: 2, color: 'primary.main' }} className="neon-text">ESTABLISHING_NEURAL_LINK...</Typography>
-      </Box>
+      <div className="flex flex-col items-center justify-center h-full bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="mt-2 text-primary text-xs tracking-wider animate-pulse">ESTABLISHING_NEURAL_LINK...</span>
+      </div>
     );
   }
 
@@ -348,126 +314,135 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
 
   if (!isJoined) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: 'black', p: 3, gap: 3, overflowY: 'auto' }}>
-        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 'bold', letterSpacing: 2 }}>CHOOSE_MODE</Typography>
+      <div className="h-full flex flex-col items-center justify-center bg-black p-4 gap-6 overflow-y-auto">
+        <h2 className="text-2xl font-bold text-primary tracking-widest">CHOOSE_MODE</h2>
 
         {/* Mode Selection */}
-        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <div className="flex gap-4 mb-4 flex-wrap justify-center">
           <Button
-            variant={joinMode === 'video' ? 'contained' : 'outlined'}
-            color="primary"
+            variant={joinMode === 'video' ? 'default' : 'outline'}
             onClick={() => handleModeSelect('video')}
-            sx={{
-              minWidth: 140,
-              py: 2,
-              flexDirection: 'column',
-              borderRadius: 1,
-              borderColor: joinMode === 'video' ? 'primary.main' : '#333',
-              boxShadow: joinMode === 'video' ? '0 0 20px rgba(0, 243, 255, 0.3)' : 'none'
-            }}
+            className={cn(
+              "h-auto py-4 min-w-[140px] flex flex-col gap-2",
+              joinMode === 'video' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]" : "border-border"
+            )}
           >
-            <Typography sx={{ fontSize: '2rem', mb: 0.5 }}>📹</Typography>
-            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>VIDEO CHAT</Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.6rem', opacity: 0.7 }}>Camera + Mic</Typography>
+            <Video className="w-8 h-8 mb-1" />
+            <span className="font-bold text-xs">VIDEO CHAT</span>
+            <span className="text-[10px] opacity-70">Camera + Mic</span>
           </Button>
+          
           <Button
-            variant={joinMode === 'voice' ? 'contained' : 'outlined'}
-            color="secondary"
+            variant={joinMode === 'voice' ? 'secondary' : 'outline'}
             onClick={() => handleModeSelect('voice')}
-            sx={{
-              minWidth: 140,
-              py: 2,
-              flexDirection: 'column',
-              borderRadius: 1,
-              borderColor: joinMode === 'voice' ? 'secondary.main' : '#333',
-              boxShadow: joinMode === 'voice' ? '0 0 20px rgba(217, 70, 239, 0.3)' : 'none'
-            }}
+            className={cn(
+              "h-auto py-4 min-w-[140px] flex flex-col gap-2",
+              joinMode === 'voice' ? "border-secondary shadow-[0_0_20px_rgba(var(--secondary),0.3)]" : "border-border"
+            )}
           >
-            <Typography sx={{ fontSize: '2rem', mb: 0.5 }}>🎙️</Typography>
-            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>VOICE ONLY</Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.6rem', opacity: 0.7 }}>Mic only</Typography>
+            <Mic className="w-8 h-8 mb-1" />
+            <span className="font-bold text-xs">VOICE ONLY</span>
+            <span className="text-[10px] opacity-70">Mic only</span>
           </Button>
+
           <Button
-            variant={joinMode === 'listen' ? 'contained' : 'outlined'}
-            color="inherit"
+            variant={joinMode === 'listen' ? 'ghost' : 'outline'}
             onClick={() => handleModeSelect('listen')}
-            sx={{
-              minWidth: 140,
-              py: 2,
-              flexDirection: 'column',
-              borderRadius: 1,
-              borderColor: joinMode === 'listen' ? 'grey.500' : '#333',
-              bgcolor: joinMode === 'listen' ? 'grey.800' : 'transparent'
-            }}
+            className={cn(
+              "h-auto py-4 min-w-[140px] flex flex-col gap-2",
+              joinMode === 'listen' ? "bg-muted text-foreground border-muted-foreground" : "border-border"
+            )}
           >
-            <Typography sx={{ fontSize: '2rem', mb: 0.5 }}>👂</Typography>
-            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>LISTEN ONLY</Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.6rem', opacity: 0.7 }}>Just listen</Typography>
+            <Ear className="w-8 h-8 mb-1" />
+            <span className="font-bold text-xs">LISTEN ONLY</span>
+            <span className="text-[10px] opacity-70">Just listen</span>
           </Button>
-        </Stack>
+        </div>
 
         {/* Preview Area */}
-        <Box sx={{ position: 'relative', width: '100%', maxWidth: 480, aspectRatio: '16/9', bgcolor: '#111', border: '1px solid #333' }}>
-            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: videoEnabled ? 1 : 0 }} />
-            <canvas ref={canvasRef} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'none' }} />
+        <div className="relative w-full max-w-lg aspect-video bg-muted/10 border border-border rounded-lg overflow-hidden">
+            <video ref={videoRef} autoPlay playsInline muted className={cn("w-full h-full object-cover", videoEnabled ? "opacity-100" : "opacity-0")} />
+            <canvas ref={canvasRef} className="w-full h-full object-cover hidden" />
             {!videoEnabled && (
-                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', bgcolor: '#000', zIndex: 5, gap: 1 }}>
-                    <Typography sx={{ fontSize: '3rem' }}>{joinMode === 'voice' ? '🎙️' : '👂'}</Typography>
-                    <Typography sx={{ color: '#555' }}>{joinMode === 'voice' ? 'VOICE_MODE' : 'LISTEN_MODE'}</Typography>
-                </Box>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 gap-2">
+                    {joinMode === 'voice' ? <Mic className="w-16 h-16 text-muted-foreground" /> : <Ear className="w-16 h-16 text-muted-foreground" />}
+                    <span className="text-muted-foreground font-mono">{joinMode === 'voice' ? 'VOICE_MODE' : 'LISTEN_MODE'}</span>
+                </div>
             )}
-            <Box sx={{ position: 'absolute', bottom: 10, left: 10, zIndex: 10 }}>
+            <div className="absolute bottom-2 left-2 z-20">
                 {audioEnabled ? (
                     <CyberpunkAudioVisualizer stream={previewStream} width={150} height={40} />
                 ) : (
-                    <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: 'rgba(0,0,0,0.8)', px: 1, py: 0.5 }}>MICROPHONE OFF</Typography>
+                    <span className="text-xs text-muted-foreground bg-black/80 px-2 py-1 rounded">MICROPHONE OFF</span>
                 )}
-            </Box>
-        </Box>
+            </div>
+        </div>
 
         {/* Effects - only show for video/voice modes */}
         {(joinMode === 'video' || joinMode === 'voice') && (
-          <Stack direction="row" spacing={2} sx={{ width: '100%', maxWidth: 480, justifyContent: 'center' }}>
+          <div className="flex gap-4 w-full max-w-lg justify-center">
               {joinMode === 'video' && (
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel sx={{ color: 'primary.main' }}>VISUAL_FX</InputLabel>
-                    <Select value={videoEffect} label="VISUAL_FX" onChange={(e: SelectChangeEvent) => setVideoEffect(e.target.value as VideoEffectType)} sx={{ color: 'white', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }}>
-                        <MenuItem value="none">NONE</MenuItem>
-                        <MenuItem value="holo">HOLOGRAM</MenuItem>
-                        <MenuItem value="glitch">GLITCH</MenuItem>
-                        <MenuItem value="pixelate">PIXELATE</MenuItem>
+                <div className="min-w-[120px]">
+                    <label className="text-xs text-primary mb-1 block">VISUAL_FX</label>
+                    <Select value={videoEffect} onValueChange={(val) => setVideoEffect(val as VideoEffectType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">NONE</SelectItem>
+                        <SelectItem value="holo">HOLOGRAM</SelectItem>
+                        <SelectItem value="glitch">GLITCH</SelectItem>
+                        <SelectItem value="pixelate">PIXELATE</SelectItem>
+                      </SelectContent>
                     </Select>
-                </FormControl>
+                </div>
               )}
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel sx={{ color: 'secondary.main' }}>AUDIO_FX</InputLabel>
-                  <Select value={audioEffect} label="AUDIO_FX" onChange={(e: SelectChangeEvent) => setAudioEffect(e.target.value as AudioEffectType)} sx={{ color: 'white', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }}>
-                      <MenuItem value="none">NONE</MenuItem>
-                      <MenuItem value="robot">ROBOT</MenuItem>
-                      <MenuItem value="cosmic">COSMIC</MenuItem>
+              <div className="min-w-[120px]">
+                  <label className="text-xs text-secondary mb-1 block">AUDIO_FX</label>
+                  <Select value={audioEffect} onValueChange={(val) => setAudioEffect(val as AudioEffectType)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">NONE</SelectItem>
+                      <SelectItem value="robot">ROBOT</SelectItem>
+                      <SelectItem value="cosmic">COSMIC</SelectItem>
+                    </SelectContent>
                   </Select>
-              </FormControl>
-          </Stack>
+              </div>
+          </div>
         )}
 
         {/* Manual Toggle Buttons */}
-        <Stack direction="row" spacing={3}>
-            <Button variant={videoEnabled ? "contained" : "outlined"} color={videoEnabled ? "primary" : "inherit"} onClick={() => setVideoEnabled(!videoEnabled)} sx={{ borderRadius: 0, minWidth: 120 }}>
-                {videoEnabled ? "📷 CAM: ON" : "🚫 CAM: OFF"}
+        <div className="flex gap-4">
+            <Button 
+                variant={videoEnabled ? "default" : "outline"} 
+                onClick={() => setVideoEnabled(!videoEnabled)} 
+                className="min-w-[140px]"
+            >
+                {videoEnabled ? <><Video className="mr-2 h-4 w-4" /> CAM: ON</> : <><VideoOff className="mr-2 h-4 w-4" /> CAM: OFF</>}
             </Button>
-            <Button variant={audioEnabled ? "contained" : "outlined"} color={audioEnabled ? "secondary" : "inherit"} onClick={() => setAudioEnabled(!audioEnabled)} sx={{ borderRadius: 0, minWidth: 120 }}>
-                {audioEnabled ? "🎙️ MIC: ON" : "🔇 MIC: OFF"}
+            <Button 
+                variant={audioEnabled ? "secondary" : "outline"} 
+                onClick={() => setAudioEnabled(!audioEnabled)} 
+                className="min-w-[140px]"
+            >
+                {audioEnabled ? <><Mic className="mr-2 h-4 w-4" /> MIC: ON</> : <><MicOff className="mr-2 h-4 w-4" /> MIC: OFF</>}
             </Button>
-        </Stack>
+        </div>
 
-        <Button variant="contained" size="large" onClick={() => setIsJoined(true)} sx={{ mt: 2, px: 6, py: 1.5, fontSize: '1.2rem', bgcolor: '#00f3ff', color: '#000', fontWeight: 'bold', '&:hover': { bgcolor: '#fff' }, boxShadow: '0 0 20px rgba(0, 243, 255, 0.5)' }}>
+        <Button 
+            size="lg" 
+            onClick={() => setIsJoined(true)} 
+            className="mt-4 px-12 py-6 text-lg font-bold bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+        >
             ENTER_ROOM
         </Button>
 
-        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center', maxWidth: 400 }}>
+        <p className="text-xs text-muted-foreground text-center max-w-md">
           You will be able to hear others speak once you enter the room. Make sure to click the audio button to enable sound playback.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
@@ -476,14 +451,14 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#000' }}>
+    <div className="h-full flex flex-col bg-background">
       <LiveKitRoom
         video={false}
         audio={false}
         token={token}
         serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880'}
         connect={true}
-        style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#000' }}
+        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       >
         <CustomPublisher
             videoEnabled={videoEnabled}
@@ -493,110 +468,25 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         />
         <LayoutContextProvider>
             {/* Main Content Area - flexGrow to fill available space */}
-            <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+            <div className="flex-1 min-h-0 overflow-hidden relative">
               {/* Audio Unlock Overlay - Only covers the participant grid */}
               {!audioUnlocked && (
-                <Box sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  zIndex: 50,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(0, 0, 0, 0.9)',
-                  backdropFilter: 'blur(4px)'
-                }}>
-                  <Box sx={{ textAlign: 'center', p: 3 }}>
-                    <Typography sx={{ fontSize: '3rem', mb: 1 }}>🔊</Typography>
-                    <Typography variant="h6" sx={{ color: 'white', mb: 1, fontWeight: 'bold' }}>
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+                  <div className="text-center p-6">
+                    <Volume2 className="w-16 h-16 text-primary mx-auto mb-4 animate-bounce" />
+                    <h3 className="text-xl font-bold text-white mb-2">AUDIO REQUIRED</h3>
+                    <p className="text-muted-foreground mb-6">Click below to enable neural audio link</p>
+                    <Button onClick={handleAudioUnlock} size="lg" className="w-full">
                       ENABLE AUDIO
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2, maxWidth: 280, mx: 'auto' }}>
-                      Click to hear other participants
-                    </Typography>
-                    <Box onClick={handleAudioUnlock}>
-                      <StartAudio label="🔊 ENABLE AUDIO" />
-                    </Box>
-                  </Box>
-                </Box>
+                    </Button>
+                  </div>
+                </div>
               )}
-
-              {/* Participant Grid */}
-              <Box sx={{ height: '100%', overflow: 'auto' }}>
-                <CyberpunkGrid />
-              </Box>
-            </Box>
-
-            {/* Control Bar - fixed height at bottom */}
-            <Box sx={{
-              flexShrink: 0,
-              height: 64,
-              bgcolor: '#0a0a0a',
-              borderTop: '1px solid #333',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: 2,
-              gap: 2
-            }}>
-              {/* Audio Status Indicator */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor: audioUnlocked ? '#10b981' : '#ef4444',
-                  boxShadow: audioUnlocked ? '0 0 8px #10b981' : '0 0 8px #ef4444'
-                }} />
-                <Typography variant="caption" sx={{ color: audioUnlocked ? '#10b981' : '#ef4444', display: { xs: 'none', sm: 'block' } }}>
-                  {audioUnlocked ? 'AUDIO ON' : 'AUDIO OFF'}
-                </Typography>
-              </Box>
-
-              {/* Main Controls */}
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton
-                  size="small"
-                  onClick={() => setVideoEnabled(!videoEnabled)}
-                  sx={{
-                    color: videoEnabled ? 'primary.main' : 'grey.600',
-                    border: '1px solid',
-                    borderColor: videoEnabled ? 'primary.main' : 'grey.800'
-                  }}
-                >
-                  <Typography>{videoEnabled ? "📷" : "🚫"}</Typography>
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => setAudioEnabled(!audioEnabled)}
-                  sx={{
-                    color: audioEnabled ? 'secondary.main' : 'grey.600',
-                    border: '1px solid',
-                    borderColor: audioEnabled ? 'secondary.main' : 'grey.800'
-                  }}
-                >
-                  <Typography>{audioEnabled ? "🎙️" : "🔇"}</Typography>
-                </IconButton>
-                <Select
-                  size="small"
-                  value={videoEffect}
-                  onChange={(e) => setVideoEffect(e.target.value as VideoEffectType)}
-                  sx={{ color: 'white', height: 36, borderColor: '#333', minWidth: 80, fontSize: '0.75rem' }}
-                >
-                  <MenuItem value="none">FX OFF</MenuItem>
-                  <MenuItem value="holo">HOLO</MenuItem>
-                  <MenuItem value="glitch">GLITCH</MenuItem>
-                </Select>
-              </Box>
-
-              {/* Mode Indicator */}
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {videoEnabled && audioEnabled ? '📹' : audioEnabled ? '🎙️' : '👂'}
-              </Typography>
-            </Box>
-            <RoomAudioRenderer />
+              
+              <CyberpunkGrid />
+            </div>
         </LayoutContextProvider>
       </LiveKitRoom>
-    </Box>
+    </div>
   );
 }

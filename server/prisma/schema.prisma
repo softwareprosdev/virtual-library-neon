@@ -12,16 +12,110 @@ model User {
   password  String
   name      String?
   birthDate DateTime?
-  ageVerified Boolean @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
+
+  emailVerified Boolean @default(false)
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  createdAt              DateTime  @default(now())  
+  updatedAt              DateTime  @updatedAt
+
   ownedRooms   Room[]   @relation("RoomHost")
   messages     Message[]
   books        Book[]
   participants Participant[]
   moderators   Moderator[]
   interactions Interaction[]
+
+  // Gamification & Social
+  points      Int       @default(0)
+  level       Int       @default(1)
+  badges      Badge[]   @relation("UserBadges")
+  followedBy  Follows[] @relation("following")
+  following   Follows[] @relation("follower")
+  activity    Activity[]
+    readingList ReadingList[]
+    profileComments ProfileComment[]
+    profileVisits    ProfileVisit[] @relation("ProfileVisits")
+    receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
+  sentProfileComments ProfileComment[] @relation("CommentAuthor")
+
+  // BookFriendSpace-style Profile Customization
+  bio              String?   @db.Text
+  avatarUrl        String?
+  profileTheme     Json?     // { primaryColor, secondaryColor, backgroundColor, textColor, fontFamily, layout }
+  profileSong      String?   // URL to audio file
+  profileSongTitle String?   // Display name for the song
+  profileBackground String?  // URL to background image
+  customCSS        String?   @db.Text
+  profileViews     Int       @default(0)
+  
+  // Extended Profile Features
+  displayName      String?   // Custom display name
+  location         String?   // User location
+  website          String?   // Personal website
+  socialLinks      Json?     // { twitter, instagram, github, linkedin, etc }
+  interests        String[]   @default([]) // User interests/tags
+  statusMessage    String?   // Current status/mood
+  profileLayout   String?   @default("default") // default, creative, minimalist, neon
+  isProfilePublic  Boolean  @default(true) // Profile visibility
+  
+  // Top Friends (BookFriendSpace style - ordered list of friend IDs)
+  topFriends       String[]  @default([])
+}
+
+model ReadingList {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  bookId    String?       // Optional link to uploaded book
+  googleId  String        // ID from Google Books API
+  title     String
+  author    String?
+  coverUrl  String?
+  status    ReadingStatus @default(WANT_TO_READ)
+  rating    Int?
+  review    String?
+  startDate DateTime?
+  finishDate DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([userId, googleId])
+}
+
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  FINISHED
+  ABANDONED
+}
+
+model Follows {
+  followerId  String
+  followingId String
+  follower    User @relation("follower", fields: [followerId], references: [id])
+  following   User @relation("following", fields: [followingId], references: [id])
+  assignedAt  DateTime @default(now())
+
+  @@id([followerId, followingId])
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  iconUrl     String
+  users       User[]   @relation("UserBadges")
+  createdAt   DateTime @default(now())
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE"
+  details   String?
+  createdAt DateTime @default(now())
 }
 
 model Interaction {
@@ -80,7 +174,7 @@ model Genre {
 
   name        String   @unique
 
-  isAdult     Boolean  @default(false)
+
 
   description String?
 
@@ -129,6 +223,30 @@ model Book {
   updatedAt   DateTime @updatedAt
   owner       User     @relation(fields: [ownerId], references: [id])
   room        Room?    @relation(fields: [roomId], references: [id])
+}
+
+model ProfileComment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  authorId  String   // ID of user who wrote the comment
+  author    User     @relation("CommentAuthor", fields: [authorId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, userId])
+}
+
+model ProfileVisit {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   User     @relation("ProfileVisits", fields: [profileId], references: [id])
+  visitorId String
+  visitor   User     @relation("ProfileVisitors", fields: [visitorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([id, profileId])
 }
 
 model Message {

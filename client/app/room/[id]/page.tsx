@@ -7,29 +7,23 @@ import { api } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import BookPanel from '../../../components/BookPanel';
 import nextDynamic from 'next/dynamic';
-import {
-  Box,
-  TextField,
-  Paper,
-  Typography,
-  AppBar,
-  Toolbar,
-  Button,
-  Avatar,
-  Tooltip,
-  Stack,
-  IconButton
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../components/ui/tooltip';
+import { Trash2, ArrowLeft, Send } from 'lucide-react';
+import { cn } from '../../../lib/utils';
 
 const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
   ssr: false,
-  loading: () => <Box sx={{ flexGrow: 1, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography className="neon-text">ESTABLISHING_LINK...</Typography></Box>
+  loading: () => (
+    <div className="flex-1 bg-black flex items-center justify-center">
+      <p className="text-primary font-mono animate-pulse">ESTABLISHING_LINK...</p>
+    </div>
+  )
 });
 
 export const dynamic = 'force-dynamic';
-
-const DeleteIcon = () => <span style={{ fontSize: '0.8rem' }}>🗑️</span>;
 
 interface RoomData {
     id: string;
@@ -83,7 +77,12 @@ export default function RoomPage() {
   useEffect(() => {
     const fetchRoomData = async () => {
       try {
-        const res = await api(`/rooms/${roomId}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/rooms/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
         if (res.ok) {
           const data = await res.json();
           setRoomData(data);
@@ -91,7 +90,7 @@ export default function RoomPage() {
           scrollToBottom();
         }
       } catch (error) {
-        console.error("Failed to load room", error);
+        console.error('Failed to fetch room data:', error);
       }
     };
 
@@ -131,7 +130,7 @@ export default function RoomPage() {
       // Add system message
       setMessages((prev) => [...prev, {
         id: Math.random().toString(),
-        text: `${user.email} joined the archives.`,
+        text: `${user.email.split('@')[0]} joined the archives.`,
         sender: { name: 'SYSTEM', email: '', id: '' },
         createdAt: new Date().toISOString(),
         isSystem: true
@@ -179,127 +178,136 @@ export default function RoomPage() {
     socket.emit('deleteMessage', { roomId, messageId });
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleColorClass = (role: string) => {
     switch (role) {
-      case 'ADMIN': return '#ef4444';
-      case 'MODERATOR': return '#d946ef';
-      default: return '#64748b';
+      case 'ADMIN': return 'bg-destructive';
+      case 'MODERATOR': return 'bg-primary';
+      default: return 'bg-muted-foreground';
     }
   };
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <AppBar position="static" sx={{ borderBottom: '1px solid', borderColor: 'primary.dark' }}>
-        <Toolbar>
-          <Button onClick={() => router.push('/dashboard')} sx={{ color: 'text.secondary', mr: 2 }}>← HUB</Button>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'primary.main', fontWeight: 'bold' }}>
+    <div className="h-screen flex flex-col bg-background">
+      <header className="border-b border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center px-4 gap-4">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')} className="text-muted-foreground hover:text-primary">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            HUB
+          </Button>
+          <h1 className="flex-1 text-lg font-bold text-primary truncate">
             {roomData?.name?.toUpperCase() || 'LOADING...'}
-          </Typography>
-          <Stack direction="row" spacing={2} alignItems="center">
-             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: isConnected ? '#10b981' : '#ef4444', boxShadow: isConnected ? '0 0 10px #10b981' : 'none' }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{isConnected ? "CONNECTED" : "OFFLINE"}</Typography>
-             </Box>
-          </Stack>
-        </Toolbar>
-      </AppBar>
+          </h1>
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-destructive")} />
+            <span className="text-xs text-muted-foreground font-mono">{isConnected ? "CONNECTED" : "OFFLINE"}</span>
+          </div>
+        </div>
+      </header>
 
-      <Grid container sx={{ flexGrow: 1, overflow: 'hidden' }}>
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Main Content Area (Live Audio/Video) */}
-        <Grid size={{ xs: 12, md: 8 }} sx={{
-          borderRight: { md: '1px solid #333' },
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.paper',
-          height: { xs: '50vh', md: '100%' },
-          overflow: 'hidden'
-        }}>
-           {/* Book Panel - shows book being discussed - now in document flow */}
-           {roomData?.books && roomData.books.length > 0 && (
-               <Box sx={{
-                 flexShrink: 0,
-                 p: 2,
-                 bgcolor: 'rgba(0,0,0,0.95)',
-                 borderBottom: '1px solid rgba(0, 243, 255, 0.3)'
-               }}>
-                   <BookPanel book={roomData.books[0]} />
-               </Box>
+        <div className="flex-1 flex flex-col bg-secondary/5 h-[50vh] md:h-full overflow-hidden border-r border-border">
+           {/* Book Panel - shows book being discussed */}
+            {roomData?.books && roomData.books.length > 0 && (
+                <div className="flex-shrink-0 p-2 sm:p-3 bg-background/95 border-b border-primary/30 z-10">
+                   <BookPanel 
+                     book={roomData.books[0]} 
+                     onReadBook={(book) => {
+                       // Open book in read page within same tab
+                       window.open(`/read/${book.id}`, '_blank');
+                     }}
+                   />
+               </div>
            )}
            {/* LiveAudio takes remaining space */}
-           <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
+           <div className="flex-1 min-h-0 overflow-hidden relative">
              <LiveAudio roomId={roomId} />
-           </Box>
-        </Grid>
+           </div>
+        </div>
 
         {/* Right Sidebar: Chat + Participants */}
-        <Grid size={{ xs: 12, md: 4 }} sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: { xs: '50vh', md: '100%' },
-          borderTop: { xs: '1px solid #333', md: 'none' }
-        }}>
-          <Box sx={{ height: '20%', borderBottom: '1px solid #333', p: 2, overflowY: 'auto' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 1, display: 'block' }}>NEURAL_PARTICIPANTS ({participants.length})</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {participants.map((p) => (
-                <Tooltip title={`${p.email} (${p.role})`} key={p.userId}>
-                  <Avatar sx={{ width: 28, height: 28, bgcolor: getRoleColor(p.role), fontSize: '0.7rem' }}>
-                    {p.email[0]?.toUpperCase()}
-                  </Avatar>
-                </Tooltip>
-              ))}
-            </Box>
-          </Box>
+        <div className="w-full md:w-96 flex flex-col h-[50vh] md:h-full border-t md:border-t-0 md:border-l border-border bg-background">
+          <div className="h-[20%] min-h-[120px] border-b border-border p-4 overflow-y-auto bg-muted/10">
+            <span className="text-xs font-bold text-muted-foreground mb-2 block tracking-wider">NEURAL_PARTICIPANTS ({participants.length})</span>
+            <div className="flex flex-wrap gap-2">
+              <TooltipProvider>
+                {participants.map((p) => (
+                  <Tooltip key={p.userId}>
+                    <TooltipTrigger>
+                      <Avatar className={cn("w-8 h-8 text-[0.7rem] border border-border", getRoleColorClass(p.role))}>
+                        <AvatarFallback className="bg-transparent text-white">
+                          {p.email[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{p.email.split('@')[0]} ({p.role})</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
+            </div>
+          </div>
 
-          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
             {messages.map((msg, index) => (
               msg.isSystem ? (
-                <Typography key={msg.id} variant="caption" sx={{ textAlign: 'center', color: 'text.secondary', fontStyle: 'italic', my: 1 }}>
+                <p key={msg.id} className="text-xs text-center text-muted-foreground italic my-2">
                   {msg.text}
-                </Typography>
+                </p>
               ) : (
-                <Box key={msg.id || index} sx={{ display: 'flex', gap: 1, group: 'hover' }}>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: msg.isFlagged ? 'error.dark' : 'secondary.main', opacity: 0.8 }}>{msg.sender.name ? msg.sender.name[0] : '?'}</Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                      <Typography variant="caption" sx={{ color: msg.isFlagged ? 'error.main' : 'primary.light', fontWeight: 'bold' }}>{msg.sender.name || 'Anonymous'}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>{new Date(msg.createdAt).toLocaleTimeString()}</Typography>
+                <div key={msg.id || index} className="flex gap-2 group">
+                  <Avatar className={cn("w-8 h-8 opacity-80", msg.isFlagged ? "bg-destructive" : "bg-secondary")}>
+                    <AvatarFallback>{msg.sender.name ? msg.sender.name[0] : '?'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className={cn("text-xs font-bold truncate", msg.isFlagged ? "text-destructive" : "text-primary")}>
+                        {msg.sender.name || 'Anonymous'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </span>
                       {/* Deletion Button for Admins/Mods */}
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleDelete(msg.id)} 
-                        sx={{ ml: 'auto', opacity: 0.2, '&:hover': { opacity: 1 } }}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDelete(msg.id)}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                    <Paper sx={{ 
-                      p: 1.5, 
-                      bgcolor: msg.isFlagged ? 'rgba(239, 68, 68, 0.1)' : 'background.paper', 
-                      border: '1px solid', 
-                      borderColor: msg.isFlagged ? 'error.main' : '#333',
-                      borderRadius: '0 12px 12px 12px'
-                    }}>
-                      <Typography variant="body2" sx={{ color: msg.isFlagged ? 'error.light' : 'text.primary' }}>{msg.text}</Typography>
-                    </Paper>
-                  </Box>
-                </Box>
+                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                    </div>
+                    <div className={cn(
+                      "p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border",
+                      msg.isFlagged 
+                        ? "bg-destructive/10 border-destructive text-destructive" 
+                        : "bg-muted/30 border-border text-foreground"
+                    )}>
+                      {msg.text}
+                    </div>
+                  </div>
+                </div>
               )
             ))}
             <div ref={messagesEndRef} />
-          </Box>
+          </div>
 
-          <Box component="form" onSubmit={handleSend} sx={{ p: 2, bgcolor: '#050505', borderTop: '1px solid #333' }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                fullWidth variant="outlined" placeholder="TRANSMIT_DATA..." size="small" value={inputText}
-                onChange={(e) => setInputText(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#000' } }}
+          <form onSubmit={handleSend} className="p-4 bg-muted/5 border-t border-border">
+            <div className="flex gap-2">
+              <Input
+                placeholder="TRANSMIT_DATA..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="bg-background font-mono text-sm"
               />
-              <Button type="submit" variant="contained" disabled={!inputText.trim()} sx={{ minWidth: 80, borderRadius: 0 }}>SEND</Button>
-            </Box>
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
+              <Button type="submit" disabled={!inputText.trim()} size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

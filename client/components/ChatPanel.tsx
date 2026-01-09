@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, TextField, Button, Paper, Typography } from '@mui/material';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { cn } from '../lib/utils';
 
 interface Message {
   text: string;
@@ -29,25 +31,32 @@ export default function ChatPanel({ socket, myId, roomId = 'default' }: ChatPane
   };
 
   return (
-    <Box sx={{ width: 300, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.paper', p: 2 }}>
-      <Typography variant="h6" gutterBottom>Room Chat</Typography>
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
+    <div className="w-[300px] flex flex-col h-full bg-background border-l border-border p-4">
+      <h6 className="font-bold mb-4 text-primary">Room Chat</h6>
+      <div className="flex-1 overflow-y-auto mb-4 space-y-2 pr-2">
         {messages.map((msg, i) => (
-          <Paper key={i} sx={{ p: 1, mb: 1, bgcolor: msg.senderId === myId ? 'primary.dark' : 'background.default' }}>
-            <Typography variant="body2">{msg.text}</Typography>
-          </Paper>
+          <div 
+            key={i} 
+            className={cn(
+              "p-2 rounded text-sm break-words",
+              msg.senderId === myId 
+                ? "bg-primary/20 text-primary-foreground ml-auto max-w-[90%]" 
+                : "bg-muted text-foreground mr-auto max-w-[90%]"
+            )}
+          >
+            <p>{msg.text}</p>
+          </div>
         ))}
-      </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <TextField 
-          fullWidth 
-          size="small" 
+      </div>
+      <div className="flex gap-2">
+        <Input
           value={input} 
           onChange={(e) => setInput(e.target.value)}
           placeholder="Message..."
+          className="h-9"
         />
-        <Button variant="contained" onClick={sendMessage}>Send</Button>
-      </Box>
-    </Box>
+        <Button onClick={sendMessage} size="sm">Send</Button>
+      </div>
+    </div>
   );
 }

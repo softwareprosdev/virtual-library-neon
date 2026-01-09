@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
 
-interface CyberpunkAudioVisualizerProps {
+interface AudioVisualizerProps {
   stream: MediaStream | null;
   width?: number;
   height?: number;
 }
 
-export default function CyberpunkAudioVisualizer({ stream, width = 300, height = 100 }: CyberpunkAudioVisualizerProps) {
+export default function CyberpunkAudioVisualizer({ stream, width = 300, height = 100 }: AudioVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -32,7 +31,6 @@ export default function CyberpunkAudioVisualizer({ stream, width = 300, height =
       source.connect(analyser);
       sourceRef.current = source;
     } catch (e) {
-      console.error("Error creating media stream source:", e);
       return;
     }
 
@@ -48,31 +46,22 @@ export default function CyberpunkAudioVisualizer({ stream, width = 300, height =
 
       analyser.getByteFrequencyData(dataArray);
 
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, width, height);
 
-      const barWidth = (canvas.width / bufferLength) * 2.5;
+      const barWidth = (width / bufferLength) * 2.5;
       let barHeight;
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
         barHeight = dataArray[i] / 2;
 
-        // Cyberpunk colors: Pink/Cyan/Purple gradient logic or random glitch
-        // Gradient from Cyan (#00f3ff) to Pink (#bc13fe)
-        const r = 0 + (i / bufferLength) * 188; // 0 -> 188
-        const g = 243 - (i / bufferLength) * 224; // 243 -> 19
-        const b = 255;
-        
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        
-        // Add a "glitch" offset occasionally
-        const glitchOffset = Math.random() > 0.98 ? Math.random() * 5 : 0;
+        // Simple gradient fill
+        const gradient = ctx.createLinearGradient(0, height, 0, 0);
+        gradient.addColorStop(0, '#d946ef'); // Primary color (approx)
+        gradient.addColorStop(1, '#8b5cf6'); // Secondary color (approx)
 
-        ctx.fillRect(x, canvas.height - barHeight - glitchOffset, barWidth, barHeight + glitchOffset);
-
-        // Mirror effect for "audio wave" look
-        // ctx.fillRect(x, 0, barWidth, barHeight); 
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
 
         x += barWidth + 1;
       }
@@ -86,27 +75,16 @@ export default function CyberpunkAudioVisualizer({ stream, width = 300, height =
       if (analyserRef.current) analyserRef.current.disconnect();
       if (audioContextRef.current) audioContextRef.current.close();
     };
-  }, [stream]);
-
-  if (!stream) {
-    return (
-        <Box sx={{ width, height, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' }}>
-            <Box className="neon-text" sx={{ fontSize: '0.7rem', opacity: 0.5 }}>NO_AUDIO_SIGNAL</Box>
-        </Box>
-    );
-  }
+  }, [stream, width, height]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
-      width={width} 
-      height={height} 
-      style={{ 
-        border: '1px solid #00f3ff', 
-        boxShadow: '0 0 10px #00f3ff',
-        borderRadius: '4px',
-        backgroundColor: '#000'
-      }} 
-    />
+    <div className="rounded-md overflow-hidden bg-muted/50 border border-border shadow-sm">
+      <canvas 
+        ref={canvasRef} 
+        width={width} 
+        height={height} 
+        className="w-full h-full"
+      />
+    </div>
   );
 }

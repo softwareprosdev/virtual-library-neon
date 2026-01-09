@@ -2,41 +2,29 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
 import { searchBooks, getTrendingBooks, getNewReleases, GoogleBook } from '../../lib/google-books';
 import type { FormEvent } from 'react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
 import {
-  Typography,
-  Button,
-  Container,
-  Card,
-  CardContent,
-  CardMedia,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Fab,
-  Box,
-  Chip,
-  Stack,
-  Skeleton,
-  IconButton,
-  InputAdornment
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../../components/ui/dialog';
+import { Search, ArrowLeft, Flame, Sparkles, Book, Plus } from 'lucide-react';
+import UserStatsCard from '../../components/Gamification/UserStatsCard';
+import Leaderboard from '../../components/Gamification/Leaderboard';
+import AddToReadingList from '../../components/ReadingList/AddToReadingList';
 
 export const dynamic = 'force-dynamic';
-
-const AddIcon = () => <span style={{ fontSize: '1.5rem' }}>+</span>;
-const SearchIcon = () => <span>🔍</span>;
-const BackIcon = () => <span>←</span>;
-const FireIcon = () => <span>🔥</span>;
-const NewIcon = () => <span>✨</span>;
-const BookIcon = () => <span>📚</span>;
 
 // Popular book categories for browsing
 const POPULAR_CATEGORIES = [
@@ -58,6 +46,10 @@ const POPULAR_CATEGORIES = [
   { id: 'comics', name: 'Comics & Manga', icon: '🎨' },
   { id: 'young-adult', name: 'Young Adult', icon: '🌟' },
   { id: 'classics', name: 'Classics', icon: '📜' },
+  { id: 'erotica', name: 'Erotica', icon: '💋' },
+  { id: 'dark-romance', name: 'Dark Romance', icon: '🥀' },
+  { id: 'lgbtq', name: 'LGBTQ+', icon: '🏳️‍🌈' },
+
 ];
 
 interface Room {
@@ -66,14 +58,14 @@ interface Room {
   description: string;
   host: { name: string };
   genreId?: string;
-  genre?: { name: string; isAdult: boolean };
+  genre?: { name: string };
   _count: { messages: number; participants: number };
 }
 
 interface Genre {
   id: string;
   name: string;
-  isAdult: boolean;
+
   description: string;
   _count: { rooms: number };
 }
@@ -82,7 +74,7 @@ type ViewMode = 'genres' | 'books';
 
 export default function Dashboard() {
   const router = useRouter();
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [, setRooms] = useState<Room[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
@@ -108,7 +100,7 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
+  const [selectedGenre] = useState('');
   const [selectedBook, setSelectedBook] = useState<GoogleBook | null>(null);
 
   const [mounted, setMounted] = useState(false);
@@ -133,7 +125,7 @@ export default function Dashboard() {
       setTrendingBooks(trending);
       setNewReleases(releases);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Neural connection lost.');
+      setError(err instanceof Error ? err.message : 'Failed to load data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -217,9 +209,12 @@ export default function Dashboard() {
     if (viewMode !== 'books') return;
 
     const handleScroll = () => {
-      if (!bookListRef.current) return;
-      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-      if (scrollTop + clientHeight >= scrollHeight - 500) {
+      // Use window.innerHeight and window.scrollY for better compatibility
+      const { innerHeight, scrollY } = window;
+      const { scrollHeight } = document.body;
+      
+      // If we are near the bottom of the page (within 500px)
+      if (scrollY + innerHeight >= scrollHeight - 500) {
         loadMoreBooks();
       }
     };
@@ -270,18 +265,21 @@ export default function Dashboard() {
           body: JSON.stringify(body)
         });
         if (res.ok) {
+          const room = await res.json();
           setOpen(false);
           setNewRoomName('');
           setNewRoomDesc('');
           setSelectedBook(null);
           // Don't reset genre here so they stay in context
           fetchData();
-          // Optionally redirect to the new room?
-          const room = await res.json();
           router.push(`/room/${room.id}`);
+        } else {
+            const err = await res.json();
+            alert(`Failed to create club: ${err.message}`);
         }
-      } catch {
-        // Failed to create room
+      } catch (error) {
+        console.error(error);
+        alert("Failed to create room. Please check your connection and try again.");
       }
     };
 
@@ -289,362 +287,304 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+      <div className="container mx-auto px-4 sm:px-6">
         {/* Header Section */}
-        <Box sx={{ mb: 6 }}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            justifyContent="space-between"
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            spacing={{ xs: 3, md: 0 }}
-          >
-            <Box>
-              <Typography
-                variant="overline"
-                color="primary.main"
-                sx={{
-                  letterSpacing: { xs: 2, sm: 4 },
-                  fontWeight: 'bold',
-                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                  display: 'block'
-                }}
-              >
+        <div className="mb-12">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-primary block mb-1">
                 SYSTEM_STATUS: OPERATIONAL // BOOK_DB_ONLINE
-              </Typography>
-              <Typography
-                variant="h2"
-                className="neon-text"
-                sx={{
-                  fontWeight: 900,
-                  mb: 1,
-                  color: 'white',
-                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3.75rem' }
-                }}
-              >
+              </span>
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-foreground mb-2">
                 LITERARY_NEXUS
-              </Typography>
-            </Box>
-            <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '300px' }}>
-              <TextField
+              </h1>
+            </div>
+            <form onSubmit={handleSearch} className="w-full md:max-w-xs relative">
+              <Input
                 placeholder="SEARCH_DATABASE..."
-                variant="outlined"
-                size="small"
-                fullWidth
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                sx={{
-                  '& .MuiOutlinedInput-root': { bgcolor: '#050505', color: 'white' }
-                }}
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton type="submit" edge="end" sx={{ color: 'primary.main' }}>
-                          <SearchIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }
-                }}
+                className="pr-10"
               />
+              <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80">
+                <Search size={20} />
+              </button>
             </form>
-          </Stack>
-        </Box>
+          </div>
+        </div>
+
+        {/* Gamification Dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+           <div className="lg:col-span-2">
+              <UserStatsCard />
+           </div>
+           <div className="lg:col-span-1">
+              <Leaderboard />
+           </div>
+        </div>
 
         {loading ? (
-          <Grid container spacing={4}>
-            {[1,2,3,4].map(i => <Grid size={{ xs: 12, md: 3 }} key={i}><Skeleton variant="rectangular" height={300} sx={{ bgcolor: '#111' }} /></Grid>)}
-          </Grid>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-[300px] bg-muted animate-pulse rounded-lg" />
+            ))}
+          </div>
         ) : (
           <>
             {viewMode === 'genres' ? (
               <>
                 {/* Trending Books Section */}
                 {trendingBooks.length > 0 && (
-                  <Box sx={{ mb: 6 }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-                      <FireIcon />
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'error.light' }}>TRENDING_NOW</Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
+                  <div className="mb-12">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Flame className="text-destructive" />
+                      <h2 className="text-2xl font-bold text-destructive">TRENDING_NOW</h2>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4">
                       {trendingBooks.map((book) => (
-                        <Card key={book.id} sx={{ minWidth: 180, maxWidth: 180, bgcolor: '#050505', border: '1px solid #333', flexShrink: 0 }}>
-                          {book.volumeInfo.imageLinks?.thumbnail && (
-                            <CardMedia
-                              component="img"
-                              height="200"
-                              image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                              alt={book.volumeInfo.title}
-                              sx={{ objectFit: 'contain', bgcolor: '#000', pt: 1 }}
-                            />
-                          )}
-                          <CardContent sx={{ p: 1.5 }}>
-                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold', display: 'block', lineHeight: 1.2, mb: 0.5 }} noWrap>
+                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0">
+                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
+                            {book.volumeInfo.imageLinks?.thumbnail && (
+                              <Image
+                                src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                                alt={book.volumeInfo.title}
+                                fill
+                                className="object-contain p-2"
+                                sizes="180px"
+                              />
+                            )}
+                          </div>
+                          <CardContent className="p-3">
+                            <p className="text-sm font-bold truncate mb-1" title={book.volumeInfo.title}>
                               {book.volumeInfo.title}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" noWrap>
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate mb-2">
                               {book.volumeInfo.authors?.[0] || 'Unknown'}
-                            </Typography>
-                            <Button size="small" variant="outlined" color="primary" fullWidth sx={{ mt: 1, fontSize: '0.65rem' }} onClick={() => handleDiscussBook(book)}>
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-xs"
+                              onClick={() => handleDiscussBook(book)}
+                            >
                               DISCUSS
                             </Button>
                           </CardContent>
                         </Card>
                       ))}
-                    </Stack>
-                  </Box>
+                    </div>
+                  </div>
                 )}
 
                 {/* New Releases Section */}
                 {newReleases.length > 0 && (
-                  <Box sx={{ mb: 6 }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-                      <NewIcon />
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'secondary.light' }}>NEW_RELEASES</Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
+                  <div className="mb-12">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Sparkles className="text-secondary-foreground" />
+                      <h2 className="text-2xl font-bold text-secondary-foreground">NEW_RELEASES</h2>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
                       {newReleases.map((book) => (
-                        <Card key={book.id} sx={{ minWidth: 180, maxWidth: 180, bgcolor: '#050505', border: '1px solid #333', flexShrink: 0 }}>
-                          {book.volumeInfo.imageLinks?.thumbnail && (
-                            <CardMedia
-                              component="img"
-                              height="200"
-                              image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                              alt={book.volumeInfo.title}
-                              sx={{ objectFit: 'contain', bgcolor: '#000', pt: 1 }}
-                            />
-                          )}
-                          <CardContent sx={{ p: 1.5 }}>
-                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold', display: 'block', lineHeight: 1.2, mb: 0.5 }} noWrap>
+                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0 snap-start">
+                          <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
+                            {book.volumeInfo.imageLinks?.thumbnail && (
+                              <Image
+                                src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                                alt={book.volumeInfo.title}
+                                fill
+                                className="object-contain p-2"
+                                sizes="180px"
+                              />
+                            )}
+                          </div>
+                          <CardContent className="p-3">
+                            <p className="text-sm font-bold truncate mb-1" title={book.volumeInfo.title}>
                               {book.volumeInfo.title}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" noWrap>
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate mb-2">
                               {book.volumeInfo.authors?.[0] || 'Unknown'}
-                            </Typography>
-                            <Button size="small" variant="outlined" color="secondary" fullWidth sx={{ mt: 1, fontSize: '0.65rem' }} onClick={() => handleDiscussBook(book)}>
+                            </p>
+                            <Button 
+                              size="sm" 
+                              variant="secondary" 
+                              className="w-full text-xs" 
+                              onClick={() => handleDiscussBook(book)}
+                            >
                               DISCUSS
                             </Button>
                           </CardContent>
                         </Card>
                       ))}
-                    </Stack>
-                  </Box>
+                    </div>
+                  </div>
                 )}
 
                 {/* Popular Categories */}
-                <Box sx={{ mb: 6 }}>
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-                    <BookIcon />
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.light' }}>BROWSE_BY_CATEGORY</Typography>
-                  </Stack>
-                  <Grid container spacing={2}>
+                <div className="mb-12">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Book className="text-primary" />
+                    <h2 className="text-2xl font-bold text-primary">BROWSE_BY_CATEGORY</h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {POPULAR_CATEGORIES.map((category) => (
-                      <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={category.id}>
-                        <Box
-                          onClick={() => handleCategoryClick(category)}
-                          sx={{
-                            position: 'relative', height: 120, borderRadius: '4px',
-                            cursor: 'pointer', transition: 'all 0.2s ease',
-                            border: '1px solid #333',
-                            bgcolor: '#0a0a0a',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexDirection: 'column',
-                            textAlign: 'center', p: 2,
-                            '&:hover': {
-                              borderColor: 'primary.main',
-                              boxShadow: '0 0 20px rgba(0, 243, 255, 0.2)',
-                              transform: 'scale(1.02)'
-                            }
-                          }}
-                        >
-                          <Typography sx={{ fontSize: '2rem', mb: 1 }}>{category.icon}</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'white' }}>{category.name.toUpperCase()}</Typography>
-                        </Box>
-                      </Grid>
+                      <div
+                        key={category.id}
+                        onClick={() => handleCategoryClick(category)}
+                        className="h-32 rounded-lg border bg-card hover:border-primary hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center justify-center p-4 text-center"
+                      >
+                        <span className="text-3xl mb-2">{category.icon}</span>
+                        <span className="text-sm font-bold">{category.name.toUpperCase()}</span>
+                      </div>
                     ))}
-                  </Grid>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Room Genres (from API) */}
                 {genres.length > 0 && (
-                  <Box sx={{ mb: 6 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 3 }}>ROOM_GENRES</Typography>
-                    <Grid container spacing={2}>
+                  <div className="mb-12">
+                    <h2 className="text-2xl font-bold text-muted-foreground mb-6">ROOM_GENRES</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                       {genres.map((genre) => (
-                        <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={genre.id}>
-                          <Box
-                            onClick={() => handleGenreClick(genre)}
-                            sx={{
-                              position: 'relative', height: 100, borderRadius: '4px',
-                              cursor: 'pointer', transition: 'all 0.2s ease',
-                              border: '1px solid #222',
-                              bgcolor: '#050505',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              textAlign: 'center', p: 2,
-                              '&:hover': {
-                                borderColor: 'secondary.main',
-                                boxShadow: '0 0 15px rgba(217, 70, 239, 0.2)',
-                                transform: 'scale(1.02)'
-                              }
-                            }}
-                          >
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 900, color: 'white' }}>{genre.name.toUpperCase()}</Typography>
-                              {genre.isAdult && <Chip label="18+" size="small" sx={{ mt: 0.5, height: 14, fontSize: '0.55rem', bgcolor: 'error.main' }} />}
-                              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>{genre._count.rooms} rooms</Typography>
-                            </Box>
-                          </Box>
-                        </Grid>
+                        <div
+                          key={genre.id}
+                          onClick={() => handleGenreClick(genre)}
+                          className="h-28 rounded-lg border bg-card hover:border-secondary hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer flex flex-col items-center justify-center p-4 text-center relative"
+                        >
+                          <span className="text-sm font-bold">{genre.name.toUpperCase()}</span>
+
+                          <span className="text-xs text-muted-foreground mt-1">{genre._count.rooms} rooms</span>
+                        </div>
                       ))}
-                    </Grid>
-                  </Box>
+                    </div>
+                  </div>
                 )}
               </>
             ) : (
                 // Book Grid with Infinite Scroll
-                <Box ref={bookListRef} sx={{ mb: 10 }}>
-                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
-                        <Button startIcon={<BackIcon />} onClick={() => setViewMode('genres')} color="inherit">BACK</Button>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'secondary.light' }}>
+                <div ref={bookListRef} className="mb-20">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Button variant="ghost" onClick={() => setViewMode('genres')} className="gap-2">
+                          <ArrowLeft size={16} /> BACK
+                        </Button>
+                        <h2 className="text-3xl font-bold text-secondary-foreground">
                             {activeGenreName.toUpperCase()}
-                        </Typography>
-                        <Chip label={`${bookList.length} books`} size="small" sx={{ ml: 'auto' }} />
-                    </Stack>
+                        </h2>
+                        <span className="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                          {bookList.length} books
+                        </span>
+                    </div>
 
                     {isSearching && bookList.length === 0 ? (
-                      <Grid container spacing={3}>
+                      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[1,2,3,4,5,6,7,8].map(i => (
-                          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={i}>
-                            <Skeleton variant="rectangular" height={350} sx={{ bgcolor: '#111', borderRadius: 1 }} />
-                          </Grid>
+                          <div key={i} className="h-[250px] sm:h-[400px] bg-muted animate-pulse rounded-lg" />
                         ))}
-                      </Grid>
+                      </div>
                     ) : (
-                      <>
-                        <Grid container spacing={3}>
-                            {bookList.map((book, index) => (
-                                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={`${book.id}-${index}`}>
-                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#050505', border: '1px solid #222', transition: 'all 0.2s ease', '&:hover': { borderColor: 'primary.main', transform: 'translateY(-4px)' } }}>
-                                        {book.volumeInfo.imageLinks?.thumbnail && (
-                                            <CardMedia
-                                                component="img"
-                                                height="240"
-                                                image={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                                                alt={book.volumeInfo.title}
-                                                sx={{ objectFit: 'contain', bgcolor: '#000', pt: 2 }}
-                                            />
-                                        )}
-                                        <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', lineHeight: 1.2, mb: 1 }}>
-                                                {book.volumeInfo.title}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                                                {book.volumeInfo.authors?.join(', ') || 'Unknown Author'}
-                                            </Typography>
-                                            {book.volumeInfo.publishedDate && (
-                                              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block', opacity: 0.7 }}>
-                                                {book.volumeInfo.publishedDate.split('-')[0]}
-                                              </Typography>
-                                            )}
-                                            <Button
-                                                variant="outlined"
-                                                color="primary"
-                                                fullWidth
-                                                sx={{ mt: 'auto' }}
-                                                onClick={() => handleDiscussBook(book)}
-                                            >
-                                                START DISCUSSION
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                            ))}
-                        </Grid>
-
-                        {/* Load More Indicator */}
-                        {loadingMore && (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                            <Stack direction="row" spacing={2} alignItems="center">
-                              <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: '#333' }} />
-                              <Typography variant="body2" color="text.secondary">LOADING_MORE_BOOKS...</Typography>
-                            </Stack>
-                          </Box>
-                        )}
-
-                        {hasMore && !loadingMore && (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                            <Button variant="outlined" onClick={loadMoreBooks}>
-                              LOAD_MORE
-                            </Button>
-                          </Box>
-                        )}
-
-                        {!hasMore && bookList.length > 0 && (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                            <Typography variant="caption" color="text.secondary">END_OF_RESULTS</Typography>
-                          </Box>
-                        )}
-                      </>
-                    )}
-                </Box>
-            )}
-
-            {/* Active Rooms Footer (Always visible for quick access) */}
-            <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid #222' }}>
-                <Typography variant="h5" sx={{ mb: 3, color: 'text.secondary' }}>ACTIVE_DISCUSSIONS</Typography>
-                <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2 }}>
-                    {rooms.map((room) => (
-                        <Card key={room.id} sx={{ minWidth: 280, bgcolor: '#0a0a0a', border: '1px solid #333' }}>
-                            <CardContent>
-                                <Typography variant="h6" color="primary.main" noWrap>{room.name}</Typography>
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                                    {room._count.participants} LISTENERS
-                                </Typography>
-                                <Button size="small" variant="contained" onClick={() => router.push(`/room/${room.id}`)}>JOIN</Button>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                        {bookList.map((book) => (
+                          <Card key={book.id} className="flex flex-col h-full hover:border-primary transition-colors">
+                            <div className="h-[180px] sm:h-[280px] bg-black p-2 sm:p-4 flex items-center justify-center rounded-t-lg relative group cursor-pointer"
+                                onClick={() => handleDiscussBook(book)}
+                            >
+                              {book.volumeInfo.imageLinks?.thumbnail ? (
+                                <Image
+                                  src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
+                                  alt={book.volumeInfo.title}
+                                  fill
+                                  className="object-contain p-2 group-hover:scale-105 transition-transform"
+                                  sizes="(max-width: 640px) 50vw, 200px"
+                                />
+                              ) : (
+                                <div className="text-muted-foreground text-sm">No Cover</div>
+                              )}
+                              <Button
+                                size="icon"
+                                className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 h-8 w-8 sm:h-10 sm:w-10 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDiscussBook(book);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                              </Button>
+                              <div className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                <AddToReadingList book={book} />
+                              </div>
+                            </div>
+                            <CardContent className="flex-1 p-3 sm:p-4">
+                              <h3 className="text-sm sm:text-base font-bold line-clamp-2 mb-1" title={book.volumeInfo.title}>
+                                {book.volumeInfo.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {book.volumeInfo.authors?.[0] || 'Unknown Author'}
+                              </p>
+                              {book.volumeInfo.averageRating && (
+                                <div className="flex items-center gap-1 text-yellow-500 text-sm mb-2">
+                                  <span>★</span>
+                                  <span>{book.volumeInfo.averageRating}</span>
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground line-clamp-3">
+                                {book.volumeInfo.description || 'No description available.'}
+                              </p>
                             </CardContent>
-                        </Card>
-                    ))}
-                </Stack>
-            </Box>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {loadingMore && (
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                        {[1,2,3,4].map(i => (
+                          <div key={i} className="h-[400px] bg-muted animate-pulse rounded-lg" />
+                        ))}
+                      </div>
+                    )}
+                    
+                    {!hasMore && bookList.length > 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        End of results
+                      </div>
+                    )}
+                </div>
+            )}
           </>
         )}
-      </Container>
+      </div>
 
-      <Fab
-        color="secondary"
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 16, sm: 32 },
-          right: { xs: 16, sm: 32 },
-          zIndex: 1000
-        }}
-        onClick={() => {
-          setNewRoomName('');
-          setNewRoomDesc('');
-          setOpen(true);
-        }}
-      >
-        <AddIcon />
-      </Fab>
-
-      {/* Creation Dialog */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ color: 'primary.main', fontWeight: 'bold' }}>INITIALIZE DISCUSSION</DialogTitle>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <TextField autoFocus margin="dense" label="Room Name / Book Title" fullWidth variant="outlined"
-            value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} sx={{ mb: 2, mt: 1 }} />
-          <TextField select label="Genre Module" fullWidth value={selectedGenre}
-            onChange={(e) => setSelectedGenre(e.target.value)} SelectProps={{ native: true }} sx={{ mb: 2 }}>
-            <option value="">Select Genre...</option>
-            {genres.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </TextField>
-          <TextField margin="dense" label="Description" fullWidth variant="outlined" multiline rows={3}
-            value={newRoomDesc} onChange={(e) => setNewRoomDesc(e.target.value)} />
+          <DialogHeader>
+            <DialogTitle>Start a Book Discussion</DialogTitle>
+            <DialogDescription>
+              Create a room to discuss &quot;{selectedBook?.volumeInfo.title}&quot;.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Room Name</label>
+              <Input
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                placeholder="Enter room name..."
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Input
+                value={newRoomDesc}
+                onChange={(e) => setNewRoomDesc(e.target.value)}
+                placeholder="What will you discuss?"
+              />
+            </div>
+            {/* Genre selection could be a select, for now simplified */}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateRoom} disabled={!newRoomName}>Create Room</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpen(false)} color="inherit">ABORT</Button>
-          <Button onClick={handleCreateRoom} variant="contained">LAUNCH ROOM</Button>
-        </DialogActions>
       </Dialog>
     </MainLayout>
   );

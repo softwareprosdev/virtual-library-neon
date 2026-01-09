@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
 import MainLayout from '../../../components/MainLayout';
 import BookReader3D from '../../../components/BookReader3D';
-import { Box, Typography, Button } from '@mui/material';
+import { Button } from '../../../components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,40 +23,58 @@ export default function ReadPage() {
 
     useEffect(() => {
         if (id) {
-            // Since we don't have a single book endpoint yet, we fetch all and find (not efficient but MVP)
-            // Or better, we trust the URL construction. 
-            // Actually, we should fetch book details.
-            // Let's implement a quick fetch.
-            api('/books').then(async (res) => {
-                if(res.ok) {
-                    const books = await res.json();
-                    const found = books.find((b: Book) => b.id === id);
-                    if(found) setBook(found);
+            const fetchBook = async () => {
+                try {
+                    // Try single book endpoint first
+                    let res = await api(`/books/${id}`);
+                    
+                    if (!res.ok) {
+                        // Fallback to fetching all books
+                        res = await api('/books');
+                        if (res.ok) {
+                            const books = await res.json();
+                            const found = books.find((b: Book) => String(b.id) === String(id));
+                            if(found) setBook(found);
+                        }
+                    } else {
+                        const book = await res.json();
+                        setBook(book);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch book:', error);
                 }
-            });
+            };
+            
+            fetchBook();
         }
     }, [id]);
 
     if (!book) return (
         <MainLayout>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-                <Typography color="white">Loading Module...</Typography>
-            </Box>
+            <div className="flex justify-center mt-10">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading Module...</span>
+                </div>
+            </div>
         </MainLayout>
     );
 
-    const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${book.fileUrl}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const fullUrl = book.fileUrl.startsWith('http') 
+        ? book.fileUrl 
+        : `${baseUrl}${book.fileUrl.startsWith('/') ? '' : '/'}${book.fileUrl}`;
 
     return (
         <MainLayout>
-            <Box sx={{ p: 2, borderBottom: '1px solid #333', mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6" className="neon-text" sx={{ color: 'white' }}>
+            <div className="p-4 border-b mb-4 flex justify-between items-center bg-background">
+                <h1 className="text-xl font-bold text-primary">
                     READING: {book.title}
-                </Typography>
-                <Button onClick={() => router.back()} variant="outlined" color="inherit" size="small">
+                </h1>
+                <Button onClick={() => router.back()} variant="outline" size="sm">
                     Close Archive
                 </Button>
-            </Box>
+            </div>
             <BookReader3D url={fullUrl} />
         </MainLayout>
     );
