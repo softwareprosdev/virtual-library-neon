@@ -27,8 +27,6 @@ export default function RecapPage() {
         if (res.ok) {
           setRecap(await res.json());
         }
-      } catch (e) {
-        console.error(e);
       } finally {
         setLoading(false);
       }

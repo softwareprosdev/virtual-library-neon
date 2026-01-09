@@ -27,8 +27,6 @@ export default function UserStatsCard() {
         if (res.ok) {
           setStats(await res.json());
         }
-      } catch (err) {
-        console.error(err);
       } finally {
         setLoading(false);
       }

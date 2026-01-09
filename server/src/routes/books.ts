@@ -5,7 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { PDFParse } from 'pdf-parse';
-import { S3Client } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import multerS3 from 'multer-s3';
 
 const router = Router();
@@ -131,17 +131,61 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
     const fileLocation = (req.file as any).location;
     const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
 
-    // Extract text if PDF (Local storage only)
-    // TODO: Implement S3 stream reading for text extraction
-    if ((req.file.mimetype === 'application/pdf' || req.file.filename?.endsWith('.pdf')) && !fileLocation && req.file.path) {
+// Extract text from PDF (both local and S3 storage)
+    if ((req.file.mimetype === 'application/pdf' || req.file.filename?.endsWith('.pdf'))) {
       try {
-        const dataBuffer = fs.readFileSync(req.file.path);
+        let dataBuffer: Buffer;
+        
+        if (fileLocation && isS3Enabled) {
+          // For S3 files, download the file first
+          const s3 = new S3Client({
+            region: process.env.AWS_REGION || 'us-east-1',
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+            }
+          });
+          
+          // Extract key from S3 URL
+          const key = fileLocation.split('/').pop();
+          if (!key) {
+            throw new Error('Could not extract S3 key from URL');
+          }
+          
+          const getObjectCommand = new GetObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET!,
+            Key: `books/${key}`
+          });
+          
+          const response = await s3.send(getObjectCommand);
+          const chunks: Uint8Array[] = [];
+          
+          for await (const chunk of response.Body as any) {
+            chunks.push(chunk);
+          }
+          
+          dataBuffer = Buffer.concat(chunks);
+        } else if (req.file.path) {
+          // For local files, read directly
+          dataBuffer = fs.readFileSync(req.file.path);
+        } else {
+          throw new Error('No file path or S3 location available');
+        }
+        
+        // Extract text using pdf-parse
         const parser = new PDFParse({ data: dataBuffer });
         const result = await parser.getText();
         content = result.text;
         await parser.destroy();
+        
+        // Clean up local file after processing
+        if (req.file.path) {
+          fs.unlinkSync(req.file.path);
+        }
+        
       } catch (err) {
         if (!isProduction) console.error("PDF Parse Error:", err);
+        // Continue without text extraction if parsing fails
       }
     }
 

@@ -74,9 +74,9 @@ function CustomPublisher({
         const vid = document.createElement('video');
         vid.srcObject = stream;
         vid.muted = true;
-        vid.play().catch(e => console.warn("Helper video play error", e));
+        vid.play().catch(() => {});
         videoRef.current = vid;
-      } catch (e) { console.error("Media Acquire Error:", e); }
+      } catch (e) { /* Media acquisition failed */ }
     };
     acquire();
     return () => { stream?.getTracks().forEach(t => t.stop()); };
@@ -116,7 +116,7 @@ function CustomPublisher({
            const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Camera);
            if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
            await localParticipant.publishTrack(trackToPublish, { name: 'camera', source: Track.Source.Camera });
-         } catch(e) { console.error("Publish video error", e); }
+          } catch(e) { /* Video publish failed */ }
       }
     };
 
@@ -129,7 +129,7 @@ function CustomPublisher({
     if (!localParticipant || !rawStream || !isRoomConnected) return;
 
     const audioContext = new window.AudioContext();
-    audioContext.resume().catch(e => console.warn("AudioContext resume failed", e));
+    audioContext.resume().catch(() => {});
 
     const publishAudio = async () => {
         if (!audioEnabled) {
@@ -151,7 +151,7 @@ function CustomPublisher({
                 const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Microphone);
                 if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
                 await localParticipant.publishTrack(trackToPublish, { name: 'microphone', source: Track.Source.Microphone });
-            } catch(e) { console.error("Publish audio error", e); }
+            } catch(e) { /* Audio publish failed */ }
         }
     };
 
@@ -235,7 +235,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         const resp = await api(`/livekit/token?roomId=${roomId}`);
         const data = await resp.json();
         setToken(data.token);
-      } catch (e) { console.error("LiveKit Token Error:", e); }
+      } catch (e) { /* Token fetch failed */ }
     })();
   }, [roomId]);
 
@@ -262,7 +262,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         } else {
           localStream.getTracks().forEach(t => t.stop());
         }
-      } catch (e) { console.warn("Media access error", e); }
+      } catch (e) { /* Media access failed */ }
     };
     startPreview();
     return () => {

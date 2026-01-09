@@ -31,7 +31,6 @@ export default function CyberpunkAudioVisualizer({ stream, width = 300, height =
       source.connect(analyser);
       sourceRef.current = source;
     } catch (e) {
-      console.error("Error creating media stream source:", e);
       return;
     }
 

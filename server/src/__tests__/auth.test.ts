@@ -43,9 +43,9 @@ describe('Auth API Tests', () => {
     it('should register a new user successfully', async () => {
       const mockUser = {
         id: '1',
-        email: loginData.email,
+        email: validRegistrationData.email,
         name: 'Test User',
-        password: hashedPassword,
+        password: await bcrypt.hash(validRegistrationData.password, 10),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -181,7 +181,6 @@ describe('Auth API Tests', () => {
         password: hashedPassword,
         createdAt: new Date(),
         updatedAt: new Date(),
-  
       };
 
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);

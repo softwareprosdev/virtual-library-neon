@@ -27,8 +27,6 @@ export default function Leaderboard() {
         if (res.ok) {
           setUsers(await res.json());
         }
-      } catch (err) {
-        console.error(err);
       } finally {
         setLoading(false);
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MainLayout from '../../components/MainLayout';
 import { Compass, Search, Book, User, Calendar } from 'lucide-react';
 import { Input } from '../../components/ui/input';
@@ -87,7 +87,7 @@ export default function BrowsePage() {
   };
 
   // Search Google Books API
-  const searchGoogleBooks = async (query: string, append = false) => {
+  const searchGoogleBooks = useCallback(async (query: string, append = false) => {
     if (!query.trim()) {
       setSearchResults([]);
       setStartIndex(0);
@@ -122,14 +122,14 @@ export default function BrowsePage() {
       setIsSearching(false);
       setLoadingMore(false);
     }
-  };
+  }, [startIndex]);
 
   // Load more results for infinite scroll
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!loadingMore && hasMore && currentQuery && searchTab === 'google') {
       searchGoogleBooks(currentQuery, true);
     }
-  };
+  }, [loadingMore, hasMore, currentQuery, searchTab, searchGoogleBooks]);
 
   useEffect(() => {
     if (search) {
@@ -144,7 +144,7 @@ export default function BrowsePage() {
       setHasMore(true);
       setStartIndex(0);
     }
-  }, [search, searchTab]);
+  }, [search, searchTab, searchGoogleBooks]);
 
   // Infinite scroll for Google Books
   useEffect(() => {

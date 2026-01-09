@@ -35,8 +35,6 @@ export default function ReadingListPage() {
       if (res.ok) {
         setEntries(await res.json());
       }
-    } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -47,8 +45,8 @@ export default function ReadingListPage() {
     try {
         await api(`/reading-list/${googleId}`, { method: 'DELETE' });
         setEntries(entries.filter(e => e.googleId !== googleId));
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error('Failed to delete entry:', error);
     }
   };
 

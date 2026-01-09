@@ -34,6 +34,10 @@ model User {
   following   Follows[] @relation("follower")
   activity    Activity[]
   readingList ReadingList[]
+  profileComments ProfileComment[]
+  profileVisits ProfileVisit[]
+  receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
+  sentProfileComments ProfileComment[] @relation("CommentAuthor")
 
   // MySpace-style Profile Customization
   bio              String?   @db.Text
@@ -44,9 +48,23 @@ model User {
   profileBackground String?  // URL to background image
   customCSS        String?   @db.Text
   profileViews     Int       @default(0)
-
+  
+  // Extended Profile Features
+  displayName      String?   // Custom display name
+  location         String?   // User location
+  website          String?   // Personal website
+  socialLinks      Json?     // { twitter, instagram, github, linkedin, etc }
+  interests        String[]   @default([]) // User interests/tags
+  statusMessage    String?   // Current status/mood
+  profileLayout   String?   @default("default") // default, creative, minimalist, neon
+  isProfilePublic  Boolean  @default(true) // Profile visibility
+  
   // Top Friends (MySpace style - ordered list of friend IDs)
   topFriends       String[]  @default([])
+  
+  // Profile Stats (MySpace style)
+  profileComments   ProfileComment[]
+  profileVisits    ProfileVisit[]
 }
 
 model ReadingList {
@@ -209,6 +227,30 @@ model Book {
   updatedAt   DateTime @updatedAt
   owner       User     @relation(fields: [ownerId], references: [id])
   room        Room?    @relation(fields: [roomId], references: [id])
+}
+
+model ProfileComment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  authorId  String   // ID of user who wrote the comment
+  author    User     @relation("CommentAuthor", fields: [authorId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, userId])
+}
+
+model ProfileVisit {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   User     @relation("ProfileVisits", fields: [profileId], references: [id])
+  visitorId String
+  visitor   User     @relation("ProfileVisitors", fields: [visitorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([id, profileId])
 }
 
 model Message {

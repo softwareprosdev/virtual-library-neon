@@ -67,8 +67,6 @@ export default function LibraryPage() {
         const data = await res.json();
         setBooks(data);
       }
-    } catch (error) {
-      console.error('Error fetching books:', error);
     } finally {
       setLoading(false);
     }
@@ -108,8 +106,6 @@ export default function LibraryPage() {
         setAuthor('');
         fetchBooks();
       }
-    } catch (error) {
-      console.error(error);
     } finally {
       setIsUploading(false);
     }
@@ -142,7 +138,7 @@ export default function LibraryPage() {
         setBooks(books.filter(book => book.id !== id));
       }
     } catch (error) {
-      console.error(error);
+      console.error('Failed to delete book:', error);
     }
   };
 

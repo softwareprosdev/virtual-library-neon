@@ -31,15 +31,13 @@ export default function VideoPanel({ roomId, socket }: VideoPanelProps) {
         }
 
         socket.on('userJoined', (data: { userId: string }) => {
-          console.log('User joined, creating offer...', data.userId);
+          // User joined
         });
 
         socket.on('signal', (data: { userId: string, signal: unknown }) => {
           // Handle incoming WebRTC signal
-          console.log('Received signal', data.signal);
         });
       } catch (err: unknown) {
-        console.error("Media Access Error:", err);
         if (err instanceof Error && err.name === 'NotAllowedError') {
           setError("Camera/Mic access denied. Please enable permissions in your browser settings to use video features.");
         } else {

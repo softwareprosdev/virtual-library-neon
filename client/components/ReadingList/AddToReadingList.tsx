@@ -47,8 +47,6 @@ export default function AddToReadingList({ book, onUpdate, variant = 'icon' }: A
       });
       setOpen(false);
       if (onUpdate) onUpdate();
-    } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
     }
