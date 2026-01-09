@@ -23,18 +23,29 @@ export default function ReadPage() {
 
     useEffect(() => {
         if (id) {
-            // Since we don't have a single book endpoint yet, we fetch all and find (not efficient but MVP)
-            // Or better, we trust the URL construction. 
-            // Actually, we should fetch book details.
-            // Let's implement a quick fetch.
-            api('/books').then(async (res) => {
-                if(res.ok) {
-                    const books = await res.json();
-                    // Handle potential string ID vs number ID issues
-                    const found = books.find((b: Book) => String(b.id) === String(id));
-                    if(found) setBook(found);
+            const fetchBook = async () => {
+                try {
+                    // Try single book endpoint first
+                    let res = await api(`/books/${id}`);
+                    
+                    if (!res.ok) {
+                        // Fallback to fetching all books
+                        res = await api('/books');
+                        if (res.ok) {
+                            const books = await res.json();
+                            const found = books.find((b: Book) => String(b.id) === String(id));
+                            if(found) setBook(found);
+                        }
+                    } else {
+                        const book = await res.json();
+                        setBook(book);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch book:', error);
                 }
-            });
+            };
+            
+            fetchBook();
         }
     }, [id]);
 
@@ -49,9 +60,10 @@ export default function ReadPage() {
         </MainLayout>
     );
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const fullUrl = book.fileUrl.startsWith('http') 
         ? book.fileUrl 
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${book.fileUrl}`;
+        : `${baseUrl}${book.fileUrl.startsWith('/') ? '' : '/'}${book.fileUrl}`;
 
     return (
         <MainLayout>
