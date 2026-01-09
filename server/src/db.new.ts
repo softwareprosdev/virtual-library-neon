@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
@@ -25,10 +26,15 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 let prisma: PrismaClient;
 
 if (isAccelerateUrl) {
-  // For Prisma Accelerate, use simple PrismaClient without adapter
-  prisma = globalForPrisma.prisma || new PrismaClient({
+  // For Prisma Accelerate, use PrismaClient with Accelerate extension
+  const basePrisma = globalForPrisma.prisma || new PrismaClient({
     log: process.env.NODE_ENV === 'production' ? ['error'] : ['info', 'warn', 'error'],
   });
+
+  // Extend with Accelerate for caching and connection pooling
+  prisma = basePrisma.$extends(withAccelerate()) as unknown as PrismaClient;
+
+  console.log('[db]: Accelerate extension enabled with query caching 🚀');
 } else {
   // For direct PostgreSQL connection, use the pg adapter
 

@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import prisma from './db';
 import { getRoomRole, Role } from './permissions';
 import { JWTPayload } from './middlewares/auth';
+import { initializeNotifications } from './services/notificationService';
 
 interface AuthSocket extends Socket {
   user?: JWTPayload;
@@ -13,6 +14,9 @@ interface AuthSocket extends Socket {
 const isProduction = process.env.NODE_ENV === 'production';
 
 export const setupSocket = async (io: Server) => {
+  // Initialize notification service
+  initializeNotifications(io);
+
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
     throw new Error('REDIS_URL environment variable is required');
@@ -52,6 +56,11 @@ export const setupSocket = async (io: Server) => {
   });
 
   io.on('connection', (socket: AuthSocket) => {
+    // Join user to their personal notification room
+    if (socket.user?.id) {
+      socket.join(`user:${socket.user.id}`);
+    }
+
     socket.on('joinRoom', async ({ roomId }) => {
       if (!roomId || !socket.user) return;
       
@@ -146,6 +155,80 @@ export const setupSocket = async (io: Server) => {
         signal,
         userId: socket.user?.id
       });
+    });
+
+    // Direct message handling
+    socket.on('directMessage', async ({ receiverId, text }) => {
+      if (!receiverId || !text || !socket.user?.id) return;
+
+      try {
+        const message = await prisma.message.create({
+          data: { 
+            text, 
+            senderId: socket.user.id, 
+            receiverId,
+            roomId: null
+          },
+          include: { 
+            sender: { select: { id: true, name: true, email: true, displayName: true, avatarUrl: true } },
+            receiver: { select: { id: true, name: true, displayName: true, avatarUrl: true } }
+          }
+        });
+
+        // Send to both sender and receiver
+        const messageData = { ...message, isFlagged: false };
+        io.to(`user:${receiverId}`).emit('directMessage', messageData);
+        io.to(`user:${socket.user.id}`).emit('directMessage', messageData);
+
+        // Send notification
+        try {
+          const notificationService = getNotificationService();
+          notificationService.sendDirectMessageNotification(
+            socket.user.id,
+            message.sender.displayName || message.sender.name,
+            receiverId,
+            text
+          );
+        } catch (error) {
+          console.error('Failed to send message notification:', error);
+        }
+      } catch (error) {
+        socket.emit('error', { message: "Failed to send direct message" });
+      }
+    });
+
+    socket.on('markMessagesRead', async ({ senderId }) => {
+      if (!socket.user?.id) return;
+
+      try {
+        await prisma.message.updateMany({
+          where: {
+            senderId,
+            receiverId: socket.user.id,
+            readAt: null
+          },
+          data: {
+            readAt: new Date()
+          }
+        });
+
+        io.to(`user:${senderId}`).emit('messagesRead', {
+          readerId: socket.user.id
+        });
+      } catch (error) {
+        socket.emit('error', { message: "Failed to mark messages as read" });
+      }
+    });
+
+    socket.on('markNotificationsRead', async () => {
+      if (!socket.user?.id) return;
+      
+      try {
+        // Mark notifications as read (would implement notification model)
+        io.to(`user:${socket.user.id}`).emit('notificationsRead');
+      } catch (error) {
+        console.error('Error marking notifications read:', error);
+      }
     });
 
     socket.on('disconnect', async () => {

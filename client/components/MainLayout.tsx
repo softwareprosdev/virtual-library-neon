@@ -2,15 +2,18 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout, getUser } from '../lib/auth';
+import NotificationCenter from './NotificationCenter';
 
 interface MainLayoutProps {
   children: ReactNode;
+  fullWidth?: boolean;
+  hideNav?: boolean;
 }
 
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout({ children, fullWidth = false, hideNav = false }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -23,6 +26,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }, []);
 
   const menuItems = [
+    { text: 'Feed', path: '/feed', icon: Home },
+    { text: 'Messages', path: '/messages', icon: MessageSquare },
     { text: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { text: 'Free Books', path: '/free-books', icon: BookOpen },
     { text: 'Browse', path: '/browse', icon: Compass },
@@ -39,20 +44,25 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
+      {!hideNav && (
       <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card relative">
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#fcee0a] to-transparent" />
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 5px #fcee0a)' }} />
           <span className="font-bold text-xl text-[#fcee0a] uppercase tracking-wider">IndexBin</span>
         </div>
-        <button
-          onClick={toggleMobileMenu}
-          className="p-3 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors rounded-md"
-          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationCenter />
+          <button
+            onClick={toggleMobileMenu}
+            className="p-3 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors rounded-md"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </header>
+      )}
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
@@ -64,6 +74,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Sidebar (Desktop & Mobile) */}
+      {!hideNav && (
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0",
@@ -79,9 +90,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[#fcee0a] to-transparent" />
             <div className="flex items-center gap-3">
               <Zap className="w-8 h-8 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 8px #fcee0a)' }} />
-              <div>
+              <div className="flex-1">
                 <h1 className="font-bold text-2xl text-[#fcee0a] uppercase tracking-wider">IndexBin</h1>
                 <p className="text-[10px] text-[#00f0ff] uppercase tracking-[0.2em]">Neural Archive</p>
+              </div>
+              <div className="hidden md:block">
+                <NotificationCenter />
               </div>
             </div>
           </div>
@@ -141,6 +155,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
       </aside>
+      )}
 
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
@@ -151,11 +166,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-[calc(100dvh-64px)] md:h-screen p-4 md:p-8 relative">
+      <main className={cn(
+        "flex-1 overflow-y-auto relative",
+        hideNav ? "h-screen" : "h-[calc(100dvh-64px)] md:h-screen",
+        fullWidth ? "" : "p-4 md:p-8"
+      )}>
         {/* Top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent" />
+        {!fullWidth && (
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent" />
+        )}
 
-        <div className="max-w-7xl mx-auto">
+        <div className={fullWidth ? "w-full" : "max-w-7xl mx-auto"}>
           {children}
         </div>
       </main>

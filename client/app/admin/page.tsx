@@ -30,8 +30,7 @@ import {
   CheckCircle,
   XCircle,
   UserX,
-  UserCheck,
-  Trash2
+  UserCheck
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -144,6 +143,7 @@ export default function AdminPanel() {
   }, [fetchStats, fetchReports]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchUsers();
   }, [fetchUsers]);
 

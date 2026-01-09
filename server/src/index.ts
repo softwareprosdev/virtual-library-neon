@@ -17,6 +17,10 @@ import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
 import bookPostsRoutes from './routes/bookPosts';
 import freeBooksRoutes from './routes/freeBooks';
+import followsRoutes from './routes/follows';
+import activityRoutes from './routes/activity';
+import friendRequestRoutes from './routes/friendRequests';
+import directMessageRoutes from './routes/directMessages';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -129,6 +133,14 @@ app.use('/api/book-posts', bookPostsRoutes);
 app.use('/book-posts', bookPostsRoutes);
 app.use('/api/free-books', freeBooksRoutes);
 app.use('/free-books', freeBooksRoutes);
+app.use('/api/follows', followsRoutes);
+app.use('/follows', followsRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/activity', activityRoutes);
+app.use('/api/friend-requests', friendRequestRoutes);
+app.use('/friend-requests', friendRequestRoutes);
+app.use('/api/direct-messages', directMessageRoutes);
+app.use('/direct-messages', directMessageRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

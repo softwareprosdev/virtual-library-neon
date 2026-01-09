@@ -33,6 +33,7 @@ model User {
 
   ownedRooms   Room[]   @relation("RoomHost")
   messages     Message[]
+  receivedMessages Message[] @relation("MessageReceiver")
   books        Book[]
   participants Participant[]
   moderators   Moderator[]
@@ -53,6 +54,8 @@ model User {
   sentProfileComments ProfileComment[] @relation("CommentAuthor")
   reports     Report[]  @relation("ReportedUser")
   reportsMade Report[]  @relation("ReportingUser")
+  sentFriendRequests FriendRequest[] @relation("RequestSender")
+  receivedFriendRequests FriendRequest[] @relation("RequestReceiver")
 
   // BookFriendSpace-style Profile Customization
   bio              String?   @db.Text
@@ -122,6 +125,26 @@ model Follows {
   @@id([followerId, followingId])
 }
 
+model FriendRequest {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("RequestSender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("RequestReceiver", fields: [receiverId], references: [id])
+  status     FriendRequestStatus @default(PENDING)
+  message    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 model Badge {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -135,7 +158,7 @@ model Activity {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  type      String   // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE"
+  type      String   // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE", "FOLLOW_USER", "UNFOLLOW_USER", "CREATE_POST", "LIKE_POST", "COMMENT_POST", "SEND_FRIEND_REQUEST", "ACCEPT_FRIEND_REQUEST", "DECLINE_FRIEND_REQUEST", "FRIEND_REQUEST_ACCEPTED"
   details   String?
   createdAt DateTime @default(now())
 }
@@ -277,10 +300,13 @@ model Message {
   id        String   @id @default(uuid())
   text      String
   senderId  String
-  roomId    String
+  roomId    String?
+  receiverId String?
+  readAt    DateTime?
   createdAt DateTime @default(now())
-  room      Room     @relation(fields: [roomId], references: [id])
-  sender    User     @relation(fields: [senderId], references: [id])
+  room      Room?    @relation(fields: [roomId], references: [id])
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiver  User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
 }
 
 // Book Posts - Users can share books they've written

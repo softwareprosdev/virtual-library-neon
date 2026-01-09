@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, ElementType } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import FollowButton from '@/components/FollowButton';
+import FollowButton from '@/components/FollowButton';
 import { 
   User, 
   MapPin, 
@@ -42,9 +45,11 @@ import {
   Heart,
   ExternalLink,
   Trash2,
-  PinIcon
+  PinIcon,
+  Send
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { formatDistanceToNow } from 'date-fns';
 
 interface BookPost {
   id: string;
@@ -59,6 +64,25 @@ interface BookPost {
   shares: number;
   isPinned: boolean;
   createdAt: string;
+}
+
+interface ProfileFriend {
+  id: string;
+  name: string;
+  displayName?: string;
+  avatarUrl?: string;
+}
+
+interface ProfileComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    displayName?: string;
+    avatarUrl?: string;
+  };
 }
 
 interface ProfileUser {
@@ -80,7 +104,7 @@ interface ProfileUser {
   profileSong?: string;
   profileSongTitle?: string;
   profileBackground?: string;
-  topFriends: string[];
+  topFriends: ProfileFriend[];
   createdAt: string;
   level: number;
   points: number;
@@ -148,6 +172,8 @@ export default function ProfilePage() {
   });
   const [selectedTheme, setSelectedTheme] = useState('neon');
   const [interestInput, setInterestInput] = useState('');
+  
+  // Books State
   const [bookPosts, setBookPosts] = useState<BookPost[]>([]);
   const [showBookPostDialog, setShowBookPostDialog] = useState(false);
   const [newBookPost, setNewBookPost] = useState({
@@ -158,6 +184,11 @@ export default function ProfilePage() {
     previewUrl: '',
     genre: ''
   });
+
+  // Comments State
+  const [comments, setComments] = useState<ProfileComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -171,7 +202,7 @@ export default function ProfilePage() {
       
       const userData = await response.json();
       
-      // Ensure arrays are properly initialized even if null/undefined from API
+      // Ensure arrays are properly initialized
       const safeUserData = {
         ...userData,
         interests: Array.isArray(userData.interests) ? userData.interests : [],
@@ -212,10 +243,26 @@ export default function ProfilePage() {
     }
   }, [userId]);
 
+  const fetchComments = useCallback(async () => {
+    try {
+      setLoadingComments(true);
+      const response = await api(`/users/${userId}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments);
+      }
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     fetchProfile();
     fetchBookPosts();
-  }, [fetchProfile, fetchBookPosts]);
+    fetchComments();
+  }, [fetchProfile, fetchBookPosts, fetchComments]);
 
   const saveProfile = async () => {
     try {
@@ -227,13 +274,32 @@ export default function ProfilePage() {
       if (response.ok) {
         setUser(await response.json());
         setEditing(false);
-        // Add profile visit if own profile
+        // Add profile visit if own profile (just to refresh view)
         if (isOwnProfile) {
-          await api(`/profiles/${userId}/visit`, { method: 'POST' });
+          // No-op for self visit usually, but good to refresh data
         }
       }
     } catch (error) {
       console.error('Failed to save profile:', error);
+    }
+  };
+
+  const postComment = async () => {
+    if (!newComment.trim()) return;
+    try {
+      const response = await api(`/users/${userId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content: newComment })
+      });
+      
+      if (response.ok) {
+        setNewComment('');
+        fetchComments();
+        // Also refresh profile to update comment count if we were displaying it live
+        fetchProfile(); 
+      }
+    } catch (error) {
+      console.error('Failed to post comment:', error);
     }
   };
 
@@ -271,7 +337,7 @@ export default function ProfilePage() {
 
   const recordProfileView = useCallback(async () => {
     if (!isOwnProfile && user) {
-      await api(`/profiles/${userId}/visit`, { method: 'POST' });
+      await api(`/users/${userId}/visit`, { method: 'POST' });
     }
   }, [isOwnProfile, user, userId]);
 
@@ -380,9 +446,9 @@ export default function ProfilePage() {
   } : {};
 
   return (
-    <MainLayout>
-      <div 
-        className="min-h-screen"
+    <MainLayout fullWidth={true}>
+      <div
+        className="min-h-screen w-full transition-colors duration-500"
         style={{
           ...profileBackgroundStyle,
           backgroundColor: theme.background || 'var(--background)',
@@ -410,7 +476,7 @@ export default function ProfilePage() {
                     {isOwnProfile && (
                       <Button
                         size="sm"
-                        className="absolute bottom-0 right-0 w-8 h-8 rounded-full"
+                        className="absolute bottom-0 right-0 w-8 h-8 rounded-full z-10 bg-primary hover:bg-primary/90 shadow-lg"
                         onClick={() => setEditing(true)}
                       >
                         <Camera className="w-4 h-4" />
@@ -478,10 +544,10 @@ export default function ProfilePage() {
                       </>
                     ) : (
                       <>
-                        <Button>
-                          <Users className="w-4 h-4 mr-2" />
-                          Follow
-                        </Button>
+                        <FollowButton 
+                          targetUserId={userId} 
+                          currentUserId={currentUserId}
+                        />
                         <Button variant="outline">
                           <MessageSquare className="w-4 h-4 mr-2" />
                           Message
@@ -503,12 +569,13 @@ export default function ProfilePage() {
         <div className="relative z-10 p-6 sm:p-8">
           <div className="max-w-6xl mx-auto">
             <Tabs defaultValue="about" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
+              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
                 <TabsTrigger value="about">About</TabsTrigger>
                 <TabsTrigger value="mybooks">My Books</TabsTrigger>
+                <TabsTrigger value="wall">Wall</TabsTrigger>
+                <TabsTrigger value="friends">Friends</TabsTrigger>
                 <TabsTrigger value="interests">Interests</TabsTrigger>
                 <TabsTrigger value="customization">Style</TabsTrigger>
-                <TabsTrigger value="friends">Friends</TabsTrigger>
               </TabsList>
 
               <TabsContent value="about" className="mt-6">
@@ -588,6 +655,72 @@ export default function ProfilePage() {
                           <div className="text-xs opacity-70">Level</div>
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="wall" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>The Wall</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Add Comment */}
+                    {currentUserId && (
+                      <div className="flex gap-4">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback>ME</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-2">
+                          <Textarea 
+                            placeholder="Write something..." 
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            className="bg-white/5"
+                          />
+                          <div className="flex justify-end">
+                            <Button size="sm" onClick={postComment} disabled={!newComment.trim()}>
+                              <Send className="w-4 h-4 mr-2" />
+                              Post Comment
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comments List */}
+                    <div className="space-y-4">
+                      {loadingComments ? (
+                        <div className="text-center py-4">Loading comments...</div>
+                      ) : comments.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>No comments yet. Be the first to say hello!</p>
+                        </div>
+                      ) : (
+                        comments.map((comment) => (
+                          <div key={comment.id} className="flex gap-4 p-4 bg-white/5 rounded-lg">
+                            <Link href={`/profile/${comment.author.id}`}>
+                              <Avatar className="w-10 h-10 border border-white/20">
+                                <AvatarImage src={comment.author.avatarUrl} />
+                                <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                            </Link>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <Link href={`/profile/${comment.author.id}`} className="font-semibold hover:underline">
+                                  {comment.author.displayName || comment.author.name}
+                                </Link>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                </span>
+                              </div>
+                              <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -758,26 +891,33 @@ export default function ProfilePage() {
                         {THEME_PRESETS.map((preset) => (
                           <button
                             key={preset.id}
-                            onClick={() => isOwnProfile && updateTheme(preset.id)}
+                            onClick={() => {
+                              if (isOwnProfile) {
+                                updateTheme(preset.id);
+                              }
+                            }}
                             disabled={!isOwnProfile}
                             className={`
-                              p-3 rounded-lg border-2 transition-all
-                              ${selectedTheme === preset.id 
-                                ? 'border-primary bg-primary/20' 
-                                : 'border-white/20 hover:border-white/40'
+                              p-3 rounded-lg border-2 transition-all cursor-pointer
+                              ${selectedTheme === preset.id
+                                ? 'border-primary bg-primary/20 ring-2 ring-primary/50'
+                                : 'border-white/20 hover:border-white/40 hover:scale-105'
                               }
-                              ${!isOwnProfile ? 'opacity-50 cursor-not-allowed' : ''}
+                              ${!isOwnProfile ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}
                             `}
                             style={{
                               backgroundColor: preset.colors.background,
-                              borderColor: selectedTheme === preset.id ? preset.colors.primary : undefined
+                              borderColor: selectedTheme === preset.id ? preset.colors.primary : undefined,
+                              pointerEvents: isOwnProfile ? 'auto' : 'none'
                             }}
                           >
-                            <div 
-                              className="w-8 h-8 rounded-full mx-auto mb-2"
+                            <div
+                              className="w-8 h-8 rounded-full mx-auto mb-2 transition-transform"
                               style={{ backgroundColor: preset.colors.primary }}
                             ></div>
-                            <div className="text-xs font-medium">{preset.name}</div>
+                            <div className="text-xs font-medium" style={{ color: preset.colors.text }}>
+                              {preset.name}
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -833,20 +973,23 @@ export default function ProfilePage() {
               <TabsContent value="friends" className="mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Top Friends</CardTitle>
+                    <CardTitle>Top 8 Friends</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                       {user.topFriends.length > 0 ? (
-                        user.topFriends.map((friendId, index) => (
-                          <div key={index} className="text-center">
-                            <div className="w-16 h-16 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center">
-                              <Users className="w-8 h-8" />
+                        user.topFriends.map((friend) => (
+                          <Link key={friend.id} href={`/profile/${friend.id}`} className="group text-center">
+                            <div className="relative mb-3 inline-block">
+                              <Avatar className="w-20 h-20 border-2 border-transparent group-hover:border-primary transition-all">
+                                <AvatarImage src={friend.avatarUrl} />
+                                <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
                             </div>
-                            <div className="text-xs font-medium">
-                              Friend {index + 1}
+                            <div className="text-sm font-semibold group-hover:text-primary transition-colors">
+                              {friend.displayName || friend.name}
                             </div>
-                          </div>
+                          </Link>
                         ))
                       ) : (
                         <div className="col-span-full text-center py-8 text-muted-foreground">
