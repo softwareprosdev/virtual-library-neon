@@ -228,6 +228,47 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req: Aut
   }
 });
 
+// Get Single Book by ID
+router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
+    const { id } = req.params;
+    const book = await prisma.book.findUnique({ 
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        fileUrl: true,
+        fileType: true,
+        ownerId: true,
+        createdAt: true,
+        content: true
+      }
+    });
+
+    if (!book) {
+      res.status(404).json({ message: "Book not found" });
+      return;
+    }
+
+    // Check if user has access (owner or public book)
+    if (book.ownerId !== req.user.id) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    res.json(book);
+  } catch (error) {
+    console.error("Get Book Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Delete Book
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

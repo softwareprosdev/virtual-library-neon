@@ -60,6 +60,22 @@ export default function ReadPage() {
         </MainLayout>
     );
 
+    if (!book.fileUrl) {
+        return (
+            <MainLayout>
+                <div className="flex justify-center mt-10">
+                    <div className="text-center">
+                        <h2 className="text-xl font-bold mb-2">Book Not Available</h2>
+                        <p className="text-muted-foreground">This book's file is not accessible.</p>
+                        <Button onClick={() => router.back()} className="mt-4">
+                            Go Back
+                        </Button>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const fullUrl = book.fileUrl.startsWith('http') 
         ? book.fileUrl 
