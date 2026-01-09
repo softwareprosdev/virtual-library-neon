@@ -245,15 +245,26 @@ export default function BrowsePage() {
     return () => clearTimeout(timer);
   }, [search, searchTab, searchLibrary, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
 
-  // Infinite scroll
+  // Infinite scroll - works on both window and scrollable containers
   useEffect(() => {
     if (!hasMore || loadingMore || isSearching) return;
 
     const handleScroll = () => {
-      const { innerHeight, scrollY } = window;
-      const { scrollHeight } = document.body;
+      // Check both window scroll and any scrollable parent
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = window.innerHeight;
       
-      if (scrollY + innerHeight >= scrollHeight - 1000) {
+      // Also check for scrollable main container (mobile layout)
+      const mainElement = document.querySelector('main');
+      const mainScrollTop = mainElement?.scrollTop || 0;
+      const mainScrollHeight = mainElement?.scrollHeight || 0;
+      const mainClientHeight = mainElement?.clientHeight || 0;
+      
+      const windowNearBottom = scrollTop + clientHeight >= scrollHeight - 1000;
+      const mainNearBottom = mainScrollTop + mainClientHeight >= mainScrollHeight - 1000;
+      
+      if (windowNearBottom || mainNearBottom) {
         if (searchTab === 'google' && search.trim()) {
           searchGoogleBooks(search, true);
         } else if (searchTab === 'gutenberg') {
@@ -264,8 +275,16 @@ export default function BrowsePage() {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Listen to both window and main element scroll
+    const mainElement = document.querySelector('main');
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    mainElement?.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      mainElement?.removeEventListener('scroll', handleScroll);
+    };
   }, [searchTab, hasMore, loadingMore, isSearching, search, searchGoogleBooks, searchGutenberg, searchOpenLibrary]);
 
   const isGoogleBook = (item: SearchResult): item is GoogleBook => {
