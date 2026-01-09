@@ -3,7 +3,7 @@
 // Polyfill DOMMatrix for environments where it's missing (like some SSR contexts or older browsers)
 import 'dommatrix/dist/dommatrix.js';
 
-import { useState, forwardRef, useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 

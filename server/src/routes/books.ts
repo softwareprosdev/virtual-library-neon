@@ -1,12 +1,33 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
-import multer from 'multer';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multer = require('multer');
 import path from 'path';
 import fs from 'fs';
 import { PDFParse } from 'pdf-parse';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import multerS3 from 'multer-s3';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multerS3 = require('multer-s3');
+
+// File interface for multer uploads
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+  location?: string; // S3 location
+}
+
+// Extend AuthRequest to include file from multer
+interface AuthRequestWithFile extends AuthRequest {
+  file?: MulterFile;
+}
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -28,7 +49,7 @@ if (isS3Enabled) {
     s3: s3,
     bucket: process.env.AWS_S3_BUCKET!,
     contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
+    key: function (req: Request, file: MulterFile, cb: (error: Error | null, key?: string) => void) {
       cb(null, `books/${Date.now()}-${file.originalname}`);
     }
   });
@@ -36,7 +57,7 @@ if (isS3Enabled) {
 } else {
   storage = multer.diskStorage({
     destination: 'uploads/',
-    filename: (req, file, cb) => {
+    filename: (req: Request, file: MulterFile, cb: (error: Error | null, filename: string) => void) => {
       cb(null, `${Date.now()}-${file.originalname}`);
     }
   });
@@ -46,11 +67,11 @@ if (isS3Enabled) {
 const upload = multer({ 
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
     const filetypes = /pdf|epub/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     if (extname) return cb(null, true);
-    cb(new Error("Only .pdf and .epub files are allowed"));
+    cb(new Error("Only .pdf and .epub files are allowed"), false);
   }
 });
 
@@ -112,7 +133,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
 });
 
 // Upload Book
-router.post('/upload', authenticateToken, upload.single('file'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/upload', authenticateToken, upload.single('file'), async (req: AuthRequestWithFile, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.sendStatus(401);

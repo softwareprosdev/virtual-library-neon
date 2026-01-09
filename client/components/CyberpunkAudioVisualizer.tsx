@@ -30,7 +30,7 @@ export default function CyberpunkAudioVisualizer({ stream, width = 300, height =
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       sourceRef.current = source;
-    } catch (e) {
+    } catch {
       return;
     }
 

@@ -36,9 +36,30 @@ import {
   Youtube,
   Video,
   Ghost,
-  Pin
+  Pin,
+  BookOpen,
+  Plus,
+  Heart,
+  ExternalLink,
+  Trash2,
+  PinIcon
 } from 'lucide-react';
 import { api } from '@/lib/api';
+
+interface BookPost {
+  id: string;
+  title: string;
+  description: string;
+  coverUrl?: string;
+  purchaseUrl?: string;
+  previewUrl?: string;
+  genre?: string;
+  publishedDate?: string;
+  likes: number;
+  shares: number;
+  isPinned: boolean;
+  createdAt: string;
+}
 
 interface ProfileUser {
   id: string;
@@ -127,36 +148,74 @@ export default function ProfilePage() {
   });
   const [selectedTheme, setSelectedTheme] = useState('neon');
   const [interestInput, setInterestInput] = useState('');
+  const [bookPosts, setBookPosts] = useState<BookPost[]>([]);
+  const [showBookPostDialog, setShowBookPostDialog] = useState(false);
+  const [newBookPost, setNewBookPost] = useState({
+    title: '',
+    description: '',
+    coverUrl: '',
+    purchaseUrl: '',
+    previewUrl: '',
+    genre: ''
+  });
 
   const fetchProfile = useCallback(async () => {
     try {
       const response = await api(`/users/${userId}/profile`);
-      const userData = await response.json();
-      setUser(userData);
       
-      if (userData) {
-        setEditForm({
-          displayName: userData.displayName || '',
-          bio: userData.bio || '',
-          location: userData.location || '',
-          website: userData.website || '',
-          statusMessage: userData.statusMessage || '',
-          interests: userData.interests || [],
-          socialLinks: userData.socialLinks || {},
-          isProfilePublic: userData.isProfilePublic,
-          profileLayout: userData.profileLayout || 'default'
-        });
+      if (!response.ok) {
+        console.error('Failed to fetch profile:', response.status);
+        setUser(null);
+        return;
       }
+      
+      const userData = await response.json();
+      
+      // Ensure arrays are properly initialized even if null/undefined from API
+      const safeUserData = {
+        ...userData,
+        interests: Array.isArray(userData.interests) ? userData.interests : [],
+        topFriends: Array.isArray(userData.topFriends) ? userData.topFriends : [],
+        socialLinks: userData.socialLinks || {}
+      };
+      
+      setUser(safeUserData);
+      
+      setEditForm({
+        displayName: safeUserData.displayName || '',
+        bio: safeUserData.bio || '',
+        location: safeUserData.location || '',
+        website: safeUserData.website || '',
+        statusMessage: safeUserData.statusMessage || '',
+        interests: safeUserData.interests,
+        socialLinks: safeUserData.socialLinks,
+        isProfilePublic: safeUserData.isProfilePublic ?? true,
+        profileLayout: safeUserData.profileLayout || 'default'
+      });
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      setUser(null);
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
+  const fetchBookPosts = useCallback(async () => {
+    try {
+      const response = await api(`/book-posts/user/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBookPosts(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch book posts:', error);
+    }
+  }, [userId]);
+
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+    fetchBookPosts();
+  }, [fetchProfile, fetchBookPosts]);
 
   const saveProfile = async () => {
     try {
@@ -220,6 +279,64 @@ export default function ProfilePage() {
     const url = typeof window !== 'undefined' ? window.location.href : '';
     navigator.clipboard.writeText(url);
     alert('Profile link copied to clipboard!');
+  };
+
+  const createBookPost = async () => {
+    try {
+      const response = await api('/book-posts', {
+        method: 'POST',
+        body: JSON.stringify(newBookPost)
+      });
+      if (response.ok) {
+        setShowBookPostDialog(false);
+        setNewBookPost({ title: '', description: '', coverUrl: '', purchaseUrl: '', previewUrl: '', genre: '' });
+        fetchBookPosts();
+      }
+    } catch (error) {
+      console.error('Failed to create book post:', error);
+    }
+  };
+
+  const deleteBookPost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this book post?')) return;
+    try {
+      const response = await api(`/book-posts/${postId}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchBookPosts();
+      }
+    } catch (error) {
+      console.error('Failed to delete book post:', error);
+    }
+  };
+
+  const likeBookPost = async (postId: string) => {
+    try {
+      await api(`/book-posts/${postId}/like`, { method: 'POST' });
+      fetchBookPosts();
+    } catch (error) {
+      console.error('Failed to like book post:', error);
+    }
+  };
+
+  const shareBookPost = async (post: BookPost, platform: string) => {
+    const shareUrl = `${window.location.origin}/profile/${userId}?book=${post.id}`;
+    const text = `Check out "${post.title}" by ${user?.displayName || user?.name}!`;
+    
+    await api(`/book-posts/${post.id}/share`, { method: 'POST' });
+    
+    const urls: Record<string, string> = {
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+      copy: shareUrl
+    };
+
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Link copied to clipboard!');
+    } else {
+      window.open(urls[platform], '_blank', 'width=600,height=400');
+    }
   };
 
   useEffect(() => {
@@ -386,8 +503,9 @@ export default function ProfilePage() {
         <div className="relative z-10 p-6 sm:p-8">
           <div className="max-w-6xl mx-auto">
             <Tabs defaultValue="about" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
                 <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="mybooks">My Books</TabsTrigger>
                 <TabsTrigger value="interests">Interests</TabsTrigger>
                 <TabsTrigger value="customization">Style</TabsTrigger>
                 <TabsTrigger value="friends">Friends</TabsTrigger>
@@ -471,6 +589,107 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="mybooks" className="mt-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" />
+                      My Published Books
+                    </CardTitle>
+                    {isOwnProfile && (
+                      <Button onClick={() => setShowBookPostDialog(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Book
+                      </Button>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {bookPosts.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>{isOwnProfile ? "You haven't shared any books yet" : "No books shared yet"}</p>
+                        {isOwnProfile && (
+                          <Button variant="outline" className="mt-4" onClick={() => setShowBookPostDialog(true)}>
+                            Share Your First Book
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {bookPosts.map((post) => (
+                          <div key={post.id} className="border rounded-lg overflow-hidden bg-white/5 hover:bg-white/10 transition-colors">
+                            {post.coverUrl && (
+                              <div className="aspect-[3/4] max-h-48 overflow-hidden">
+                                <img src={post.coverUrl} alt={post.title} className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="font-bold text-lg">{post.title}</h3>
+                                {post.isPinned && <PinIcon className="w-4 h-4 text-primary" />}
+                              </div>
+                              {post.genre && <Badge variant="secondary" className="mb-2">{post.genre}</Badge>}
+                              <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{post.description}</p>
+                              
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                                <span className="flex items-center gap-1">
+                                  <Heart className="w-4 h-4" /> {post.likes}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Share2 className="w-4 h-4" /> {post.shares}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {post.purchaseUrl && (
+                                  <a href={post.purchaseUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button size="sm" variant="default">
+                                      <ExternalLink className="w-3 h-3 mr-1" /> Buy
+                                    </Button>
+                                  </a>
+                                )}
+                                {post.previewUrl && (
+                                  <a href={post.previewUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button size="sm" variant="outline">
+                                      <Eye className="w-3 h-3 mr-1" /> Preview
+                                    </Button>
+                                  </a>
+                                )}
+                                <Button size="sm" variant="ghost" onClick={() => likeBookPost(post.id)}>
+                                  <Heart className="w-3 h-3" />
+                                </Button>
+                                
+                                {/* Social Share Buttons */}
+                                <div className="flex gap-1 ml-auto">
+                                  <Button size="sm" variant="ghost" onClick={() => shareBookPost(post, 'twitter')} title="Share on Twitter">
+                                    <Twitter className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => shareBookPost(post, 'facebook')} title="Share on Facebook">
+                                    <Facebook className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => shareBookPost(post, 'linkedin')} title="Share on LinkedIn">
+                                    <Linkedin className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => shareBookPost(post, 'copy')} title="Copy Link">
+                                    <Link2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                                
+                                {isOwnProfile && (
+                                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteBookPost(post.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -799,6 +1018,83 @@ export default function ProfilePage() {
                 </Button>
                 <Button onClick={saveProfile}>
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Book Post Dialog */}
+        <Dialog open={showBookPostDialog} onOpenChange={setShowBookPostDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Share Your Book
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium">Book Title *</label>
+                <Input
+                  value={newBookPost.title}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter your book title"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Description *</label>
+                <Textarea
+                  value={newBookPost.description}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Tell readers about your book..."
+                  rows={4}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Cover Image URL</label>
+                <Input
+                  value={newBookPost.coverUrl}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, coverUrl: e.target.value }))}
+                  placeholder="https://example.com/cover.jpg"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Genre</label>
+                <Input
+                  value={newBookPost.genre}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, genre: e.target.value }))}
+                  placeholder="Fiction, Non-fiction, Fantasy, etc."
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Purchase Link</label>
+                <Input
+                  value={newBookPost.purchaseUrl}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, purchaseUrl: e.target.value }))}
+                  placeholder="https://amazon.com/your-book"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Preview/Read Link</label>
+                <Input
+                  value={newBookPost.previewUrl}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, previewUrl: e.target.value }))}
+                  placeholder="https://example.com/preview"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowBookPostDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={createBookPost} disabled={!newBookPost.title || !newBookPost.description}>
+                  Share Book
                 </Button>
               </div>
             </div>

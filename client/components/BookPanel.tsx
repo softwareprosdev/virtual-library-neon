@@ -1,10 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent } from './ui/card';
+import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
 interface Book {

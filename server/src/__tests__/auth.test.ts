@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import request from 'supertest';
 import express, { Express } from 'express';
 import authRoutes from '../routes/auth';

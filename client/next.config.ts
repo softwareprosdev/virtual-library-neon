@@ -44,7 +44,17 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: [
+      'lucide-react', 
+      '@radix-ui/react-icons',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tooltip',
+      '@livekit/components-react',
+      'react-pdf'
+    ],
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',

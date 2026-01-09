@@ -47,7 +47,7 @@ export async function searchBooks(
       totalItems,
       hasMore: startIndex + books.length < totalItems
     };
-  } catch (error) {
+  } catch {
     return { books: [], totalItems: 0, hasMore: false };
   }
 }

@@ -76,7 +76,7 @@ function CustomPublisher({
         vid.muted = true;
         vid.play().catch(() => {});
         videoRef.current = vid;
-      } catch (e) { /* Media acquisition failed */ }
+      } catch { /* Media acquisition failed */ }
     };
     acquire();
     return () => { stream?.getTracks().forEach(t => t.stop()); };
@@ -116,7 +116,7 @@ function CustomPublisher({
            const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Camera);
            if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
            await localParticipant.publishTrack(trackToPublish, { name: 'camera', source: Track.Source.Camera });
-          } catch(e) { /* Video publish failed */ }
+          } catch { /* Video publish failed */ }
       }
     };
 
@@ -151,7 +151,7 @@ function CustomPublisher({
                 const existing = localParticipant.getTrackPublications().find(p => p.source === Track.Source.Microphone);
                 if (existing?.track) await localParticipant.unpublishTrack(existing.track as LocalTrack);
                 await localParticipant.publishTrack(trackToPublish, { name: 'microphone', source: Track.Source.Microphone });
-            } catch(e) { /* Audio publish failed */ }
+            } catch { /* Audio publish failed */ }
         }
     };
 
@@ -235,7 +235,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         const resp = await api(`/livekit/token?roomId=${roomId}`);
         const data = await resp.json();
         setToken(data.token);
-      } catch (e) { /* Token fetch failed */ }
+      } catch { /* Token fetch failed */ }
     })();
   }, [roomId]);
 
@@ -262,7 +262,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         } else {
           localStream.getTracks().forEach(t => t.stop());
         }
-      } catch (e) { /* Media access failed */ }
+      } catch { /* Media access failed */ }
     };
     startPreview();
     return () => {

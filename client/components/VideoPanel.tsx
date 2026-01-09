@@ -30,11 +30,11 @@ export default function VideoPanel({ roomId, socket }: VideoPanelProps) {
           userVideo.current.srcObject = currentStream;
         }
 
-        socket.on('userJoined', (data: { userId: string }) => {
+        socket.on('userJoined', () => {
           // User joined
         });
 
-        socket.on('signal', (data: { userId: string, signal: unknown }) => {
+        socket.on('signal', () => {
           // Handle incoming WebRTC signal
         });
       } catch (err: unknown) {

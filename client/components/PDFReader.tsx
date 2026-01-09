@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, forwardRef, lazy, Suspense } from 'react';
+import { useState, forwardRef, lazy, Suspense, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Lazy load heavy PDF components
 const HTMLFlipBook = lazy(() => import('react-pageflip'));
 const PDFDocument = lazy(() => import('react-pdf').then(module => ({ default: module.Document })));
 const PDFPage = lazy(() => import('react-pdf').then(module => ({ default: module.Page })));
-const pdfjs = await import('react-pdf').then(module => module.pdfjs);
 
-// Configure PDF worker to load from CDN to avoid Node.js canvas dependency
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-}
+// Configure PDF worker - will be set up in useEffect to avoid SSR issues
+let workerConfigured = false;
 
 interface PDFReaderProps {
   url: string;
@@ -53,6 +50,16 @@ export default function PDFReader({ url }: PDFReaderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Configure PDF worker on mount
+  useEffect(() => {
+    if (!workerConfigured && typeof window !== 'undefined') {
+      import('react-pdf').then(({ pdfjs }) => {
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+        workerConfigured = true;
+      });
+    }
+  }, []);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);

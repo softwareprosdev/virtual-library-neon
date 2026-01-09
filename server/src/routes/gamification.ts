@@ -82,7 +82,7 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
     });
 
     // Add titles
-    const leaderboard = topUsers.map(u => ({
+    const leaderboard = topUsers.map((u) => ({
       ...u,
       title: LEVELS.find(l => l.level === u.level)?.title || "Novice"
     }));

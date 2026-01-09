@@ -14,6 +14,8 @@ import aiRoutes from './routes/ai';
 import gamificationRoutes from './routes/gamification';
 import readingListRoutes from './routes/readingList';
 import userRoutes from './routes/users';
+import adminRoutes from './routes/admin';
+import bookPostsRoutes from './routes/bookPosts';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -120,6 +122,10 @@ app.use('/api/users', userRoutes);
 app.use('/users', userRoutes);
 app.use('/api/profiles', userRoutes); // For compatibility with some frontend calls
 app.use('/profiles', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
+app.use('/api/book-posts', bookPostsRoutes);
+app.use('/book-posts', bookPostsRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

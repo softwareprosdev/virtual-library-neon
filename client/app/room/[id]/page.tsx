@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { connectSocket, getSocket } from '../../../lib/socket';
-import { api } from '../../../lib/api';
 import { getToken } from '../../../lib/auth';
 import BookPanel from '../../../components/BookPanel';
 import nextDynamic from 'next/dynamic';

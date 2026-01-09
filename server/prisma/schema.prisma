@@ -19,12 +19,23 @@ model User {
   createdAt              DateTime  @default(now())  
   updatedAt              DateTime  @updatedAt
 
+  // Admin & Moderation
+  role        UserRole  @default(USER)
+  isBanned    Boolean   @default(false)
+  banReason   String?
+  bannedAt    DateTime?
+  bannedBy    String?
+  warningCount Int      @default(0)
+  lastLoginAt DateTime?
+  lastLoginIp String?
+
   ownedRooms   Room[]   @relation("RoomHost")
   messages     Message[]
   books        Book[]
   participants Participant[]
   moderators   Moderator[]
   interactions Interaction[]
+  bookPosts    BookPost[]
 
   // Gamification & Social
   points      Int       @default(0)
@@ -33,11 +44,13 @@ model User {
   followedBy  Follows[] @relation("following")
   following   Follows[] @relation("follower")
   activity    Activity[]
-    readingList ReadingList[]
-    profileComments ProfileComment[]
-    profileVisits    ProfileVisit[] @relation("ProfileVisits")
-    receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
+  readingList ReadingList[]
+  profileComments ProfileComment[]
+  profileVisits    ProfileVisit[] @relation("ProfileVisits")
+  receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
   sentProfileComments ProfileComment[] @relation("CommentAuthor")
+  reports     Report[]  @relation("ReportedUser")
+  reportsMade Report[]  @relation("ReportingUser")
 
   // BookFriendSpace-style Profile Customization
   bio              String?   @db.Text
@@ -88,6 +101,12 @@ enum ReadingStatus {
   READING
   FINISHED
   ABANDONED
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
 }
 
 model Follows {
@@ -257,4 +276,73 @@ model Message {
   createdAt DateTime @default(now())
   room      Room     @relation(fields: [roomId], references: [id])
   sender    User     @relation(fields: [senderId], references: [id])
+}
+
+// Book Posts - Users can share books they've written
+model BookPost {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String   @db.Text
+  coverUrl    String?
+  purchaseUrl String?  // Link to buy the book
+  previewUrl  String?  // Link to preview/read
+  genre       String?
+  publishedDate DateTime?
+  likes       Int      @default(0)
+  shares      Int      @default(0)
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// User Reports for moderation
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reporter    User         @relation("ReportingUser", fields: [reporterId], references: [id])
+  reportedId  String
+  reported    User         @relation("ReportedUser", fields: [reportedId], references: [id])
+  reason      String
+  details     String?      @db.Text
+  status      ReportStatus @default(PENDING)
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  resolution  String?
+  createdAt   DateTime     @default(now())
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+// Admin Activity Log
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String   // BAN_USER, UNBAN_USER, DELETE_POST, etc.
+  targetId  String?  // ID of affected user/content
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+// Site Analytics
+model Analytics {
+  id            String   @id @default(uuid())
+  date          DateTime @default(now()) @db.Date
+  totalUsers    Int      @default(0)
+  activeUsers   Int      @default(0)
+  newUsers      Int      @default(0)
+  totalRooms    Int      @default(0)
+  activeRooms   Int      @default(0)
+  totalMessages Int      @default(0)
+  totalBooks    Int      @default(0)
+  pageViews     Int      @default(0)
+  
+  @@unique([date])
 }

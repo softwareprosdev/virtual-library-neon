@@ -12,9 +12,10 @@ if (!process.env.JWT_SECRET) {
 // Set NODE_ENV to test
 process.env.NODE_ENV = 'test';
 
+// Declare jest global for TypeScript
+declare const jest: {
+  setTimeout: (timeout: number) => void;
+};
+
 // Global test timeout
 jest.setTimeout(10000);
-
-// Mock console errors during tests to keep output clean
-// (comment out if you need to debug)
-// global.console.error = jest.fn();

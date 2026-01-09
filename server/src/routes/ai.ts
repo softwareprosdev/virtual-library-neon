@@ -30,7 +30,7 @@ router.post('/recap/:roomId', authenticateToken, async (req: AuthRequest, res: R
     // 2. Enhanced AI Processing
     // In a real scenario, we'd send transcripts to Gemini/OpenAI here.
     const messageCount = room.messages.length;
-    const participantNames = [...new Set(room.messages.map(m => m.sender.name))].slice(0, 3);
+    const participantNames = [...new Set(room.messages.map((m) => m.sender.name).filter((name): name is string => name !== null))].slice(0, 3);
     const duration = room.transcripts.length > 0 ? `${room.transcripts.length} transcript segments` : 'unknown duration';
     
     let summary = `This session explored "${room.name}"`;
@@ -90,8 +90,8 @@ router.get('/recommendations', authenticateToken, async (req: AuthRequest, res: 
     });
 
     // Analyze preferences
-    const genres = [...new Set(userRooms.map(r => r.genre?.name).filter(Boolean))];
-    const authors = [...new Set(userBooks.map(b => b.author))];
+    const genres = [...new Set(userRooms.map((r: { genre?: { name: string } | null }) => r.genre?.name).filter(Boolean))];
+    const authors = [...new Set(userBooks.map((b: { author: string | null }) => b.author))];
 
     // Simulated AI recommendations based on user history
     const recommendations = [
@@ -159,11 +159,11 @@ router.post('/summarize/:roomId', authenticateToken, async (req: AuthRequest, re
 
     // Generate intelligent summary
     const messages = room.messages.reverse();
-    const participantCount = new Set(messages.map(m => m.sender.name)).size;
+    const participantCount = new Set(messages.map((m) => m.sender.name).filter((name): name is string => name !== null)).size;
     const messageCount = messages.length;
     
     // Extract key themes (simplified - in production would use NLP)
-    const allText = messages.map(m => m.text).join(' ').toLowerCase();
+    const allText = messages.map((m: { text: string }) => m.text).join(' ').toLowerCase();
     const themes = [];
     if (allText.includes('character')) themes.push('Character development');
     if (allText.includes('plot')) themes.push('Plot analysis');

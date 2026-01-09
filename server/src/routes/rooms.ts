@@ -46,7 +46,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res: Response): Prom
       take: 3
     });
 
-    const interestedGenreIds = topInteractions.map(i => i.genreId as string);
+    const interestedGenreIds = topInteractions.map((i: { genreId: string | null }) => i.genreId as string);
 
     // 2. Fetch rooms prioritizing these genres
     const rooms = await prisma.room.findMany({
