@@ -217,7 +217,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         details: { email, userId: user.id }
       });
       
-      return res.status(403).json({ 
+      res.status(403).json({
         message: "Please verify your email address before logging in",
         requiresVerification: true,
         email: user.email

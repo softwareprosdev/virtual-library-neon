@@ -94,7 +94,7 @@ router.post('/request', authenticateToken, async (req, res) => {
       const notificationService = getNotificationService();
       notificationService.sendFriendRequestNotification(
         senderId,
-        sender.displayName || sender.name,
+        req.user!.displayName || req.user!.name,
         receiverId,
         message
       );

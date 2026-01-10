@@ -73,18 +73,7 @@ export const createAdvancedRateLimit = (options: {
         warning: current?.warnings || 0
       });
     },
-    onLimitReached: (req: Request, res: Response) => {
-      console.warn(`[SECURITY] Rate limit reached: ${req.ip} - ${req.method} ${req.originalUrl}`);
-    },
-    onHeadersSent: (req: Request, res: Response) => {
-      // Clean up old entries
-      const now = Date.now();
-      requestCounts.forEach((value, key) => {
-        if (now > value.resetTime) {
-          requestCounts.delete(key);
-        }
-      });
-    }
+    // rate limiter uses common handler; onLimitReached and onHeadersSent removed to align with library API
   });
 };
 

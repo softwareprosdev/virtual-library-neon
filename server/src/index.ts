@@ -118,12 +118,7 @@ const limiter = createAdvancedRateLimit({
 });
 
 // Strict rate limit for auth routes
-const authLimiter = createAdvancedRateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 20,
-  blockDurationMinutes: 60,
-  skipSuccessfulRequests: false
-});
+const authLimiter = limiter;
 
 // Very strict rate limit for sensitive operations
 const strictLimiter = createAdvancedRateLimit({
@@ -194,17 +189,9 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
   next();
 });
 
-// Rate limit for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 auth requests per windowMs
-  message: { message: 'Too many authentication attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
+// Rate limiter for auth routes uses unified limiter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-app.use(limiter as any);
+app.use(authLimiter as any);
 
 // Request validation middleware
 app.use(validateRequest({

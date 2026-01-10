@@ -1,5 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+
+// Ambient declaration for notification service
+declare const getNotificationService: any;
 import { createClient } from 'redis';
 import jwt from 'jsonwebtoken';
 import prisma from './db';

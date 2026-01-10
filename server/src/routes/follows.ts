@@ -79,7 +79,7 @@ router.post('/follow', authenticateToken, async (req, res) => {
       const notificationService = getNotificationService();
       notificationService.sendFollowNotification(
         followerId,
-        follower.displayName || follower.name,
+        req.user!.displayName || req.user!.name,
         followingId
       );
     } catch (error) {

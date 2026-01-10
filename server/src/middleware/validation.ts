@@ -198,7 +198,7 @@ export const validateRequest = (validationRules: { [key: string]: SanitizationOp
 };
 
 // File upload validation
-export const validateFileUpload = (file: Express.Multer.File): { valid: boolean; errors: string[] } => {
+export const validateFileUpload = (file: Multer.File): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
