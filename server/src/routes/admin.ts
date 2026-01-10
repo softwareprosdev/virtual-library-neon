@@ -45,7 +45,7 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: AuthRequest, r
       prisma.room.count({ where: { isLive: true } }),
       prisma.message.count(),
       prisma.book.count(),
-      prisma.report.count({ where: { status: 'PENDING' } }),
+      prisma.report.count({ where: { status: 'PENDING' as any } }),
       prisma.user.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -278,7 +278,7 @@ router.get('/reports', authenticateToken, requireAdmin, async (req: AuthRequest,
     const status = req.query.status as string || 'PENDING';
 
     const reports = await prisma.report.findMany({
-      where: { status: status as 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' },
+      where: { status: status as any },
       orderBy: { createdAt: 'desc' },
       include: {
         reporter: { select: { id: true, name: true, email: true } },

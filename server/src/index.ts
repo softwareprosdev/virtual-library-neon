@@ -89,6 +89,35 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Security middleware to prevent path traversal
+app.use((req: Request, res: Response, next: express.NextFunction) => {
+  const url = req.originalUrl || req.url;
+  
+  // Block path traversal attempts
+  if (url.includes('..') || url.includes('%2E%2E') || url.includes('%2e%2e')) {
+    console.warn(`[SECURITY] Path traversal attempt blocked: ${req.method} ${url} from IP: ${req.ip}`);
+    res.status(400).json({ message: 'Invalid request' });
+    return;
+  }
+  
+  // Block common attack patterns
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /eval\(/i,
+    /expression\(/i
+  ];
+  
+  if (dangerousPatterns.some(pattern => pattern.test(url))) {
+    console.warn(`[SECURITY] XSS attempt blocked: ${req.method} ${url} from IP: ${req.ip}`);
+    res.status(400).json({ message: 'Invalid request' });
+    return;
+  }
+  
+  next();
+});
+
 // Rate limit for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
