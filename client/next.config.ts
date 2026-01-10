@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  reactCompiler: true,
-  turbopack: {},
+  // reactCompiler: true, // Disabled for now to prevent Server Action issues
+  // turbopack: {}, // Disabled for compatibility
   compress: true,
   poweredByHeader: false,
   images: {
@@ -50,23 +50,23 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  experimental: {
-    optimizeCss: true,
-    optimizePackageImports: [
-      'lucide-react', 
-      '@radix-ui/react-icons',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tooltip',
-      '@livekit/components-react',
-      'react-pdf'
-    ],
-  },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
+  // experimental: {
+  //   optimizeCss: true, // Disabled to prevent build issues
+  //   optimizePackageImports: [ // Disabled to prevent build issues
+  //     'lucide-react', 
+  //     '@radix-ui/react-icons',
+  //     '@radix-ui/react-avatar',
+  //     '@radix-ui/react-dialog',
+  //     '@radix-ui/react-tabs',
+  //     '@radix-ui/react-select',
+  //     '@radix-ui/react-tooltip',
+  //     '@livekit/components-react',
+  //     'react-pdf'
+  //   ],
+  // },
+  // compiler: {
+  //   removeConsole: process.env.NODE_ENV === 'production', // Disabled to prevent build issues
+  // },
   headers: async () => [
     {
       source: '/(.*)',
