@@ -190,7 +190,6 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
 });
 
 // Rate limiter for auth routes uses unified limiter
-const authLimiter = limiter;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(authLimiter as any);

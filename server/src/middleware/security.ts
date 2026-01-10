@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request, Response } from 'express';
 
 // Store blocked IPs and their unblock time
@@ -48,7 +48,7 @@ export const createAdvancedRateLimit = (options: {
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: options.skipSuccessfulRequests || false,
-    keyGenerator: (req) => req.ip || req.connection.remoteAddress || 'unknown',
+    keyGenerator: (req) => ipKeyGenerator(req.ip || req.connection.remoteAddress || 'unknown'),
     handler: (req: Request, res: Response) => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
       const current = requestCounts.get(ip);
