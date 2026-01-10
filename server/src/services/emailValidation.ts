@@ -1,4 +1,4 @@
-import hunter from 'hunter-api-node-verifier';
+import hunter from 'hunter.io';
 import axios from 'axios';
 
 class EmailValidationService {
