@@ -8,6 +8,7 @@ import { ipBlockMiddleware, createAdvancedRateLimit, detectSuspiciousActivity } 
 import { validateRequest } from './middleware/validation';
 import { csrfProtection, provideCSRFToken, csrfRateLimit } from './middleware/csrf';
 import { securityLogger, detectPotentialDoS, detectDataExfiltration } from './middleware/monitoring';
+import { blockExternalRequests, protectPasswordData, blockSystemPaths } from './middleware/securityEnhanced';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import bookRoutes from './routes/books';
@@ -131,7 +132,9 @@ const strictLimiter = createAdvancedRateLimit({
   blockDurationMinutes: 120
 });
 
-// Security monitoring and logging
+// Enhanced security middleware
+app.use(blockSystemPaths);
+app.use(blockExternalRequests);
 app.use(securityLogger);
 app.use(detectPotentialDoS);
 app.use(detectDataExfiltration);
@@ -220,8 +223,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes with enhanced security
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-app.use('/api/auth', authLimiter as any, authRoutes);
-app.use('/auth', authLimiter as any, authRoutes); // Fallback for old clients
+app.use('/api/auth', protectPasswordData as any, authLimiter as any, authRoutes);
+app.use('/auth', protectPasswordData as any, authLimiter as any, authRoutes); // Fallback for old clients
 app.use('/api/admin', strictLimiter as any, adminRoutes);
 app.use('/admin', strictLimiter as any, adminRoutes);
 app.use('/api/rooms', roomRoutes);

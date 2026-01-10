@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { Mail, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -19,7 +19,7 @@ export default function VerifyEmailPage() {
   const [isResending, setIsResending] = useState(false);
 
   // Get pending verification info from localStorage
-  useState(() => {
+  React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const pending = localStorage.getItem('pendingVerification');
       if (pending) {
@@ -29,7 +29,7 @@ export default function VerifyEmailPage() {
         router.push('/');
       }
     }
-  });
+  }, [router]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
