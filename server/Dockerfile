@@ -6,7 +6,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies including dev deps for build (TypeScript)
-RUN npm ci
+RUN npm install
 
 COPY . .
 RUN npx prisma generate
