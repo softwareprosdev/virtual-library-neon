@@ -191,10 +191,10 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
 
 // Rate limiter for auth routes uses unified limiter
 
+app.use(express.json({ limit: '10mb' }));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(authLimiter as any);
-
-app.use(express.json({ limit: '10mb' }));
 
 // Request validation middleware (must be after body parsing)
 app.use(validateRequest({
