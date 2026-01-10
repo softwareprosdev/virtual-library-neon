@@ -38,6 +38,30 @@ export default function AuthPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
+      // Handle registration with email verification required
+      if (!isLogin && data.needsVerification) {
+        // Store user info temporarily for verification page
+        localStorage.setItem('pendingVerification', JSON.stringify({
+          email: data.user.email,
+          name: data.user.name,
+          userId: data.user.id
+        }));
+        
+        router.push('/verify-email');
+        return;
+      }
+
+      // Handle login requiring verification
+      if (isLogin && data.requiresVerification) {
+        localStorage.setItem('pendingVerification', JSON.stringify({
+          email: data.email,
+          needsVerification: true
+        }));
+        
+        router.push('/verify-email');
+        return;
+      }
+
       setToken(data.token);
       if (data.user) {
         setUser(data.user);

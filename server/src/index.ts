@@ -2,9 +2,12 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { ipBlockMiddleware, createAdvancedRateLimit, detectSuspiciousActivity } from './middleware/security';
+import { validateRequest } from './middleware/validation';
+import { csrfProtection, provideCSRFToken, csrfRateLimit } from './middleware/csrf';
+import { securityLogger, detectPotentialDoS, detectDataExfiltration } from './middleware/monitoring';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import bookRoutes from './routes/books';
@@ -74,28 +77,86 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Security Middleware
+// Security Middleware with advanced headers
 app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'", "https://cdn.livekit.io", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      mediaSrc: ["'self'", "blob:", "https://cdn.livekit.io"],
+      connectSrc: ["'self'", "wss:", "https:", "ws:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permittedCrossDomainPolicies: false,
+  ieNoOpen: true,
+  xssFilter: true
 }));
 
-// Rate Limiting
-const limiter = rateLimit({
+// Advanced Rate Limiting with IP blocking
+const limiter = createAdvancedRateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: { message: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
+  maxRequests: 100,
+  blockDurationMinutes: 30
 });
 
-// Security middleware to prevent path traversal
+// Strict rate limit for auth routes
+const authLimiter = createAdvancedRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 20,
+  blockDurationMinutes: 60,
+  skipSuccessfulRequests: false
+});
+
+// Very strict rate limit for sensitive operations
+const strictLimiter = createAdvancedRateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 5,
+  blockDurationMinutes: 120
+});
+
+// Security monitoring and logging
+app.use(securityLogger);
+app.use(detectPotentialDoS);
+app.use(detectDataExfiltration);
+
+// IP blocking middleware
+app.use(ipBlockMiddleware);
+
+// CSRF protection for state-changing requests
+app.use(csrfRateLimit);
+app.use(provideCSRFToken);
+app.use(csrfProtection);
+
+// Enhanced security middleware with bot detection
 app.use((req: Request, res: Response, next: express.NextFunction) => {
   const url = req.originalUrl || req.url;
+  const suspicious = detectSuspiciousActivity(req);
+  
+  // Log suspicious activity
+  if (suspicious.isBot || suspicious.hasNoUserAgent || suspicious.isSuspiciousUserAgent) {
+    console.warn(`[SECURITY] Suspicious request detected: ${req.method} ${url} from IP: ${suspicious.ip}, UA: ${suspicious.userAgent}`);
+  }
   
   // Block path traversal attempts
   if (url.includes('..') || url.includes('%2E%2E') || url.includes('%2e%2e')) {
-    console.warn(`[SECURITY] Path traversal attempt blocked: ${req.method} ${url} from IP: ${req.ip}`);
+    console.warn(`[SECURITY] Path traversal attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
@@ -106,14 +167,26 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
     /javascript:/i,
     /on\w+\s*=/i,
     /eval\(/i,
-    /expression\(/i
+    /expression\(/i,
+    /union\s+select/i,
+    /drop\s+table/i,
+    /insert\s+into/i,
+    /delete\s+from/i,
+    /exec\s*\(/i
   ];
   
   if (dangerousPatterns.some(pattern => pattern.test(url))) {
-    console.warn(`[SECURITY] XSS attempt blocked: ${req.method} ${url} from IP: ${req.ip}`);
+    console.warn(`[SECURITY] Attack attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
+  
+  // Add security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   
   next();
 });
@@ -129,15 +202,28 @@ const authLimiter = rateLimit({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(limiter as any);
+
+// Request validation middleware
+app.use(validateRequest({
+  // Define validation rules for common fields
+  email: { maxLength: 254, allowEmpty: false, customPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+  name: { maxLength: 100, allowEmpty: false },
+  title: { maxLength: 200, allowEmpty: false },
+  description: { maxLength: 1000, allowHTML: true },
+  message: { maxLength: 2000, allowHTML: true }
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // Serve Static Uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
+// Routes with enhanced security
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use('/api/auth', authLimiter as any, authRoutes);
 app.use('/auth', authLimiter as any, authRoutes); // Fallback for old clients
+app.use('/api/admin', strictLimiter as any, adminRoutes);
+app.use('/admin', strictLimiter as any, adminRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/rooms', roomRoutes);
 app.use('/api/books', bookRoutes);

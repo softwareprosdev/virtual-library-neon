@@ -6,6 +6,13 @@ import rateLimit from 'express-rate-limit';
 import { Resend } from 'resend';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
+import { logSecurityEvent, trackFailedAuth, resetFailedAuth } from '../middleware/monitoring';
+import { validateEmail, validatePasswordStrength } from '../middleware/validation';
+import { 
+  enhancedSignup, 
+  verifyEmailWithCode, 
+  resendVerificationCode 
+} from '../services/emailVerification';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -20,9 +27,24 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Register
+// Enhanced Register with email verification code
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.post('/register', registerLimiter as any, async (req: Request, res: Response): Promise<void> => {
+  await enhancedSignup(req, res);
+});
+
+// Verify email with code
+router.post('/verify-email', async (req: Request, res: Response): Promise<void> => {
+  await verifyEmailWithCode(req, res);
+});
+
+// Resend verification code
+router.post('/resend-verification', async (req: Request, res: Response): Promise<void> => {
+  await resendVerificationCode(req, res);
+});
+
+// Legacy register (for backward compatibility)
+router.post('/register-legacy', registerLimiter as any, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
 
@@ -31,16 +53,37 @@ router.post('/register', registerLimiter as any, async (req: Request, res: Respo
       return;
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Enhanced email validation
+    if (!validateEmail(email)) {
+      logSecurityEvent({
+        type: 'INVALID_EMAIL_REGISTRATION',
+        severity: 'MEDIUM',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        details: { email }
+      });
       res.status(400).json({ message: "Invalid email format" });
       return;
     }
 
-    // Password strength validation
-    if (password.length < 8) {
-      res.status(400).json({ message: "Password must be at least 8 characters" });
+    // Enhanced password strength validation
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.valid) {
+      logSecurityEvent({
+        type: 'WEAK_PASSWORD_REGISTRATION',
+        severity: 'MEDIUM',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        details: { email, errors: passwordValidation.errors }
+      });
+      res.status(400).json({ 
+        message: "Password does not meet security requirements",
+        errors: passwordValidation.errors
+      });
       return;
     }
 
@@ -132,15 +175,57 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      trackFailedAuth(email, req.ip || 'unknown');
+      logSecurityEvent({
+        type: 'LOGIN_FAILED_USER_NOT_FOUND',
+        severity: 'MEDIUM',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        details: { email }
+      });
       res.status(400).json({ message: "Invalid credentials" });
       return;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      trackFailedAuth(email, req.ip || 'unknown');
+      logSecurityEvent({
+        type: 'LOGIN_FAILED_INVALID_PASSWORD',
+        severity: 'MEDIUM',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        details: { email, userId: user.id }
+      });
       res.status(400).json({ message: "Invalid credentials" });
       return;
     }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      logSecurityEvent({
+        type: 'LOGIN_UNVERIFIED_EMAIL',
+        severity: 'MEDIUM',
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+        method: req.method,
+        details: { email, userId: user.id }
+      });
+      
+      return res.status(403).json({ 
+        message: "Please verify your email address before logging in",
+        requiresVerification: true,
+        email: user.email
+      });
+    }
+
+    // Reset failed auth attempts on successful login
+    resetFailedAuth(email, req.ip || 'unknown');
 
     const loginExpiresIn = process.env.JWT_EXPIRES_IN || '15m';
     const token = jwt.sign(
@@ -149,7 +234,25 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       { expiresIn: loginExpiresIn as jwt.SignOptions['expiresIn'] }
     );
 
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    logSecurityEvent({
+      type: 'LOGIN_SUCCESS',
+      severity: 'LOW',
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      path: req.path,
+      method: req.method,
+      details: { userId: user.id, email }
+    });
+
+    res.json({ 
+      token, 
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email,
+        emailVerified: user.emailVerified
+      } 
+    });
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ message: "Server error" });
