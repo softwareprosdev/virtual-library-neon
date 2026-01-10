@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -33,7 +34,7 @@ model User {
   lastLoginIp String?
 
   ownedRooms   Room[]   @relation("RoomHost")
-  messages     Message[]
+  messages     Message[] @relation("MessageSender")
   receivedMessages Message[] @relation("MessageReceiver")
   books        Book[]
   participants Participant[]

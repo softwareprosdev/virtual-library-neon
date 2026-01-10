@@ -180,9 +180,11 @@ export const validateRequest = (validationRules: { [key: string]: SanitizationOp
       }
       
       // Apply specific validation rules
-      for (const [field, options] of Object.entries(validationRules)) {
-        if (req.body[field] !== undefined) {
-          req.body[field] = sanitizeInput(req.body[field], options);
+      if (req.body) {
+        for (const [field, options] of Object.entries(validationRules)) {
+          if (req.body[field] !== undefined) {
+            req.body[field] = sanitizeInput(req.body[field], options);
+          }
         }
       }
       

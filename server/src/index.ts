@@ -194,19 +194,12 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
   next();
 });
 
-// Rate limit for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 auth requests per windowMs
-  message: { message: 'Too many authentication attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(limiter as any);
 
 // Request validation middleware
+app.use(express.json({ limit: '10mb' }));
+
 app.use(validateRequest({
   // Define validation rules for common fields
   email: { maxLength: 254, allowEmpty: false, customPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
@@ -215,8 +208,6 @@ app.use(validateRequest({
   description: { maxLength: 1000, allowHTML: true },
   message: { maxLength: 2000, allowHTML: true }
 }));
-
-app.use(express.json({ limit: '10mb' }));
 
 // Serve Static Uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
