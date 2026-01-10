@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import prisma from './db';
 import { getRoomRole, Role } from './permissions';
 import { JWTPayload } from './middlewares/auth';
-import { initializeNotifications } from './services/notificationService';
+import { initializeNotifications, getNotificationService } from './services/notificationService';
 
 interface AuthSocket extends Socket {
   user?: JWTPayload;

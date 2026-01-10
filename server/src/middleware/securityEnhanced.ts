@@ -4,7 +4,7 @@ import { logSecurityEvent } from './monitoring';
 // Block any external HTTP requests that might exfiltrate data
 export const blockExternalRequests = (req: Request, res: Response, next: NextFunction) => {
   const userAgent = req.get('User-Agent') || '';
-  const ip = req.ip || 'unknown';
+  const ip = (req.ip as string) || 'unknown';
   
   // Block suspicious user agents that might be scrapers or automated tools
   const suspiciousAgents = [
@@ -73,7 +73,7 @@ export const protectPasswordData = (req: Request, res: Response, next: NextFunct
     logSecurityEvent({
       type: 'PASSWORD_SUBMISSION',
       severity: 'LOW',
-      ip: req.ip,
+      ip: (req.ip as string),
       userAgent: req.get('User-Agent'),
       path: req.path,
       method: req.method,
@@ -107,7 +107,7 @@ export const blockSystemPaths = (req: Request, res: Response, next: NextFunction
     logSecurityEvent({
       type: 'SYSTEM_PATH_ACCESS_ATTEMPT',
       severity: 'CRITICAL',
-      ip: req.ip,
+      ip: (req.ip as string),
       userAgent: req.get('User-Agent'),
       path: req.path,
       method: req.method,
