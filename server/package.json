@@ -42,6 +42,7 @@
     "redis": "^5.10.0",
     "resend": "^6.6.0",
     "socket.io": "^4.8.3",
+    "axios": "^1.7.9",
     
     
     "isomorphic-dompurify": "^2.16.0",
@@ -59,6 +60,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.16.0",
     "@types/supertest": "^6.0.3",
+    "@types/validator": "^13.12.2",
     "jest": "^30.2.0",
     "prisma": "^7.2.0",
     "supertest": "^7.1.4",
