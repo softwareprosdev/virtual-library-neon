@@ -8,6 +8,9 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { api } from '../../lib/api';
 import Image from 'next/image';
+import BookImage from '../../components/ui/book-image';
+import BookCard from '../../components/ui/book-card';
+import { GoogleBook } from '../../lib/google-books';
 
 interface LibraryBook {
   id: string;
@@ -57,6 +60,68 @@ interface OpenLibraryBook {
 }
 
 type SearchResult = LibraryBook | GoogleBook | GutenbergBook | OpenLibraryBook;
+
+// Type guard functions
+const isGoogleBook = (item: SearchResult): item is GoogleBook => {
+  return 'volumeInfo' in item;
+};
+
+const isGutenbergBook = (item: SearchResult): item is GutenbergBook => {
+  return 'source' in item && item.source === 'gutenberg';
+};
+
+const isOpenLibraryBook = (item: SearchResult): item is OpenLibraryBook => {
+  return 'source' in item && item.source === 'openlibrary';
+};
+
+const isLibraryBook = (item: SearchResult): item is LibraryBook => {
+  return 'fileUrl' in item;
+};
+
+// Helper functions to map different book types to GoogleBook interface
+const mapGutenbergToGoogleBook = (book: GutenbergBook): GoogleBook => ({
+  id: `gutenberg-${book.id}`,
+  volumeInfo: {
+    title: book.title,
+    authors: book.authors,
+    description: `Free eBook from Project Gutenberg. ${book.downloadCount ? `${book.downloadCount.toLocaleString()} downloads.` : ''}`,
+    imageLinks: book.coverImage ? { thumbnail: book.coverImage } : undefined,
+    publishedDate: undefined, // Gutenberg books are typically classics
+    categories: ['Classics', 'Public Domain'],
+  }
+});
+
+const mapOpenLibraryToGoogleBook = (book: OpenLibraryBook): GoogleBook => ({
+  id: `openlibrary-${book.id}`,
+  volumeInfo: {
+    title: book.title,
+    authors: book.authors,
+    description: `Free eBook from Open Library. ${book.hasFulltext ? 'Full text available.' : ''}`,
+    imageLinks: book.coverImage ? { thumbnail: book.coverImage } : undefined,
+    publishedDate: book.publishYear ? book.publishYear.toString() : undefined,
+    categories: ['Free Books', 'Open Library'],
+  }
+});
+
+const mapLibraryToGoogleBook = (book: LibraryBook): GoogleBook => ({
+  id: `library-${book.id}`,
+  volumeInfo: {
+    title: book.title,
+    authors: [book.author],
+    description: `Personal library upload. File type: ${book.fileType}`,
+    imageLinks: undefined, // No cover image for library uploads
+    publishedDate: new Date(book.createdAt).getFullYear().toString(),
+    categories: ['Personal Library'],
+  }
+});
+
+const mapToGoogleBook = (item: SearchResult): GoogleBook => {
+  if (isGoogleBook(item)) return item;
+  if (isGutenbergBook(item)) return mapGutenbergToGoogleBook(item);
+  if (isOpenLibraryBook(item)) return mapOpenLibraryToGoogleBook(item);
+  if (isLibraryBook(item)) return mapLibraryToGoogleBook(item);
+  throw new Error('Unknown book type');
+};
 
 const POPULAR_CATEGORIES = [
   { id: 'fiction', name: 'Fiction', icon: '📖' },
@@ -343,6 +408,25 @@ export default function BrowsePage() {
     setSearchTab('gutenberg');
   };
 
+  const handleBookClick = (item: SearchResult) => {
+    // Handle original click behavior based on book type
+    if (isGoogleBook(item)) {
+      if (item.volumeInfo.previewLink) {
+        window.open(item.volumeInfo.previewLink, '_blank');
+      } else if (item.volumeInfo.infoLink) {
+        window.open(item.volumeInfo.infoLink, '_blank');
+      }
+    } else if (isGutenbergBook(item)) {
+      if (item.formats['text/html']) {
+        window.open(item.formats['text/html'], '_blank');
+      }
+    } else if (isOpenLibraryBook(item)) {
+      window.open(`https://openlibrary.org${item.openLibraryId}`, '_blank');
+    } else if (isLibraryBook(item)) {
+      window.open(item.fileUrl, '_blank');
+    }
+  };
+
   return (
     <MainLayout>
       <div className="mb-12">
@@ -425,213 +509,19 @@ export default function BrowsePage() {
                     {searchResults.length}+ results found
                   </h3>
                 </div>
-                <div className="grid gap-4">
-                  {searchResults.map((item) => {
-                    // Google Books
-                    if (isGoogleBook(item)) {
-                      return (
-                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
-                          <div className="flex gap-4">
-                            {item.volumeInfo.imageLinks?.thumbnail ? (
-                              <Image 
-                                src={item.volumeInfo.imageLinks.thumbnail} 
-                                alt={item.volumeInfo.title}
-                                width={80}
-                                height={120}
-                                className="object-cover rounded border border-border"
-                              />
-                            ) : (
-                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
-                                <Book className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-lg">{item.volumeInfo.title}</h4>
-                              <p className="text-muted-foreground">
-                                {item.volumeInfo.authors?.join(', ') || 'Unknown Author'}
-                              </p>
-                              {item.volumeInfo.publishedDate && (
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {item.volumeInfo.publishedDate}
-                                </p>
-                              )}
-                              {item.volumeInfo.description && (
-                                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                                  {item.volumeInfo.description}
-                                </p>
-                              )}
-                              <div className="flex gap-2 mt-3">
-                                {item.volumeInfo.previewLink && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(item.volumeInfo.previewLink, '_blank')}
-                                  >
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Preview
-                                  </Button>
-                                )}
-                                {item.volumeInfo.infoLink && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(item.volumeInfo.infoLink, '_blank')}
-                                  >
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    More Info
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    }
-                    
-                    // Gutenberg Books
-                    if (isGutenbergBook(item)) {
-                      return (
-                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
-                          <div className="flex gap-4">
-                            {item.coverImage ? (
-                              <Image 
-                                src={item.coverImage} 
-                                alt={item.title}
-                                width={80}
-                                height={120}
-                                className="object-cover rounded border border-border"
-                              />
-                            ) : (
-                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
-                                <BookOpen className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-lg">{item.title}</h4>
-                              <p className="text-muted-foreground">
-                                {item.authors?.join(', ') || 'Unknown Author'}
-                              </p>
-                              {item.downloadCount && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  📥 {item.downloadCount.toLocaleString()} downloads
-                                </p>
-                              )}
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                {item.formats['text/html'] && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(item.formats['text/html'], '_blank')}
-                                  >
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Read Online
-                                  </Button>
-                                )}
-                                {item.formats['application/epub+zip'] && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(item.formats['application/epub+zip'], '_blank')}
-                                  >
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    Download EPUB
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    }
-                    
-                    // Open Library Books
-                    if (isOpenLibraryBook(item)) {
-                      return (
-                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
-                          <div className="flex gap-4">
-                            {item.coverImage ? (
-                              <Image 
-                                src={item.coverImage} 
-                                alt={item.title}
-                                width={80}
-                                height={120}
-                                className="object-cover rounded border border-border"
-                              />
-                            ) : (
-                              <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
-                                <Globe className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-lg">{item.title}</h4>
-                              <p className="text-muted-foreground">
-                                {item.authors?.join(', ') || 'Unknown Author'}
-                              </p>
-                              {item.publishYear && (
-                                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {item.publishYear}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                <Button
-                                  size="sm"
-                                  onClick={() => window.open(`https://openlibrary.org${item.openLibraryId}`, '_blank')}
-                                >
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  View on Open Library
-                                </Button>
-                                {item.hasFulltext && item.ia && item.ia.length > 0 && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(`https://archive.org/details/${item.ia![0]}`, '_blank')}
-                                  >
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    Read on Archive.org
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    }
-                    
-                    // Library Books (user uploads)
-                    if (isLibraryBook(item)) {
-                      return (
-                        <Card key={item.id} className="p-6 hover:border-primary transition-all bg-card/50">
-                          <div className="flex gap-4">
-                            <div className="w-20 h-30 bg-secondary/20 rounded border border-border flex items-center justify-center">
-                              <Book className="h-8 w-8 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-lg">{item.title}</h4>
-                              <p className="text-muted-foreground flex items-center gap-1">
-                                <User className="h-4 w-4" />
-                                {item.author}
-                              </p>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Date(item.createdAt).toLocaleDateString()}
-                              </p>
-                              <div className="flex gap-2 mt-3">
-                                <Button
-                                  size="sm"
-                                  onClick={() => window.open(item.fileUrl, '_blank')}
-                                >
-                                  <BookOpen className="h-4 w-4 mr-2" />
-                                  Open
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      );
-                    }
-                    
-                    return null;
-                  })}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                   {searchResults.map((item) => {
+                     const googleBook = mapToGoogleBook(item);
+                     return (
+                       <BookCard
+                         key={item.id}
+                         book={googleBook}
+                         variant="default"
+                         showAddButton={true}
+                         onClick={() => handleBookClick(item)}
+                       />
+                     );
+                   })}
                 </div>
                 
                 {/* Loading more indicator */}

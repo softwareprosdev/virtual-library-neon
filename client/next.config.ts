@@ -6,14 +6,22 @@ const nextConfig: NextConfig = {
   // turbopack: {}, // Disabled for compatibility
   compress: true,
   poweredByHeader: false,
-  images: {
+images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'books.google.com',
       },
       {
+        protocol: 'http',
+        hostname: 'books.google.com',
+      },
+      {
         protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
+      {
+        protocol: 'http',
         hostname: '*.googleusercontent.com',
       },
       {

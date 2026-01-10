@@ -39,6 +39,10 @@ if (!process.env.JWT_SECRET) {
 const app: Express = express();
 const port = process.env.PORT || 4000;
 
+// Body parsing middleware - CRITICAL for API routes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Trust Proxy for Coolify/Traefik
 app.set('trust proxy', 1);
 

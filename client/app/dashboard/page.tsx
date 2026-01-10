@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import BookImage from '../../components/ui/book-image';
 import { api } from '../../lib/api';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
@@ -342,17 +342,16 @@ export default function Dashboard() {
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-4">
                       {trendingBooks.map((book) => (
-                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0">
+<Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0">
                           <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
-                            {book.volumeInfo.imageLinks?.thumbnail && (
-                              <Image
-                                src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                                alt={book.volumeInfo.title}
-                                fill
-                                className="object-contain p-2"
-                                sizes="180px"
-                              />
-                            )}
+                            <BookImage
+                              src={book.volumeInfo.imageLinks?.thumbnail}
+                              alt={book.volumeInfo.title}
+                              width={180}
+                              height={200}
+                              className="object-contain p-2"
+                              sizes="180px"
+                            />
                           </div>
                           <CardContent className="p-3">
                             <p className="text-sm font-bold truncate mb-1" title={book.volumeInfo.title}>
@@ -385,17 +384,16 @@ export default function Dashboard() {
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
                       {newReleases.map((book) => (
-                        <Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0 snap-start">
+<Card key={book.id} className="min-w-[180px] max-w-[180px] flex-shrink-0 snap-start">
                           <div className="h-[200px] bg-black p-2 flex items-center justify-center rounded-t-lg relative">
-                            {book.volumeInfo.imageLinks?.thumbnail && (
-                              <Image
-                                src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                                alt={book.volumeInfo.title}
-                                fill
-                                className="object-contain p-2"
-                                sizes="180px"
-                              />
-                            )}
+                            <BookImage
+                              src={book.volumeInfo.imageLinks?.thumbnail}
+                              alt={book.volumeInfo.title}
+                              width={180}
+                              height={200}
+                              className="object-contain p-2"
+                              sizes="180px"
+                            />
                           </div>
                           <CardContent className="p-3">
                             <p className="text-sm font-bold truncate mb-1" title={book.volumeInfo.title}>
@@ -487,17 +485,14 @@ export default function Dashboard() {
                             <div className="h-[180px] sm:h-[280px] bg-black p-2 sm:p-4 flex items-center justify-center rounded-t-lg relative group cursor-pointer"
                                 onClick={() => handleDiscussBook(book)}
                             >
-                              {book.volumeInfo.imageLinks?.thumbnail ? (
-                                <Image
-                                  src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')}
-                                  alt={book.volumeInfo.title}
-                                  fill
-                                  className="object-contain p-2 group-hover:scale-105 transition-transform"
-                                  sizes="(max-width: 640px) 50vw, 200px"
-                                />
-                              ) : (
-                                <div className="text-muted-foreground text-sm">No Cover</div>
-                              )}
+<BookImage
+                                src={book.volumeInfo.imageLinks?.thumbnail}
+                                alt={book.volumeInfo.title}
+                                width={180}
+                                height={280}
+                                className="object-contain p-2 group-hover:scale-105 transition-transform"
+                                sizes="(max-width: 640px) 50vw, 200px"
+                              />
                               <Button
                                 size="icon"
                                 className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 h-8 w-8 sm:h-10 sm:w-10 md:opacity-0 md:group-hover:opacity-100 transition-opacity rounded-full shadow-lg"

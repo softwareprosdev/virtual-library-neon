@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import BookImage from '../ui/book-image';
 import { api } from '../../lib/api';
 import { Button } from '../ui/button';
 import {
@@ -71,12 +71,15 @@ export default function AddToReadingList({ book, onUpdate, variant = 'icon' }: A
           <DialogTitle>Track &quot;{book.volumeInfo.title}&quot;</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="flex items-center gap-4">
-            {book.volumeInfo.imageLinks?.thumbnail && (
-                <div className="relative h-24 w-16">
-                  <Image src={book.volumeInfo.imageLinks.thumbnail.replace('http:', 'https:')} alt="Cover" fill className="object-cover rounded shadow-md" sizes="64px" />
-                </div>
-            )}
+<div className="flex items-center gap-4">
+            <BookImage 
+              src={book.volumeInfo.imageLinks?.thumbnail}
+              alt="Cover"
+              width={64}
+              height={96}
+              sizes="64px"
+              className="rounded shadow-md"
+            />
             <div className="flex-1">
                 <label className="text-sm font-medium mb-2 block">Reading Status</label>
                 <Select value={status} onValueChange={setStatus}>
