@@ -146,19 +146,19 @@ app.use(csrfProtection);
 app.use((req: Request, res: Response, next: express.NextFunction) => {
   const url = req.originalUrl || req.url;
   const suspicious = detectSuspiciousActivity(req);
-  
+
   // Log suspicious activity
   if (suspicious.isBot || suspicious.hasNoUserAgent || suspicious.isSuspiciousUserAgent) {
     console.warn(`[SECURITY] Suspicious request detected: ${req.method} ${url} from IP: ${suspicious.ip}, UA: ${suspicious.userAgent}`);
   }
-  
+
   // Block path traversal attempts
   if (url.includes('..') || url.includes('%2E%2E') || url.includes('%2e%2e')) {
     console.warn(`[SECURITY] Path traversal attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
-  
+
   // Block common attack patterns
   const dangerousPatterns = [
     /<script/i,
@@ -172,28 +172,32 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
     /delete\s+from/i,
     /exec\s*\(/i
   ];
-  
+
   if (dangerousPatterns.some(pattern => pattern.test(url))) {
     console.warn(`[SECURITY] Attack attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
-  
+
   // Add security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
+
   next();
 });
 
 // Rate limiter for auth routes uses unified limiter
+const authLimiter = limiter;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(authLimiter as any);
 
-// Request validation middleware
+app.use(express.json({ limit: '10mb' }));
+
+// Request validation middleware (must be after body parsing)
 app.use(validateRequest({
   // Define validation rules for common fields
   email: { maxLength: 254, allowEmpty: false, customPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
@@ -202,8 +206,6 @@ app.use(validateRequest({
   description: { maxLength: 1000, allowHTML: true },
   message: { maxLength: 2000, allowHTML: true }
 }));
-
-app.use(express.json({ limit: '10mb' }));
 
 // Serve Static Uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
