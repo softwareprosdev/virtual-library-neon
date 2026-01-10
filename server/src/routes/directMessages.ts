@@ -8,7 +8,7 @@ const router = express.Router();
 // Get conversation list
 router.get('/conversations', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -59,7 +59,7 @@ router.get('/conversations', authenticateToken, async (req, res) => {
 router.get('/conversation/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId: partnerId } = req.params;
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -118,7 +118,7 @@ router.get('/conversation/:userId', authenticateToken, async (req, res) => {
 router.post('/send', authenticateToken, async (req, res) => {
   try {
     const { receiverId, text } = req.body;
-    const senderId = req.user!.userId;
+    const senderId = req.user!.id;
 
     if (!receiverId || !text?.trim()) {
       return res.status(400).json({ error: 'Receiver ID and message text are required' });
@@ -189,7 +189,7 @@ router.post('/send', authenticateToken, async (req, res) => {
 router.put('/read/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId: senderId } = req.params;
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user!.id;
 
     await prisma.message.updateMany({
       where: {
@@ -213,7 +213,7 @@ router.put('/read/:userId', authenticateToken, async (req, res) => {
 router.delete('/:messageId', authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user!.id;
 
     const message = await prisma.message.findUnique({
       where: { id: messageId }
@@ -242,7 +242,7 @@ router.delete('/:messageId', authenticateToken, async (req, res) => {
 // Get unread message count
 router.get('/unread/count', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const unreadCount = await prisma.message.count({
       where: {

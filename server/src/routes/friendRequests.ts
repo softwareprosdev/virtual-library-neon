@@ -9,7 +9,7 @@ const router = express.Router();
 router.post('/request', authenticateToken, async (req, res) => {
   try {
     const { receiverId, message } = req.body;
-    const senderId = req.user!.userId;
+    const senderId = req.user!.id;
 
     if (senderId === receiverId) {
       return res.status(400).json({ error: 'Cannot send friend request to yourself' });
@@ -111,7 +111,7 @@ router.post('/request', authenticateToken, async (req, res) => {
 // Get received friend requests
 router.get('/requests/received', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const requests = await prisma.friendRequest.findMany({
       where: {
@@ -141,7 +141,7 @@ router.get('/requests/received', authenticateToken, async (req, res) => {
 // Get sent friend requests
 router.get('/requests/sent', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const requests = await prisma.friendRequest.findMany({
       where: {
@@ -171,7 +171,7 @@ router.get('/requests/sent', authenticateToken, async (req, res) => {
 router.put('/requests/:requestId/accept', authenticateToken, async (req, res) => {
   try {
     const { requestId } = req.params;
-    const receiverId = req.user!.userId;
+    const receiverId = req.user!.id;
 
     // Find the friend request
     const friendRequest = await prisma.friendRequest.findUnique({
@@ -271,7 +271,7 @@ router.put('/requests/:requestId/accept', authenticateToken, async (req, res) =>
 router.put('/requests/:requestId/decline', authenticateToken, async (req, res) => {
   try {
     const { requestId } = req.params;
-    const receiverId = req.user!.userId;
+    const receiverId = req.user!.id;
 
     // Find the friend request
     const friendRequest = await prisma.friendRequest.findUnique({
@@ -326,7 +326,7 @@ router.put('/requests/:requestId/decline', authenticateToken, async (req, res) =
 router.get('/status/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user!.id;
 
     if (currentUserId === userId) {
       return res.status(200).json({ status: 'self' });

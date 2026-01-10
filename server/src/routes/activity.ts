@@ -232,7 +232,7 @@ router.get('/user/:userId', async (req, res) => {
 router.post('/activity', authenticateToken, async (req, res) => {
   try {
     const { type, details } = req.body;
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const activity = await prisma.activity.create({
       data: {

@@ -9,7 +9,7 @@ const router = express.Router();
 router.post('/follow', authenticateToken, async (req, res) => {
   try {
     const { followingId } = req.body;
-    const followerId = req.user!.userId;
+    const followerId = req.user!.id;
 
     if (followerId === followingId) {
       return res.status(400).json({ error: 'Cannot follow yourself' });
@@ -96,7 +96,7 @@ router.post('/follow', authenticateToken, async (req, res) => {
 router.delete('/unfollow', authenticateToken, async (req, res) => {
   try {
     const { followingId } = req.body;
-    const followerId = req.user!.userId;
+    const followerId = req.user!.id;
 
     // Check if follow relationship exists
     const existingFollow = await prisma.follows.findUnique({
@@ -202,7 +202,7 @@ router.get('/following/:userId', async (req, res) => {
 router.get('/check/:followingId', authenticateToken, async (req, res) => {
   try {
     const { followingId } = req.params;
-    const followerId = req.user!.userId;
+    const followerId = req.user!.id;
 
     const follow = await prisma.follows.findUnique({
       where: {
