@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy built artifacts and necessary prisma files
 COPY --from=builder /app/dist ./dist
