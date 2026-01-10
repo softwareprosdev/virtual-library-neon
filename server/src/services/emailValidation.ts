@@ -1,4 +1,5 @@
 import validator from 'validator';
+import axios from 'axios';
 
 class EmailValidationService {
   constructor() {}

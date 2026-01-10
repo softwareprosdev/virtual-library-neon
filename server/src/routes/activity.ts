@@ -1,9 +1,8 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middlewares/auth';
+import prisma from '../db';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get global activity feed
 router.get('/feed', async (req, res) => {

@@ -118,12 +118,7 @@ const limiter = createAdvancedRateLimit({
 });
 
 // Strict rate limit for auth routes
-const authLimiter = createAdvancedRateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 20,
-  blockDurationMinutes: 60,
-  skipSuccessfulRequests: false
-});
+const authLimiter = limiter;
 
 // Very strict rate limit for sensitive operations
 const strictLimiter = createAdvancedRateLimit({
@@ -151,19 +146,19 @@ app.use(csrfProtection);
 app.use((req: Request, res: Response, next: express.NextFunction) => {
   const url = req.originalUrl || req.url;
   const suspicious = detectSuspiciousActivity(req);
-  
+
   // Log suspicious activity
   if (suspicious.isBot || suspicious.hasNoUserAgent || suspicious.isSuspiciousUserAgent) {
     console.warn(`[SECURITY] Suspicious request detected: ${req.method} ${url} from IP: ${suspicious.ip}, UA: ${suspicious.userAgent}`);
   }
-  
+
   // Block path traversal attempts
   if (url.includes('..') || url.includes('%2E%2E') || url.includes('%2e%2e')) {
     console.warn(`[SECURITY] Path traversal attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
-  
+
   // Block common attack patterns
   const dangerousPatterns = [
     /<script/i,
@@ -177,29 +172,28 @@ app.use((req: Request, res: Response, next: express.NextFunction) => {
     /delete\s+from/i,
     /exec\s*\(/i
   ];
-  
+
   if (dangerousPatterns.some(pattern => pattern.test(url))) {
     console.warn(`[SECURITY] Attack attempt blocked: ${req.method} ${url} from IP: ${suspicious.ip}`);
     res.status(400).json({ message: 'Invalid request' });
     return;
   }
-  
+
   // Add security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
+
   next();
 });
 
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-app.use(limiter as any);
+app.use(authLimiter as any);
 
 // Request validation middleware
-app.use(express.json({ limit: '10mb' }));
-
 app.use(validateRequest({
   // Define validation rules for common fields
   email: { maxLength: 254, allowEmpty: false, customPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },

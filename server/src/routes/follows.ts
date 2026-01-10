@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middlewares/auth';
 import { getNotificationService } from '../services/notificationService';
+import prisma from '../db';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Follow a user
 router.post('/follow', authenticateToken, async (req, res) => {
@@ -79,7 +78,7 @@ router.post('/follow', authenticateToken, async (req, res) => {
       const notificationService = getNotificationService();
       notificationService.sendFollowNotification(
         followerId,
-        follower.displayName || follower.name,
+        req.user!.displayName || req.user!.name,
         followingId
       );
     } catch (error) {

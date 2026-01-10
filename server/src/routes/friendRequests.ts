@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middlewares/auth';
 import { getNotificationService } from '../services/notificationService';
+import prisma from '../db';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Send friend request
 router.post('/request', authenticateToken, async (req, res) => {
@@ -94,7 +93,7 @@ router.post('/request', authenticateToken, async (req, res) => {
       const notificationService = getNotificationService();
       notificationService.sendFriendRequestNotification(
         senderId,
-        sender.displayName || sender.name,
+        req.user!.displayName || req.user!.name,
         receiverId,
         message
       );

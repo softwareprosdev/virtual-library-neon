@@ -13,8 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import FollowButton from '@/components/FollowButton';
-import FollowButton from '@/components/FollowButton';
-import { 
+import {
   User, 
   MapPin, 
   Globe, 
