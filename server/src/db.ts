@@ -14,6 +14,12 @@ if (!rawConnectionString) {
   process.exit(1);
 }
 
+// Ensure we're using internal PostgreSQL, not Prisma Accelerate
+if (rawConnectionString.startsWith('prisma+postgres://')) {
+  console.error("FATAL: This app is configured to use internal PostgreSQL database, not Prisma Accelerate. Please update DATABASE_URL to use a standard PostgreSQL connection string.");
+  process.exit(1);
+}
+
 // Strip SSL certificate file references from connection string
 // pg-connection-string tries to read cert files which may not exist in container
 function sanitizeConnectionString(connStr: string): string {
@@ -43,6 +49,7 @@ const connectionString = sanitizeConnectionString(rawConnectionString);
 // Determine TLS configuration
 const requiresTls = process.env.DATABASE_TLS === 'true';
 
+console.log(`[db]: Using internal PostgreSQL database (NOT Prisma Accelerate)`);
 console.log(`[db]: Connecting to PostgreSQL (TLS: ${requiresTls ? 'enabled' : 'disabled'})`);
 
 // Create PostgreSQL connection pool with error handling
