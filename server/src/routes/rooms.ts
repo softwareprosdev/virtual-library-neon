@@ -152,7 +152,8 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
 
     res.json(room);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error(`Error fetching room ${req.params.id}:`, error);
+    res.status(500).json({ message: "Server error", error: String(error) });
   }
 });
 

@@ -7,7 +7,8 @@ const router = Router();
 router.get('/gutenberg', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { search, page = '1', topic, language = 'en' } = req.query;
-    const pageNum = parseInt(page as string);
+    // Safely parse page number
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
 
     let url = `https://gutendex.com/books/?page=${pageNum}`;
 
@@ -22,6 +23,15 @@ router.get('/gutenberg', authenticateToken, async (req: AuthRequest, res: Respon
     }
 
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`Gutenberg API failed: ${response.status} ${response.statusText}`);
+      const text = await response.text();
+      console.error('Response body:', text);
+      res.status(response.status).json({ message: 'Failed to fetch from Project Gutenberg' });
+      return;
+    }
+
     const data = await response.json();
 
     res.json({
@@ -53,8 +63,8 @@ router.get('/gutenberg', authenticateToken, async (req: AuthRequest, res: Respon
 router.get('/openlibrary', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { search, page = '1', limit = '20' } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.max(1, parseInt(limit as string) || 20);
 
     if (!search) {
       res.status(400).json({ message: 'Search query is required' });
@@ -65,6 +75,13 @@ router.get('/openlibrary', authenticateToken, async (req: AuthRequest, res: Resp
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(search as string)}&limit=${limitNum}&offset=${offset}`;
 
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`Open Library API failed: ${response.status} ${response.statusText}`);
+      res.status(response.status).json({ message: 'Failed to fetch from Open Library' });
+      return;
+    }
+
     const data = await response.json();
 
     res.json({

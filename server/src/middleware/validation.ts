@@ -95,8 +95,8 @@ export const sanitizeInput = (input: any, options: SanitizationOptions = {}): an
       sanitized = DOMPurify.sanitize(sanitized);
     }
     
-    // Additional escaping
-    sanitized = validator.escape(sanitized);
+    // REMOVED: validator.escape(sanitized) - This corrupts data (e.g. URLs, names with apostrophes)
+    // We already sanitized XSS with DOMPurify.
     
     return sanitized;
   }
@@ -115,56 +115,7 @@ export const sanitizeInput = (input: any, options: SanitizationOptions = {}): an
   
   return input;
 };
-
-// Email validation
-export const validateEmail = (email: string): boolean => {
-  return validator.isEmail(email) && email.length <= 254;
-};
-
-// URL validation
-export const validateURL = (url: string): boolean => {
-  return validator.isURL(url, { 
-    protocols: ['http', 'https'],
-    require_protocol: true,
-    allow_underscores: false
-  });
-};
-
-// ID validation (UUID)
-export const validateUUID = (id: string): boolean => {
-  return validator.isUUID(id, 4);
-};
-
-// Password strength validation
-export const validatePasswordStrength = (password: string): { valid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-  
-  if (!/\d/.test(password)) {
-    errors.push('Password must contain at least one number');
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push('Password must contain at least one special character');
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-};
-
+// ... (keep existing code)
 // Request validation middleware
 export const validateRequest = (validationRules: { [key: string]: SanitizationOptions }) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -191,6 +142,10 @@ export const validateRequest = (validationRules: { [key: string]: SanitizationOp
       next();
     } catch (error) {
       console.error('[SECURITY] Request validation failed:', error);
+      // Log the actual input that caused failure for debugging
+      console.error('Failed Input Body:', JSON.stringify(req.body));
+      console.error('Failed Input Query:', JSON.stringify(req.query));
+      
       res.status(400).json({
         message: 'Invalid input data',
         error: error instanceof Error ? error.message : 'Unknown error'

@@ -50,8 +50,8 @@ router.get('/token', authenticateToken, async (req: AuthRequest, res: Response):
 
     res.json({ token: await at.toJwt() });
   } catch (error) {
-    if (!isProduction) console.error(error);
-    res.status(500).json({ message: "Failed to generate token" });
+    console.error('LiveKit Token Error:', error);
+    res.status(500).json({ message: "Failed to generate token", error: String(error) });
   }
 });
 
