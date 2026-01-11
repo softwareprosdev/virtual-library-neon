@@ -3,15 +3,16 @@ import DOMPurify from 'isomorphic-dompurify';
 import validator from 'validator';
 import multer from 'multer';
 
-// SQL injection patterns
+// SQL injection patterns (more specific to actual attacks)
 const sqlInjectionPatterns = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b.*\bFROM\b)/i,
   /(\b(OR|AND)\s+\d+\s*=\s*\d+)/i,
   /(\b(OR|AND)\s+\w+\s*=\s*\w+)/i,
   /(\b(OR|AND)\s+\'\w+\'\s*=\s*\'\w+\')/i,
   /(\/\*.*\*\/|--)/,
   /(\'\s*(OR|AND)\s*\w+\s*=\s*\w+\s*\')/i,
-  /(\b(XOR|NOT|BETWEEN|IN|LIKE|REGEXP)\b)/i
+  // Only match SQL keywords in suspicious contexts
+  /(\b(XOR|NOT|BETWEEN|IN|LIKE|REGEXP)\s.*\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/i
 ];
 
 // XSS patterns
