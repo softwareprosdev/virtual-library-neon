@@ -197,7 +197,7 @@ router.post('/:id/click', async (req: AuthRequest, res: Response): Promise<void>
 });
 
 // Amazon product lookup (optional - for auto-filling book details)
-router.post('/lookup/amazon', async (req: Request, res: Response): Promise<void> => {
+router.post('/lookup/amazon', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { asin, url } = req.body;
 
