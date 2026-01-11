@@ -1,8 +1,83 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multer = require('multer');
+import path from 'path';
+import { S3Client } from '@aws-sdk/client-s3';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multerS3 = require('multer-s3');
+
+// File interface for multer uploads
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+  location?: string; // S3 location
+}
+
+// Extend AuthRequest to include file from multer
+interface AuthRequestWithFile extends AuthRequest {
+  file?: MulterFile;
+}
 
 const router = Router();
+
+// Configure Storage (S3 or Local)
+const isS3Enabled = !!process.env.AWS_S3_BUCKET;
+let storage;
+
+if (isS3Enabled) {
+  const s3Config: any = {
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+  };
+
+  if (process.env.AWS_ENDPOINT) {
+    s3Config.endpoint = process.env.AWS_ENDPOINT;
+    s3Config.forcePathStyle = true;
+  }
+
+  const s3 = new S3Client(s3Config);
+
+  storage = multerS3({
+    s3: s3,
+    bucket: process.env.AWS_S3_BUCKET!,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (req: Request, file: MulterFile, cb: (error: Error | null, key?: string) => void) {
+      cb(null, `avatars/${Date.now()}-${file.originalname}`);
+    }
+  });
+  console.log(' S3 Storage Enabled for Avatars');
+} else {
+  storage = multer.diskStorage({
+    destination: 'uploads/',
+    filename: (req: Request, file: MulterFile, cb: (error: Error | null, filename: string) => void) => {
+      cb(null, `avatar-${Date.now()}-${file.originalname}`);
+    }
+  });
+}
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for avatars
+  fileFilter: (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
+    const filetypes = /jpeg|jpg|png|gif|webp/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error("Only images are allowed"), false);
+  }
+});
 
 // Get User Profile
 router.get('/:id/profile', async (req: Request, res: Response): Promise<void> => {
@@ -57,6 +132,36 @@ router.get('/:id/profile', async (req: Request, res: Response): Promise<void> =>
   } catch (error) {
     console.error("Get Profile Error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Upload Avatar
+router.post('/:id/avatar', authenticateToken, upload.single('avatar'), async (req: AuthRequestWithFile, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    if (!req.user || req.user.id !== id) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileLocation = (req.file as any).location;
+    const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { avatarUrl: fileUrl }
+    });
+
+    res.json({ avatarUrl: updatedUser.avatarUrl });
+  } catch (error) {
+    console.error("Avatar Upload Error:", error);
+    res.status(500).json({ message: "Upload failed" });
   }
 });
 
