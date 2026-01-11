@@ -215,8 +215,8 @@ function CyberpunkTile({ participant }: { participant: Participant }) {
             </div>
           </div>
         )}
-        {/* Render audio track for remote participants */}
-        {audioTrack && !participant.isLocal && (
+        {/* Render audio track for all participants */}
+        {audioTrack && (
           <AudioTrack trackRef={audioTrack} />
         )}
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/80 to-transparent flex gap-2 items-center">
@@ -257,8 +257,10 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
   const [videoEffect, setVideoEffect] = useState<VideoEffectType>('none');
   const [audioEffect, setAudioEffect] = useState<AudioEffectType>('none');
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [monitorOwnAudio, setMonitorOwnAudio] = useState(false);
 
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
+  const audioMonitorRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -278,6 +280,25 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         previewStream.getTracks().forEach(t => t.stop());
     }
   }, [isJoined, previewStream]);
+
+  // Handle self-audio monitoring
+  useEffect(() => {
+    if (!audioMonitorRef.current) return;
+    
+    if (monitorOwnAudio && isJoined && rawStream) {
+      // Create a low-volume version of local audio for monitoring
+      const audioContext = new window.AudioContext();
+      const source = audioContext.createMediaStreamSource(rawStream);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0.1; // Very low volume to avoid feedback
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      return () => {
+        audioContext.close();
+      };
+    }
+  }, [monitorOwnAudio, isJoined, rawStream]);
 
   // Start preview stream when not joined
   useEffect(() => {
@@ -466,7 +487,7 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
         )}
 
         {/* Manual Toggle Buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap justify-center">
             <Button 
                 variant={videoEnabled ? "default" : "outline"} 
                 onClick={() => setVideoEnabled(!videoEnabled)} 
@@ -481,6 +502,15 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
             >
                 {audioEnabled ? <><Mic className="mr-2 h-4 w-4" /> MIC: ON</> : <><MicOff className="mr-2 h-4 w-4" /> MIC: OFF</>}
             </Button>
+            {joinMode === 'voice' && audioEnabled && (
+              <Button 
+                  variant={monitorOwnAudio ? "ghost" : "outline"} 
+                  onClick={() => setMonitorOwnAudio(!monitorOwnAudio)} 
+                  className="min-w-[140px]"
+              >
+                  {monitorOwnAudio ? <><Volume2 className="mr-2 h-4 w-4" /> MONITOR: ON</> : <><Volume2 className="mr-2 h-4 w-4" /> MONITOR: OFF</>}
+              </Button>
+            )}
         </div>
 
         <Button 
@@ -518,9 +548,25 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
             videoEffect={videoEffect}
             audioEffect={audioEffect}
         />
+        
+        {/* Audio Monitor Element (hidden, used for self-monitoring) */}
+        <audio ref={audioMonitorRef} muted={!monitorOwnAudio} style={{ display: 'none' }} />
+        
         <LayoutContextProvider>
             {/* Main Content Area - flexGrow to fill available space */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
+              {/* Audio Controls Overlay */}
+              <div className="absolute top-4 left-4 z-40 flex gap-2">
+                <Button
+                  variant={monitorOwnAudio ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMonitorOwnAudio(!monitorOwnAudio)}
+                  className="bg-black/70 text-white border border-white/20"
+                >
+                  {monitorOwnAudio ? <><Volume2 className="mr-2 h-3 w-3" /> SELF-MONITOR: ON</> : <><Volume2 className="mr-2 h-3 w-3" /> SELF-MONITOR: OFF</>}
+                </Button>
+              </div>
+
               {/* Audio Unlock Overlay - Only covers the participant grid */}
               {!audioUnlocked && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
