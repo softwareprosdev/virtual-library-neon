@@ -171,7 +171,12 @@ export const validateRequest = (validationRules: { [key: string]: SanitizationOp
     try {
       // Validate query parameters
       if (req.query && Object.keys(req.query).length > 0) {
-        req.query = sanitizeInput(req.query);
+        const sanitizedQuery = sanitizeInput(req.query);
+        // Update properties individually instead of replacing the object
+        // as req.query might be read-only in some Express environments
+        Object.keys(sanitizedQuery).forEach(key => {
+          (req.query as any)[key] = sanitizedQuery[key];
+        });
       }
       
       // Validate request body

@@ -267,6 +267,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/marketplace', marketplaceRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
