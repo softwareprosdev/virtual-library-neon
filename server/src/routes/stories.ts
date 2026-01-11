@@ -1,8 +1,107 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multer = require('multer');
+import path from 'path';
+import { S3Client } from '@aws-sdk/client-s3';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const multerS3 = require('multer-s3');
+
+// File interface for multer uploads
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+  location?: string; // S3 location
+}
+
+// Extend AuthRequest to include file from multer
+interface AuthRequestWithFile extends AuthRequest {
+  file?: MulterFile;
+}
 
 const router = Router();
+
+// Configure Storage (S3 or Local)
+const isS3Enabled = !!process.env.AWS_S3_BUCKET;
+let storage;
+
+if (isS3Enabled) {
+  const s3Config: any = {
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+  };
+
+  if (process.env.AWS_ENDPOINT) {
+    s3Config.endpoint = process.env.AWS_ENDPOINT;
+    s3Config.forcePathStyle = true;
+  }
+
+  const s3 = new S3Client(s3Config);
+
+  storage = multerS3({
+    s3: s3,
+    bucket: process.env.AWS_S3_BUCKET!,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (req: Request, file: MulterFile, cb: (error: Error | null, key?: string) => void) {
+      cb(null, `stories/${Date.now()}-${file.originalname}`);
+    }
+  });
+} else {
+  storage = multer.diskStorage({
+    destination: 'uploads/',
+    filename: (req: Request, file: MulterFile, cb: (error: Error | null, filename: string) => void) => {
+      cb(null, `story-${Date.now()}-${file.originalname}`);
+    }
+  });
+}
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for stories (video support)
+  fileFilter: (req: Request, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
+    const filetypes = /jpeg|jpg|png|gif|webp|mp4|webm|mov/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error("Only images and videos are allowed"), false);
+  }
+});
+
+// Upload Story Media
+router.post('/upload', authenticateToken, upload.single('media'), async (req: AuthRequestWithFile, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileLocation = (req.file as any).location;
+    const fileUrl = fileLocation || `/uploads/${req.file.filename}`;
+    const fileType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
+
+    res.json({ url: fileUrl, type: fileType });
+  } catch (error) {
+    console.error("Story Upload Error:", error);
+    res.status(500).json({ message: "Upload failed" });
+  }
+});
 
 // Create a new story
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {

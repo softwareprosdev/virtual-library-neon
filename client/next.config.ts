@@ -6,6 +6,30 @@ const nextConfig: NextConfig = {
   // turbopack: {}, // Disabled for compatibility
   compress: true,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/explore',
+        permanent: true,
+      },
+      {
+        source: '/browse',
+        destination: '/explore',
+        permanent: true,
+      },
+      {
+        source: '/free-books',
+        destination: '/explore?source=free',
+        permanent: true,
+      },
+      {
+        source: '/reading-list',
+        destination: '/library?tab=reading',
+        permanent: true,
+      },
+    ];
+  },
 images: {
     remotePatterns: [
       {
@@ -63,6 +87,10 @@ images: {
       {
         protocol: 'http',
         hostname: '*.gutenberg.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 's3.us-east-005.backblazeb2.com',
       },
       {
         protocol: 'https',

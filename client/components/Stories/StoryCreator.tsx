@@ -1,10 +1,8 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Image as ImageIcon, Type, Loader2 } from 'lucide-react';
+import { X, Image as ImageIcon, Type, Loader2, Upload } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface StoryCreatorProps {
@@ -26,13 +24,50 @@ const BACKGROUND_COLORS = [
 ];
 
 export default function StoryCreator({ onClose, onCreated }: StoryCreatorProps) {
-  const [mode, setMode] = useState<'text' | 'image'>('text');
+  const [mode, setMode] = useState<'text' | 'image' | 'video'>('text');
   const [text, setText] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [backgroundColor, setBackgroundColor] = useState('#3b82f6');
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canCreate = mode === 'text' ? text.trim().length > 0 : imageUrl.trim().length > 0;
+  const canCreate = mode === 'text' ? text.trim().length > 0 : mediaUrl.trim().length > 0;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    setIsUploading(true);
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('media', file);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/stories/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMediaUrl(data.url);
+        setMediaType(data.type);
+        setMode(data.type); // Switch mode to image/video automatically
+      } else {
+        alert('Failed to upload media');
+      }
+    } catch (error) {
+      console.error('Media upload error:', error);
+      alert('Error uploading media');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!canCreate) return;
@@ -43,7 +78,8 @@ export default function StoryCreator({ onClose, onCreated }: StoryCreatorProps) 
         method: 'POST',
         body: JSON.stringify({
           text: mode === 'text' ? text.trim() : undefined,
-          imageUrl: mode === 'image' ? imageUrl.trim() : undefined,
+          mediaUrl: mode !== 'text' ? mediaUrl.trim() : undefined,
+          mediaType: mode !== 'text' ? mediaType : undefined,
           backgroundColor,
         }),
       });
@@ -85,74 +121,108 @@ export default function StoryCreator({ onClose, onCreated }: StoryCreatorProps) 
             Text
           </Button>
           <Button
-            variant={mode === 'image' ? 'default' : 'outline'}
+            variant={mode === 'image' || mode === 'video' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setMode('image')}
             className="flex-1"
           >
             <ImageIcon className="w-4 h-4 mr-2" />
-            Image
+            Media
           </Button>
         </div>
 
         {/* Preview */}
         <div
-          className="aspect-[9/16] max-h-[300px] mx-4 mt-4 rounded-lg flex items-center justify-center overflow-hidden"
-          style={{ backgroundColor }}
+          className="aspect-[9/16] max-h-[300px] mx-4 mt-4 rounded-lg flex items-center justify-center overflow-hidden bg-black"
+          style={{ backgroundColor: mode === 'text' ? backgroundColor : '#000' }}
         >
           {mode === 'text' ? (
             <p className="text-white text-lg font-medium text-center p-6 leading-relaxed">
               {text || 'Your story text...'}
             </p>
-          ) : imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Preview"
-              className="w-full h-full object-contain"
-              onError={() => setImageUrl('')}
-            />
+          ) : mediaUrl ? (
+            mediaType === 'video' ? (
+              <video src={mediaUrl} controls className="w-full h-full object-contain" />
+            ) : (
+              <img
+                src={mediaUrl}
+                alt="Preview"
+                className="w-full h-full object-contain"
+                onError={() => setMediaUrl('')}
+              />
+            )
           ) : (
-            <p className="text-white/50">Enter image URL below</p>
+            <div className="text-center">
+              <p className="text-white/50 mb-4">Upload a photo or video</p>
+              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                Upload Media
+              </Button>
+            </div>
           )}
         </div>
 
         {/* Input */}
         <div className="p-4 space-y-4">
-          {mode === 'text' ? (
-            <Textarea
-              placeholder="What's on your mind? (max 280 characters)"
-              value={text}
-              onChange={(e) => setText(e.target.value.slice(0, 280))}
-              className="resize-none"
-              rows={3}
-            />
-          ) : (
-            <Input
-              type="url"
-              placeholder="Enter image URL..."
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-          )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*,video/*"
+            onChange={handleFileUpload}
+          />
 
-          {/* Background Colors */}
-          <div>
-            <p className="text-sm text-muted-foreground mb-2">Background Color</p>
-            <div className="flex flex-wrap gap-2">
-              {BACKGROUND_COLORS.map((color) => (
-                <button
-                  key={color}
-                  className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                    backgroundColor === color
-                      ? 'border-white scale-110'
-                      : 'border-transparent'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setBackgroundColor(color)}
+          {mode === 'text' ? (
+            <>
+              <Textarea
+                placeholder="What's on your mind? (max 280 characters)"
+                value={text}
+                onChange={(e) => setText(e.target.value.slice(0, 280))}
+                className="resize-none"
+                rows={3}
+              />
+              {/* Background Colors */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Background Color</p>
+                <div className="flex flex-wrap gap-2">
+                  {BACKGROUND_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                        backgroundColor === color
+                          ? 'border-white scale-110'
+                          : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setBackgroundColor(color)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  type="url"
+                  placeholder="Or enter media URL..."
+                  value={mediaUrl}
+                  onChange={(e) => {
+                    setMediaUrl(e.target.value);
+                    // Basic check for video extension
+                    if (e.target.value.match(/\.(mp4|webm|mov)$/i)) {
+                      setMediaType('video');
+                    } else {
+                      setMediaType('image');
+                    }
+                  }}
                 />
-              ))}
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                  <Upload className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -160,7 +230,7 @@ export default function StoryCreator({ onClose, onCreated }: StoryCreatorProps) 
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!canCreate || isCreating} className="flex-1">
+          <Button onClick={handleCreate} disabled={!canCreate || isCreating || isUploading} className="flex-1">
             {isCreating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
