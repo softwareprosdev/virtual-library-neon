@@ -78,23 +78,12 @@ const appendAffiliateTag = (url: string | null | undefined) => {
 // Create book post
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    console.log('Book post request body:', req.body);
-    console.log('Book post request user:', req.user?.id);
-    
     if (!req.user) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
     const { title, description, coverUrl, purchaseUrl, previewUrl, genre, publishedDate } = req.body;
-
-    // Add more detailed validation logging
-    console.log('Validating fields:', {
-      title: title ? 'present' : 'missing',
-      description: description ? 'present' : 'missing',
-      titleLength: title?.length,
-      descriptionLength: description?.length
-    });
 
     if (!title || !description) {
       res.status(400).json({ message: 'Title and description are required' });
