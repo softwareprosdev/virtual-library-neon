@@ -78,6 +78,9 @@ const appendAffiliateTag = (url: string | null | undefined) => {
 // Create book post
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    console.log('Book post request body:', req.body);
+    console.log('Book post request user:', req.user?.id);
+    
     if (!req.user) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
