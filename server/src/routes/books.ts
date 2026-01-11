@@ -70,7 +70,48 @@ const upload = multer({
   }
 });
 
-// Search Books (Title, Author, Content)
+// Search Google Books API
+router.get('/google-search', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.sendStatus(401);
+      return;
+    }
+
+    const { q, limit = '20' } = req.query;
+    if (!q || typeof q !== 'string') {
+      res.status(400).json({ message: "Query required" });
+      return;
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Google Books API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const books = (data.items || []).map((item: any) => ({
+      id: item.id,
+      title: item.volumeInfo?.title || '',
+      authors: item.volumeInfo?.authors || [],
+      coverImage: item.volumeInfo?.imageLinks?.thumbnail,
+      description: item.volumeInfo?.description,
+      previewLink: item.volumeInfo?.previewLink,
+      infoLink: item.volumeInfo?.infoLink,
+      source: 'google'
+    }));
+
+    res.json(books);
+  } catch (error) {
+    console.error('Google Books search error:', error);
+    res.status(500).json({ message: "Search failed" });
+  }
+});
+
+// Search Books (Title, Author, Content) - User's personal books
 router.get('/search', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {

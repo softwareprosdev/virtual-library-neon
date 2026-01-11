@@ -19,9 +19,12 @@ import {
   BookMarked,
   Sparkles,
   Globe,
-  Library
+  Library,
+  ShoppingBag
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { searchAmazonBooks, getTrendingAmazonBooks, AmazonBook } from '@/lib/amazon-books';
+import { searchBooks as searchGoogleBooks, GoogleBook } from '@/lib/google-books';
 
 interface Book {
   id: string;
@@ -31,13 +34,20 @@ interface Book {
   coverImage?: string;
   coverUrl?: string;
   description?: string;
-  source: 'google' | 'gutenberg' | 'openlibrary';
+  source: 'google' | 'gutenberg' | 'openlibrary' | 'amazon';
   formats?: Record<string, string>;
   previewLink?: string;
   infoLink?: string;
   downloadCount?: number;
   hasFulltext?: boolean;
   ia?: string[];
+  // Amazon specific
+  asin?: string;
+  price?: number;
+  currency?: string;
+  url?: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 interface Room {
@@ -80,11 +90,53 @@ function ExploreContent() {
   useEffect(() => {
     const fetchTrending = async () => {
       try {
-        const response = await api('/free-books/popular');
-        if (response.ok) {
-          const data = await response.json();
-          setTrendingBooks(data.books?.slice(0, 8) || []);
+        // Get trending from multiple sources
+        const [googleBooks, amazonBooks, freeBooks] = await Promise.allSettled([
+          searchGoogleBooks('fiction', 0, 10),
+          getTrendingAmazonBooks(),
+          api('/free-books/popular').then(res => res.ok ? res.json() : null)
+        ]);
+
+        let allTrending: Book[] = [];
+        
+        if (googleBooks.status === 'fulfilled') {
+          allTrending = allTrending.concat(
+            googleBooks.value.books.map(book => ({
+              ...book,
+              source: 'google' as const
+            }))
+          );
         }
+
+        if (amazonBooks.status === 'fulfilled') {
+          allTrending = allTrending.concat(
+            amazonBooks.value.map(book => ({
+              id: book.asin,
+              title: book.title,
+              authors: book.authors,
+              coverImage: book.coverImage,
+              description: book.description,
+              asin: book.asin,
+              price: book.price,
+              currency: book.currency,
+              url: book.url,
+              rating: book.rating,
+              reviewCount: book.reviewCount,
+              source: 'amazon' as const
+            }))
+          );
+        }
+
+        if (freeBooks.status === 'fulfilled' && freeBooks.value) {
+          allTrending = allTrending.concat(
+            freeBooks.value.books?.slice(0, 5).map((book: any) => ({
+              ...book,
+              source: 'gutenberg' as const
+            })) || []
+          );
+        }
+
+        setTrendingBooks(allTrending.slice(0, 12));
       } catch (error) {
         console.error('Error fetching trending:', error);
       }
@@ -119,36 +171,62 @@ function ExploreContent() {
       let results: Book[] = [];
 
       if (source === 'all' || source === 'google') {
-        const googleRes = await api(`/books/search?q=${encodeURIComponent(query)}&limit=20`);
-        if (googleRes.ok) {
-          const googleData = await googleRes.json();
-          const googleBooks = (googleData.items || googleData || []).map((item: any) => ({
-            id: item.id,
-            title: item.volumeInfo?.title || item.title,
-            authors: item.volumeInfo?.authors || [item.author],
-            coverImage: item.volumeInfo?.imageLinks?.thumbnail || item.coverUrl,
-            description: item.volumeInfo?.description || item.description,
-            previewLink: item.volumeInfo?.previewLink,
-            infoLink: item.volumeInfo?.infoLink,
+        try {
+          const googleData = await searchGoogleBooks(query, 0, 20);
+          const googleBooks = googleData.books.map(book => ({
+            ...book,
             source: 'google' as const
           }));
           results = [...results, ...googleBooks];
+        } catch (error) {
+          console.error('Google Books search error:', error);
+        }
+      }
+
+      if (source === 'all' || source === 'amazon') {
+        try {
+          const amazonData = await searchAmazonBooks(query, 1);
+          const amazonBooks = amazonData.books.map(book => ({
+            id: book.asin,
+            title: book.title,
+            authors: book.authors,
+            coverImage: book.coverImage,
+            description: book.description,
+            asin: book.asin,
+            price: book.price,
+            currency: book.currency,
+            url: book.url,
+            rating: book.rating,
+            reviewCount: book.reviewCount,
+            source: 'amazon' as const
+          }));
+          results = [...results, ...amazonBooks];
+        } catch (error) {
+          console.error('Amazon search error:', error);
         }
       }
 
       if (source === 'all' || source === 'free') {
-        const gutenbergRes = await api(`/free-books/gutenberg?search=${encodeURIComponent(query)}`);
-        if (gutenbergRes.ok) {
-          const gutenbergData = await gutenbergRes.json();
-          results = [...results, ...(gutenbergData.books || [])];
+        try {
+          const gutenbergRes = await api(`/free-books/gutenberg?search=${encodeURIComponent(query)}`);
+          if (gutenbergRes.ok) {
+            const gutenbergData = await gutenbergRes.json();
+            results = [...results, ...(gutenbergData.books || [])];
+          }
+        } catch (error) {
+          console.error('Gutenberg search error:', error);
         }
       }
 
       if (source === 'all' || source === 'openlibrary') {
-        const openLibRes = await api(`/free-books/openlibrary?search=${encodeURIComponent(query)}`);
-        if (openLibRes.ok) {
-          const openLibData = await openLibRes.json();
-          results = [...results, ...(openLibData.books || [])];
+        try {
+          const openLibRes = await api(`/free-books/openlibrary?search=${encodeURIComponent(query)}`);
+          if (openLibRes.ok) {
+            const openLibData = await openLibRes.json();
+            results = [...results, ...(openLibData.books || [])];
+          }
+        } catch (error) {
+          console.error('Open Library search error:', error);
         }
       }
 
@@ -175,6 +253,25 @@ function ExploreContent() {
   };
 
   const handleBookClick = (book: Book) => {
+    // Handle Amazon Books
+    if (book.source === 'amazon') {
+      if (book.url) {
+        window.open(book.url, '_blank');
+      }
+      return;
+    }
+
+    // Handle Google Books
+    if (book.source === 'google') {
+      if (book.previewLink) {
+        window.open(book.previewLink, '_blank');
+      } else if (book.infoLink) {
+        window.open(book.infoLink, '_blank');
+      }
+      return;
+    }
+
+    // Handle Free Books (Gutenberg)
     if (book.source === 'gutenberg' && book.formats) {
       // Try to open EPUB in reader
       const epubUrl = book.formats['application/epub+zip'];
@@ -190,6 +287,7 @@ function ExploreContent() {
       }
     }
 
+    // Handle Open Library
     if (book.source === 'openlibrary') {
       // Check if it has Internet Archive access
       if (book.ia && book.ia.length > 0) {
@@ -199,13 +297,6 @@ function ExploreContent() {
       window.open(`https://openlibrary.org${book.id.replace('openlibrary-', '')}`, '_blank');
       return;
     }
-
-    // Google Books - open preview or info link
-    if (book.previewLink) {
-      window.open(book.previewLink, '_blank');
-    } else if (book.infoLink) {
-      window.open(book.infoLink, '_blank');
-    }
   };
 
   const getSourceBadge = (source: string) => {
@@ -214,6 +305,8 @@ function ExploreContent() {
         return <Badge variant="secondary" className="text-xs">Free</Badge>;
       case 'openlibrary':
         return <Badge variant="outline" className="text-xs">Open Library</Badge>;
+      case 'amazon':
+        return <Badge variant="default" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Amazon</Badge>;
       default:
         return <Badge variant="default" className="text-xs">Google</Badge>;
     }
@@ -255,6 +348,10 @@ function ExploreContent() {
           <TabsTrigger value="google" className="flex items-center gap-2">
             <BookOpen className="w-4 h-4" />
             Google Books
+          </TabsTrigger>
+          <TabsTrigger value="amazon" className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4" />
+            Amazon Books
           </TabsTrigger>
           <TabsTrigger value="free" className="flex items-center gap-2">
             <BookMarked className="w-4 h-4" />
