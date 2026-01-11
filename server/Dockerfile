@@ -2,6 +2,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN apk add --no-cache openssl compat-openssl1.1 libc6-compat
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -17,6 +19,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl compat-openssl1.1 libc6-compat
 
 COPY package*.json ./
 # Install only production dependencies
