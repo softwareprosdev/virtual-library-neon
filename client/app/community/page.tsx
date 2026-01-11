@@ -111,17 +111,6 @@ export default function CommunityPage() {
             ))}
         </div>
       )}
-                            <div className="flex items-center text-xs text-muted-foreground gap-2">
-                                <span className="flex items-center gap-1"><Users size={12}/> {room._count.participants}</span>
-                                <span className="flex items-center gap-1"><MessageSquare size={12}/> {room._count.messages}</span>
-                            </div>
-                        </div>
-                        <CardTitle className="text-xl group-hover:text-secondary transition-colors">{room.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{room.description}</p>
-                        <p className="text-xs text-muted-foreground mb-4">Host: <span className="text-foreground font-bold">{room.host.name}</span></p>
-                        
                         <Button className="w-full gap-2" onClick={() => router.push(`/room/${room.id}`)}>
                             Join Channel <ExternalLink size={16} />
                         </Button>

@@ -540,59 +540,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type and size
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image must be less than 5MB');
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload avatar
-    setUploadingAvatar(true);
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const response = await api(`/users/${userId}/avatar`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Don't set Content-Type for FormData - let browser set it with boundary
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
-        setAvatarPreview(null);
-        alert('Profile picture updated successfully!');
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      alert('Failed to upload profile picture');
-      setAvatarPreview(null);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
   useEffect(() => {
     if (user) recordProfileView();
   }, [user, recordProfileView]);
