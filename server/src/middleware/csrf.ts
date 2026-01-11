@@ -92,7 +92,7 @@ export const csrfRateLimit = (req: Request, res: Response, next: NextFunction) =
   const ip = req.ip || 'unknown';
   const now = Date.now();
   const windowMs = 60 * 1000; // 1 minute
-  const maxRequests = 10;
+  const maxRequests = 300; // Increased from 10 to allow frequent API calls
   
   const current = csrfRequestCounts.get(ip);
   
