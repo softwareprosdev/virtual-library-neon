@@ -64,6 +64,16 @@ interface BookPost {
   shares: number;
   isPinned: boolean;
   createdAt: string;
+  // Amazon and affiliate fields
+  asin?: string;
+  isbn?: string;
+  author?: string;
+  price?: string;
+  currency?: string;
+  platform?: string;
+  isAuthorOwn?: boolean;
+  affiliateUrl?: string;
+  clickCount?: number;
 }
 
 interface ProfileFriend {
@@ -205,7 +215,14 @@ export default function ProfilePage() {
     coverUrl: '',
     purchaseUrl: '',
     previewUrl: '',
-    genre: ''
+    genre: '',
+    author: '',
+    asin: '',
+    isbn: '',
+    price: '',
+    currency: 'USD',
+    platform: 'amazon',
+    isAuthorOwn: false
   });
 
   // Comments State
@@ -440,7 +457,21 @@ export default function ProfilePage() {
       });
       if (response.ok) {
         setShowBookPostDialog(false);
-        setNewBookPost({ title: '', description: '', coverUrl: '', purchaseUrl: '', previewUrl: '', genre: '' });
+        setNewBookPost({ 
+          title: '', 
+          description: '', 
+          coverUrl: '', 
+          purchaseUrl: '', 
+          previewUrl: '', 
+          genre: '',
+          author: '',
+          asin: '',
+          isbn: '',
+          price: '',
+          currency: 'USD',
+          platform: 'amazon',
+          isAuthorOwn: false
+        });
         fetchBookPosts();
       }
     } catch (error) {
@@ -466,6 +497,21 @@ export default function ProfilePage() {
       fetchBookPosts();
     } catch (error) {
       console.error('Failed to like book post:', error);
+    }
+  };
+
+  const handleAffiliateClick = async (post: BookPost) => {
+    // Track the click
+    try {
+      await api(`/book-posts/${post.id}/click`, { method: 'POST' });
+    } catch (error) {
+      console.error('Failed to track click:', error);
+    }
+    
+    // Open affiliate URL in new tab
+    const url = post.affiliateUrl || post.purchaseUrl;
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -1344,12 +1390,97 @@ export default function ProfilePage() {
               </div>
               
               <div>
-                <label className="text-sm font-medium">Purchase Link</label>
+                <label className="text-sm font-medium">Author</label>
+                <Input
+                  value={newBookPost.author}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, author: e.target.value }))}
+                  placeholder="Book author name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">ISBN</label>
+                  <Input
+                    value={newBookPost.isbn}
+                    onChange={(e) => setNewBookPost(prev => ({ ...prev, isbn: e.target.value }))}
+                    placeholder="978-xxx-xxx-xxx-x"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">ASIN (Amazon)</label>
+                  <Input
+                    value={newBookPost.asin}
+                    onChange={(e) => setNewBookPost(prev => ({ ...prev, asin: e.target.value }))}
+                    placeholder="Amazon ASIN if available"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Price</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={newBookPost.price}
+                    onChange={(e) => setNewBookPost(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder="19.99"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Currency</label>
+                  <select 
+                    value={newBookPost.currency}
+                    onChange={(e) => setNewBookPost(prev => ({ ...prev, currency: e.target.value }))}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Platform</label>
+                <select 
+                  value={newBookPost.platform}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, platform: e.target.value }))}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="amazon">Amazon</option>
+                  <option value="barnesandnoble">Barnes & Noble</option>
+                  <option value="kobo">Kobo</option>
+                  <option value="googlebooks">Google Books</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Purchase Link *</label>
                 <Input
                   value={newBookPost.purchaseUrl}
                   onChange={(e) => setNewBookPost(prev => ({ ...prev, purchaseUrl: e.target.value }))}
-                  placeholder="https://amazon.com/your-book"
+                  placeholder="https://amazon.com/dp/ASIN"
+                  required
                 />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isAuthorOwn"
+                  checked={newBookPost.isAuthorOwn}
+                  onChange={(e) => setNewBookPost(prev => ({ ...prev, isAuthorOwn: e.target.checked }))}
+                  className="rounded"
+                />
+                <label htmlFor="isAuthorOwn" className="text-sm font-medium">
+                  I am the author of this book
+                </label>
               </div>
               
               <div>
@@ -1365,7 +1496,7 @@ export default function ProfilePage() {
                 <Button variant="outline" onClick={() => setShowBookPostDialog(false)}>
                   Cancel
                 </Button>
-                <Button onClick={createBookPost} disabled={!newBookPost.title || !newBookPost.description}>
+                <Button onClick={createBookPost} disabled={!newBookPost.title || !newBookPost.description || !newBookPost.purchaseUrl}>
                   Share Book
                 </Button>
               </div>

@@ -341,6 +341,18 @@ model BookPost {
   likes         Int       @default(0)
   shares        Int       @default(0)
   isPinned      Boolean   @default(false)
+  
+  // Amazon and affiliate marketing fields
+  asin          String?   // Amazon Standard Identification Number
+  isbn          String?   // ISBN for book identification
+  author        String?   // Author name
+  price         Decimal?  // Current price
+  currency      String?   @default("USD")
+  platform      String?   @default("amazon") // amazon, barnesandnoble, etc
+  isAuthorOwn   Boolean   @default(false) // User is the author of this book
+  affiliateUrl  String?   // Final affiliate URL with tracking
+  clickCount    Int       @default(0) // Track affiliate link clicks
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }

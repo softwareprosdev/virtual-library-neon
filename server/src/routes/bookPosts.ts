@@ -55,13 +55,13 @@ router.get('/:id', async (req, res: Response): Promise<void> => {
   }
 });
 
-// Helper to append affiliate tag
-const appendAffiliateTag = (url: string | null | undefined) => {
+// Enhanced affiliate URL handler
+const appendAffiliateTag = (url: string | null | undefined, platform: string = 'amazon') => {
   if (!url) return url;
   
   const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || 'indexbin-20';
   
-  // Check if it's an Amazon URL
+  // Handle Amazon URLs
   if (url.match(/amazon\.|amzn\./)) {
     try {
       const urlObj = new URL(url);
@@ -72,7 +72,37 @@ const appendAffiliateTag = (url: string | null | undefined) => {
     }
   }
   
+  // Handle other platforms (add more as needed)
+  if (platform === 'barnesandnoble' && url.includes('barnesandnoble.com')) {
+    try {
+      const urlObj = new URL(url);
+      // Add B&N affiliate tracking if configured
+      const bnTag = process.env.BARNES_NOBLE_TAG;
+      if (bnTag) {
+        urlObj.searchParams.set('trackingid', bnTag);
+      }
+      return urlObj.toString();
+    } catch (e) {
+      return url;
+    }
+  }
+  
   return url;
+};
+
+// Extract ASIN from Amazon URL
+const extractASIN = (url: string): string | null => {
+  const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})|\/product\/([A-Z0-9]{10})|ASIN=([A-Z0-9]{10})/i);
+  return asinMatch ? (asinMatch[1] || asinMatch[2] || asinMatch[3]) : null;
+};
+
+// Detect platform from URL
+const detectPlatform = (url: string): string => {
+  if (url.match(/amazon\.|amzn\./)) return 'amazon';
+  if (url.includes('barnesandnoble.com')) return 'barnesandnoble';
+  if (url.includes('kobo.com')) return 'kobo';
+  if (url.includes('books.google.com')) return 'googlebooks';
+  return 'other';
 };
 
 // Create book post
@@ -83,14 +113,32 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    const { title, description, coverUrl, purchaseUrl, previewUrl, genre, publishedDate } = req.body;
+    const { 
+      title, 
+      description, 
+      coverUrl, 
+      purchaseUrl, 
+      previewUrl, 
+      genre, 
+      publishedDate,
+      asin,
+      isbn,
+      author,
+      price,
+      currency,
+      platform,
+      isAuthorOwn
+    } = req.body;
 
     if (!title || !description) {
       res.status(400).json({ message: 'Title and description are required' });
       return;
     }
 
-    const affiliateUrl = appendAffiliateTag(purchaseUrl);
+    // Auto-detect platform and extract ASIN if not provided
+    const detectedPlatform = platform || (purchaseUrl ? detectPlatform(purchaseUrl) : null);
+    const detectedAsin = asin || (purchaseUrl && detectedPlatform === 'amazon' ? extractASIN(purchaseUrl) : null);
+    const affiliateUrl = appendAffiliateTag(purchaseUrl, detectedPlatform);
 
     const bookPost = await prisma.bookPost.create({
       data: {
@@ -98,10 +146,19 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
         title,
         description,
         coverUrl,
-        purchaseUrl: affiliateUrl,
+        purchaseUrl,
         previewUrl,
         genre,
-        publishedDate: publishedDate ? new Date(publishedDate) : null
+        publishedDate: publishedDate ? new Date(publishedDate) : null,
+        // Amazon and affiliate fields
+        asin: detectedAsin,
+        isbn,
+        author,
+        price: price ? parseFloat(price) : null,
+        currency: currency || 'USD',
+        platform: detectedPlatform,
+        isAuthorOwn: isAuthorOwn || false,
+        affiliateUrl
       },
       include: {
         user: {
@@ -113,6 +170,57 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
     res.status(201).json(bookPost);
   } catch (error) {
     console.error('Create book post error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Track affiliate link click
+router.post('/:id/click', async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const bookPost = await prisma.bookPost.update({
+      where: { id },
+      data: { clickCount: { increment: 1 } }
+    });
+
+    if (!bookPost) {
+      res.status(404).json({ message: 'Book post not found' });
+      return;
+    }
+
+    res.json({ success: true, clickCount: bookPost.clickCount });
+  } catch (error) {
+    console.error('Track click error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Amazon product lookup (optional - for auto-filling book details)
+router.post('/lookup/amazon', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { asin, url } = req.body;
+
+    if (!asin && !url) {
+      res.status(400).json({ message: 'ASIN or Amazon URL is required' });
+      return;
+    }
+
+    const targetAsin = asin || (url ? extractASIN(url) : null);
+    
+    if (!targetAsin) {
+      res.status(400).json({ message: 'Could not extract ASIN from the provided URL' });
+      return;
+    }
+
+    // For now, return basic info. In production, you'd use Amazon Product Advertising API
+    res.json({
+      asin: targetAsin,
+      message: 'Amazon Product Advertising API integration needed for full details'
+    });
+
+  } catch (error) {
+    console.error('Amazon lookup error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
