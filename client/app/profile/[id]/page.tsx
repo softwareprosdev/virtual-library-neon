@@ -206,6 +206,10 @@ export default function ProfilePage() {
   const [selectedTheme, setSelectedTheme] = useState('neon');
   const [interestInput, setInterestInput] = useState('');
   
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
   // Books State
   const [bookPosts, setBookPosts] = useState<BookPost[]>([]);
   const [showBookPostDialog, setShowBookPostDialog] = useState(false);
@@ -533,6 +537,59 @@ export default function ProfilePage() {
       alert('Link copied to clipboard!');
     } else {
       window.open(urls[platform], '_blank', 'width=600,height=400');
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image must be less than 5MB');
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload avatar
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await api(`/users/${userId}/avatar`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Don't set Content-Type for FormData - let browser set it with boundary
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
+        setAvatarPreview(null);
+        alert('Profile picture updated successfully!');
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert('Failed to upload profile picture');
+      setAvatarPreview(null);
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -1151,6 +1208,40 @@ export default function ProfilePage() {
               <DialogTitle>Edit Profile</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium">Profile Picture</label>
+                <div className="flex items-center space-x-4">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={avatarPreview || user?.avatarUrl} alt="Profile" />
+                    <AvatarFallback>{(user?.displayName || user?.name || 'U')[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      id="avatar-upload"
+                      disabled={uploadingAvatar}
+                    />
+                    <label 
+                      htmlFor="avatar-upload"
+                      className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                    >
+                      {uploadingAvatar ? 'Uploading...' : 'Choose File'}
+                    </label>
+                    {avatarPreview && (
+                      <button
+                        onClick={() => setAvatarPreview(null)}
+                        className="block text-sm text-red-600 hover:text-red-700"
+                      >
+                        Cancel Upload
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
               <div>
                 <label className="text-sm font-medium">Display Name</label>
                 <Input
