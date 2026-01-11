@@ -55,6 +55,26 @@ router.get('/:id', async (req, res: Response): Promise<void> => {
   }
 });
 
+// Helper to append affiliate tag
+const appendAffiliateTag = (url: string | null | undefined) => {
+  if (!url) return url;
+  
+  const amazonTag = process.env.AMAZON_ASSOCIATE_TAG || 'indexbin-20';
+  
+  // Check if it's an Amazon URL
+  if (url.match(/amazon\.|amzn\./)) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('tag', amazonTag);
+      return urlObj.toString();
+    } catch (e) {
+      return url;
+    }
+  }
+  
+  return url;
+};
+
 // Create book post
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -70,13 +90,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       return;
     }
 
+    const affiliateUrl = appendAffiliateTag(purchaseUrl);
+
     const bookPost = await prisma.bookPost.create({
       data: {
         userId: req.user.id,
         title,
         description,
         coverUrl,
-        purchaseUrl,
+        purchaseUrl: affiliateUrl,
         previewUrl,
         genre,
         publishedDate: publishedDate ? new Date(publishedDate) : null
@@ -117,13 +139,15 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res: Response): P
       return;
     }
 
+    const affiliateUrl = appendAffiliateTag(purchaseUrl);
+
     const bookPost = await prisma.bookPost.update({
       where: { id },
       data: {
         title,
         description,
         coverUrl,
-        purchaseUrl,
+        purchaseUrl: affiliateUrl,
         previewUrl,
         genre,
         publishedDate: publishedDate ? new Date(publishedDate) : null,
