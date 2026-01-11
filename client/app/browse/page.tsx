@@ -22,20 +22,6 @@ interface LibraryBook {
   content?: string;
 }
 
-interface GoogleBook {
-  id: string;
-  volumeInfo: {
-    title: string;
-    authors?: string[];
-    description?: string;
-    imageLinks?: {
-      thumbnail?: string;
-    };
-    publishedDate?: string;
-    previewLink?: string;
-    infoLink?: string;
-  };
-}
 
 interface GutenbergBook {
   id: string;

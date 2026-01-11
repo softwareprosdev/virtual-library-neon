@@ -81,6 +81,20 @@ model User {
   
   // Top Friends (BookFriendSpace style - ordered list of friend IDs)
   topFriends       String[]  @default([])
+
+  // Social Media Features
+  stories          Story[]
+  storyViews       StoryView[] @relation("StoryViews")
+  storyReactions   StoryReaction[] @relation("StoryReactions")
+  posts            Post[]
+  postLikes        PostLike[] @relation("PostLikes")
+  postComments     PostComment[] @relation("PostComments")
+  postShares       PostShare[] @relation("PostShares")
+  postBookmarks    PostBookmark[] @relation("PostBookmarks")
+  notificationsReceived Notification[] @relation("NotificationsReceived")
+  notificationsSent     Notification[] @relation("NotificationsSent")
+  blockedUsers     UserBlock[] @relation("BlockedUsers")
+  blockedByUsers   UserBlock[] @relation("BlockedByUsers")
 }
 
 model ReadingList {
@@ -376,6 +390,195 @@ model Analytics {
   totalMessages Int      @default(0)
   totalBooks    Int      @default(0)
   pageViews     Int      @default(0)
-  
+
   @@unique([date])
+}
+
+// ============================================
+// SOCIAL MEDIA FEATURES
+// ============================================
+
+// Stories - Ephemeral content that expires after 24 hours
+model Story {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUrl    String   // Image or video URL
+  mediaType   String   @default("image") // "image" or "video"
+  caption     String?
+  backgroundColor String? // For text-only stories
+  textContent String?  // For text overlay or text-only stories
+  duration    Int      @default(5) // Seconds to display (for video or auto-advance)
+  views       StoryView[]
+  reactions   StoryReaction[]
+  expiresAt   DateTime // Auto-calculated to 24 hours from creation
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewerId  String
+  viewer    User     @relation("StoryViews", fields: [viewerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, viewerId])
+}
+
+model StoryReaction {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("StoryReactions", fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String   // Emoji reaction
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+// Posts - General social media posts
+model Post {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  mediaUrls   String[] @default([]) // Array of image/video URLs
+  mediaTypes  String[] @default([]) // Corresponding types for each media
+  hashtags    String[] @default([])
+  mentions    String[] @default([]) // User IDs mentioned
+  visibility  PostVisibility @default(PUBLIC)
+  isEdited    Boolean  @default(false)
+  editedAt    DateTime?
+  isPinned    Boolean  @default(false)
+  likes       PostLike[]
+  comments    PostComment[]
+  shares      PostShare[]
+  bookmarks   PostBookmark[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum PostVisibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostComments", fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  parentId  String?  // For nested replies
+  parent    PostComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   PostComment[] @relation("CommentReplies")
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([parentId])
+}
+
+model PostShare {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostShares", fields: [userId], references: [id], onDelete: Cascade)
+  comment   String?  // Optional quote/comment with share
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model PostBookmark {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("PostBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+// Notifications - Centralized notification system
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String   // User who receives the notification
+  user        User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actorId     String?  // User who triggered the notification
+  actor       User?    @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  body        String
+  data        Json?    // Additional data (postId, storyId, etc.)
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+  MENTION
+  SHARE
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  STORY_VIEW
+  STORY_REACTION
+  DIRECT_MESSAGE
+  ROOM_INVITE
+  BADGE_EARNED
+  SYSTEM
+}
+
+// Hashtag tracking for discovery
+model Hashtag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  postCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postCount])
+}
+
+// User blocks for content moderation
+model UserBlock {
+  id          String   @id @default(uuid())
+  blockerId   String
+  blocker     User     @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId   String
+  blocked     User     @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
 }

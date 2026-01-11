@@ -216,12 +216,13 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         method: req.method,
         details: { email, userId: user.id }
       });
-      
+
       res.status(403).json({
         message: "Please verify your email address before logging in",
         requiresVerification: true,
         email: user.email
       });
+      return;
     }
 
     // Reset failed auth attempts on successful login

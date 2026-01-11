@@ -34,8 +34,15 @@ export default function AuthPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || 'Something went wrong');
+      // Handle login requiring email verification (403 response)
+      if (isLogin && data.requiresVerification) {
+        localStorage.setItem('pendingVerification', JSON.stringify({
+          email: data.email,
+          needsVerification: true
+        }));
+
+        router.push('/verify-email');
+        return;
       }
 
       // Handle registration with email verification required
@@ -46,20 +53,13 @@ export default function AuthPage() {
           name: data.user.name,
           userId: data.user.id
         }));
-        
+
         router.push('/verify-email');
         return;
       }
 
-      // Handle login requiring verification
-      if (isLogin && data.requiresVerification) {
-        localStorage.setItem('pendingVerification', JSON.stringify({
-          email: data.email,
-          needsVerification: true
-        }));
-        
-        router.push('/verify-email');
-        return;
+      if (!res.ok) {
+        throw new Error(data.message || 'Something went wrong');
       }
 
       setToken(data.token);

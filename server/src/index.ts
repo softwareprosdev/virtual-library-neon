@@ -25,6 +25,9 @@ import followsRoutes from './routes/follows';
 import activityRoutes from './routes/activity';
 import friendRequestRoutes from './routes/friendRequests';
 import directMessageRoutes from './routes/directMessages';
+import storiesRoutes from './routes/stories';
+import postsRoutes from './routes/posts';
+import notificationsRoutes from './routes/notifications';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -248,6 +251,12 @@ app.use('/api/friend-requests', friendRequestRoutes);
 app.use('/friend-requests', friendRequestRoutes);
 app.use('/api/direct-messages', directMessageRoutes);
 app.use('/direct-messages', directMessageRoutes);
+app.use('/api/stories', storiesRoutes);
+app.use('/stories', storiesRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/posts', postsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/notifications', notificationsRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

@@ -18,6 +18,8 @@ export interface GoogleBook {
     publisher?: string;
     averageRating?: number;
     ratingsCount?: number;
+    previewLink?: string;
+    infoLink?: string;
   };
 }
 

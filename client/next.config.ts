@@ -29,7 +29,23 @@ images: {
         hostname: '*.gstatic.com',
       },
       {
+        protocol: 'http',
+        hostname: '*.gstatic.com',
+      },
+      {
         protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.storage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'covers.openlibrary.org',
+      },
+      {
+        protocol: 'http',
         hostname: 'covers.openlibrary.org',
       },
       {
@@ -39,6 +55,14 @@ images: {
       {
         protocol: 'http',
         hostname: 'www.gutenberg.org',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.gutenberg.org',
+      },
+      {
+        protocol: 'http',
+        hostname: '*.gutenberg.org',
       },
       {
         protocol: 'https',
