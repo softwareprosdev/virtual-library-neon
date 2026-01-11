@@ -35,35 +35,64 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: [email],
-      subject: 'Your Verification Code - Virtual Library',
+      subject: 'VERIFICATION_CODE_REQUIRED // Virtual Library',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #007bff; margin: 0;">Virtual Library</h1>
-          </div>
-          
-          <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center; margin: 20px 0;">
-            <h2 style="color: #333; margin: 0 0 20px 0;">Email Verification Code</h2>
-            <div style="font-size: 36px; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 20px 0; padding: 15px; background: white; border: 2px dashed #007bff; border-radius: 8px; display: inline-block;">
-              ${code}
-            </div>
-            <p style="color: #666; margin: 20px 0;">This code will expire in 15 minutes.</p>
-          </div>
-          
-          <div style="color: #666; font-size: 14px; line-height: 1.6;">
-            <p>Hi ${name || 'there'},</p>
-            <p>Thank you for signing up for Virtual Library! Please use the verification code above to verify your email address.</p>
-            <p><strong>Important:</strong></p>
-            <ul style="color: #e74c3c;">
-              <li>Never share this code with anyone</li>
-              <li>We will never ask for this code via phone or text message</li>
-              <li>This code can only be used once</li>
-            </ul>
-            <p style="color: #666; font-size: 12px; margin-top: 30px;">
-              If you didn't create an account, you can safely ignore this email.
-            </p>
-          </div>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Verification Code</title>
+        </head>
+        <body style="background-color: #050505; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; color: #e0e0e0;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #050505; min-height: 100vh;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <div style="max-width: 600px; width: 100%; background-color: #0a0a0a; border: 1px solid #333; border-left: 4px solid #d946ef; box-shadow: 0 0 20px rgba(217, 70, 239, 0.1);">
+                  
+                  <!-- Header -->
+                  <div style="background-color: #000; padding: 20px; border-bottom: 1px solid #333;">
+                    <h1 style="color: #d946ef; margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 5px rgba(217, 70, 239, 0.5);">
+                      Virtual Library
+                    </h1>
+                    <div style="color: #00f3ff; font-size: 10px; letter-spacing: 1px; margin-top: 5px;">
+                      SYSTEM_MESSAGE // ENCRYPTED_CHANNEL
+                    </div>
+                  </div>
+
+                  <!-- Content -->
+                  <div style="padding: 40px 30px; text-align: center;">
+                    <h2 style="color: #fff; margin: 0 0 20px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">
+                      Identity Verification Required
+                    </h2>
+                    
+                    <p style="color: #888; font-size: 14px; margin-bottom: 30px; line-height: 1.6;">
+                      Access request detected. To proceed with the neural link connection, please input the following authentication code:
+                    </p>
+
+                    <div style="background-color: #000; border: 1px dashed #00f3ff; padding: 20px; margin: 30px 0; display: inline-block;">
+                      <span style="font-size: 32px; font-weight: bold; color: #00f3ff; letter-spacing: 8px; font-family: monospace;">
+                        ${code}
+                      </span>
+                    </div>
+
+                    <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                      Code expires in: <span style="color: #d946ef;">15:00 MINUTES</span>
+                    </p>
+                  </div>
+
+                  <!-- Footer -->
+                  <div style="background-color: #0f0f0f; padding: 20px; text-align: center; border-top: 1px solid #333; font-size: 10px; color: #555;">
+                    <p style="margin: 0 0 10px 0;">INITIATED_BY: ${name || 'UNKNOWN_USER'}</p>
+                    <p style="margin: 0;">
+                      IF YOU DID NOT REQUEST THIS ACCESS, TERMINATE IMMEDIATELY.
+                    </p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `
     });
 
@@ -93,23 +122,63 @@ export const sendVerificationLink = async (email: string, token: string, name?: 
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
       to: [email],
-      subject: 'Verify Your Email - Virtual Library',
+      subject: 'VERIFICATION_LINK_REQUIRED // Virtual Library',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Welcome to Virtual Library!</h2>
-          <p>Hi ${name || 'there'},</p>
-          <p>Thank you for signing up! Please verify your email address to activate your account.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}" 
-               style="background-color: #007bff; color: white; padding: 12px 30px; 
-                      text-decoration: none; border-radius: 5px; display: inline-block;">
-              Verify Email Address
-            </a>
-          </div>
-          <p style="color: #666; font-size: 14px;">
-            This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email.
-          </p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Verify Email</title>
+        </head>
+        <body style="background-color: #050505; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; color: #e0e0e0;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #050505; min-height: 100vh;">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <div style="max-width: 600px; width: 100%; background-color: #0a0a0a; border: 1px solid #333; border-left: 4px solid #00f3ff; box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);">
+                  
+                  <!-- Header -->
+                  <div style="background-color: #000; padding: 20px; border-bottom: 1px solid #333;">
+                    <h1 style="color: #00f3ff; margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);">
+                      Virtual Library
+                    </h1>
+                    <div style="color: #d946ef; font-size: 10px; letter-spacing: 1px; margin-top: 5px;">
+                      SYSTEM_MESSAGE // ENCRYPTED_CHANNEL
+                    </div>
+                  </div>
+
+                  <!-- Content -->
+                  <div style="padding: 40px 30px; text-align: center;">
+                    <h2 style="color: #fff; margin: 0 0 20px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">
+                      Confirm Identity
+                    </h2>
+                    
+                    <p style="color: #888; font-size: 14px; margin-bottom: 30px; line-height: 1.6;">
+                      Connection request received from ${name || 'User'}. Validate your neural signature to access the network.
+                    </p>
+
+                    <div style="margin: 30px 0;">
+                      <a href="${verificationUrl}" 
+                         style="background-color: #000; color: #00f3ff; padding: 15px 30px; text-decoration: none; border: 1px solid #00f3ff; font-weight: bold; letter-spacing: 2px; display: inline-block; transition: all 0.3s;">
+                        VERIFY_SIGNAL
+                      </a>
+                    </div>
+
+                    <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                      Link expires in: <span style="color: #d946ef;">24:00 HOURS</span>
+                    </p>
+                  </div>
+
+                  <!-- Footer -->
+                  <div style="background-color: #0f0f0f; padding: 20px; text-align: center; border-top: 1px solid #333; font-size: 10px; color: #555;">
+                     <p style="margin: 0 0 10px 0;">SECURE_TRANSMISSION</p>
+                     <p style="margin: 0;">IF UNKNOWN, DISREGARD.</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `
     });
     

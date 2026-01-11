@@ -49,11 +49,15 @@ export default function VerifyEmailPage() {
         throw new Error(data.message || 'Verification failed');
       }
 
-      setSuccess('Email verified successfully! Redirecting to login...');
+      setSuccess('VERIFICATION COMPLETE. INITIALIZING LOGIN SEQUENCE...');
+      
+      // Clear pending state immediately
+      localStorage.removeItem('pendingVerification');
+
       setTimeout(() => {
-        localStorage.removeItem('pendingVerification');
-        router.push('/');
-      }, 2000);
+        router.push('/login');
+      }, 1500);
+
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
