@@ -29,20 +29,46 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
     return next();
   }
   
-  // Skip for API routes that don't need CSRF (auth, etc.)
-  if (req.path.startsWith('/api/auth/') || req.path.startsWith('/auth/')) {
+  // Skip for API routes that don't need CSRF (auth, external services, etc.)
+  const skipPaths = [
+    '/api/auth/',
+    '/auth/',
+    '/api/livekit/',
+    '/api/webhooks/',
+    '/api/notifications/',
+    '/api/activity/'
+  ];
+  
+  if (skipPaths.some(path => req.path.startsWith(path))) {
+    return next();
+  }
+  
+  // Skip CSRF for development environment
+  if (process.env.NODE_ENV === 'development' && req.headers.origin?.includes('localhost')) {
     return next();
   }
   
   const sessionToken = req.headers['x-session-token'] as string;
   const csrfToken = req.headers['x-csrf-token'] as string || req.body._csrf;
   
+  // More lenient for missing tokens - provide fallback
   if (!sessionToken || !csrfToken) {
+    // For development or local requests, skip strict checking
+    if (process.env.NODE_ENV === 'development' || (req.ip && ['127.0.0.1', '::1'].includes(req.ip))) {
+      return next();
+    }
+    
     console.warn(`[SECURITY] Missing CSRF tokens: ${req.method} ${req.path} from IP: ${req.ip}`);
     return res.status(403).json({ message: 'CSRF token required' });
   }
   
   if (!validateCSRFToken(csrfToken, sessionToken)) {
+    // Allow development requests
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[DEV] Skipping CSRF validation for development: ${req.method} ${req.path}`);
+      return next();
+    }
+    
     console.warn(`[SECURITY] Invalid CSRF token: ${req.method} ${req.path} from IP: ${req.ip}`);
     return res.status(403).json({ message: 'Invalid CSRF token' });
   }

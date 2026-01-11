@@ -43,7 +43,7 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
       {!hideNav && (
-      <header className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card relative">
+      <header className="md:hidden flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b border-border bg-card relative">
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#fcee0a] to-transparent" />
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 5px #fcee0a)' }} />

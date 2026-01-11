@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
 import MainLayout from '../../../components/MainLayout';
 import BookReader3D from '../../../components/BookReader3D';
+import EpubReader from '../../../components/EpubReader';
 import { Button } from '../../../components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -150,6 +151,9 @@ export default function ReadPage() {
         ? book.fileUrl
         : `${apiBase}${book.fileUrl.startsWith('/') ? '' : '/'}${book.fileUrl}`;
 
+    // Determine file type
+    const isEpub = book.fileUrl.toLowerCase().endsWith('.epub');
+
     return (
         <MainLayout>
             <div className="p-4 border-b mb-4 flex justify-between items-center bg-background">
@@ -160,7 +164,11 @@ export default function ReadPage() {
                     Close Archive
                 </Button>
             </div>
-            <BookReader3D url={fullUrl} />
+            {isEpub ? (
+                <EpubReader url={fullUrl} title={book.title} />
+            ) : (
+                <BookReader3D url={fullUrl} />
+            )}
         </MainLayout>
     );
 }

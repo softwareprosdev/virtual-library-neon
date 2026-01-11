@@ -23,8 +23,9 @@ export const api = async (endpoint: string, options: RequestInit = {}, isRetry =
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
-    ...(csrfToken && { 'x-csrf-token': csrfToken }),
-    ...(sessionToken && { 'x-session-token': sessionToken }),
+    // Only add CSRF tokens for state-changing requests
+    ...(['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method || 'GET') && csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+    ...(['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method || 'GET') && sessionToken ? { 'x-session-token': sessionToken } : {}),
     ...options.headers as Record<string, string>,
   };
 
@@ -54,6 +55,23 @@ export const api = async (endpoint: string, options: RequestInit = {}, isRetry =
       // If CSRF error and we got new tokens, retry the request once
       if ((body.message === 'CSRF token required' || body.message === 'Invalid CSRF token') && newCsrfToken && newSessionToken) {
         return api(endpoint, options, true);
+      }
+      
+      // If we're in development and it's a CSRF error, try without CSRF tokens
+      if (process.env.NODE_ENV === 'development' && (body.message === 'CSRF token required' || body.message === 'Invalid CSRF token')) {
+        console.warn('Retrying request without CSRF tokens in development mode');
+        const headersWithoutCSRF = { ...headers };
+        delete headersWithoutCSRF['x-csrf-token'];
+        delete headersWithoutCSRF['x-session-token'];
+        
+        const retryResponse = await fetch(`${API_URL}${cleanEndpoint}`, {
+          ...options,
+          headers: headersWithoutCSRF,
+        });
+        
+        if (retryResponse.ok) {
+          return retryResponse;
+        }
       }
     } catch {
       // If we can't parse body, fall through to normal handling

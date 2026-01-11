@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { getToken } from '../../lib/auth';
 import MainLayout from '../../components/MainLayout';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardFooter } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../../components/ui/dialog";
-import { Search, Plus, Trash2, BookOpen, Loader2, Book as BookIcon } from 'lucide-react';
+import { Search, Plus, Trash2, BookOpen, Loader2, Book as BookIcon, Heart } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Book {
   id: string;
@@ -28,11 +30,32 @@ interface Book {
   category?: string;
 }
 
-export default function LibraryPage() {
+interface ReadingListItem {
+  id: string;
+  googleId: string;
+  title: string;
+  author: string;
+  coverUrl?: string;
+  status: 'WANT_TO_READ' | 'READING' | 'FINISHED';
+  rating?: number;
+  review?: string;
+  startDate?: string;
+  finishDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function LibraryContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'mybooks';
+  
   const [books, setBooks] = useState<Book[]>([]);
+  const [readingList, setReadingList] = useState<ReadingListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingReadingList, setLoadingReadingList] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -95,6 +118,21 @@ export default function LibraryPage() {
     }
   }, [router, ITEMS_PER_PAGE]);
 
+  const fetchReadingList = useCallback(async () => {
+    try {
+      setLoadingReadingList(true);
+      const response = await api('/reading-list');
+      if (response.ok) {
+        const data = await response.json();
+        setReadingList(data);
+      }
+    } catch (error) {
+      console.error('Error fetching reading list:', error);
+    } finally {
+      setLoadingReadingList(false);
+    }
+  }, []);
+
   // Load more function
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
@@ -129,6 +167,21 @@ export default function LibraryPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hasMore, loadingMore, loadMore]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchBooks();
+    fetchReadingList();
+  }, [fetchBooks, fetchReadingList]);
+
+  // Handle tab changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get('tab') !== activeTab) {
+      params.set('tab', activeTab);
+      router.replace(`/library?${params.toString()}`, { scroll: false });
+    }
+  }, [activeTab, router, searchParams]);
 
   const handleUpload = async () => {
     if (!file || !title || !author) return;
@@ -211,120 +264,180 @@ export default function LibraryPage() {
                 />
             </div>
 
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Upload Book
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Upload New Book</DialogTitle>
-                        <DialogDescription>
-                            Add a new book to your library. Supported formats: PDF, EPUB.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <label htmlFor="title" className="text-sm font-medium">Title</label>
-                            <Input 
-                                id="title" 
-                                value={title} 
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Enter book title"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <label htmlFor="author" className="text-sm font-medium">Author</label>
-                            <Input 
-                                id="author" 
-                                value={author} 
-                                onChange={(e) => setAuthor(e.target.value)}
-                                placeholder="Enter author name"
-                            />
-                        </div>
-                         <div className="grid gap-2">
-                            <label htmlFor="file" className="text-sm font-medium">Book File (PDF or EPUB)</label>
-                            <Input
-                                id="file"
-                                type="file"
-                                accept=".pdf,.epub"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                        <Button onClick={handleUpload} disabled={isUploading || !file || !title || !author}>
-                            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Upload
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {activeTab === 'mybooks' && (
+              <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                      <Button>
+                          <Plus className="mr-2 h-4 w-4" /> Upload Book
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <DialogHeader>
+                          <DialogTitle>Upload New Book</DialogTitle>
+                          <DialogDescription>
+                              Add a new book to your library. Supported formats: PDF, EPUB.
+                          </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                              <label htmlFor="title" className="text-sm font-medium">Title</label>
+                              <Input 
+                                  id="title" 
+                                  value={title} 
+                                  onChange={(e) => setTitle(e.target.value)}
+                                  placeholder="Enter book title"
+                              />
+                          </div>
+                          <div className="grid gap-2">
+                              <label htmlFor="author" className="text-sm font-medium">Author</label>
+                              <Input 
+                                  id="author" 
+                                  value={author} 
+                                  onChange={(e) => setAuthor(e.target.value)}
+                                  placeholder="Enter author name"
+                              />
+                          </div>
+                           <div className="grid gap-2">
+                              <label htmlFor="file" className="text-sm font-medium">Book File (PDF or EPUB)</label>
+                              <Input
+                                  id="file"
+                                  type="file"
+                                  accept=".pdf,.epub"
+                                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                              />
+                          </div>
+                      </div>
+                      <DialogFooter>
+                          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                          <Button onClick={handleUpload} disabled={isUploading || !file || !title || !author}>
+                              {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Upload
+                          </Button>
+                      </DialogFooter>
+                  </DialogContent>
+              </Dialog>
+            )}
         </div>
 
-        {loading && books.length === 0 ? (
-             <div className="flex justify-center p-12">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="mybooks">My Books</TabsTrigger>
+            <TabsTrigger value="reading">Reading List</TabsTrigger>
+            <TabsTrigger value="favorites">Favorites</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="mybooks" className="mt-6">
+            {loading && books.length === 0 ? (
+                 <div className="flex justify-center p-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : (
+                <>
+                    {books.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <BookIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p>No books found. Upload one to get started!</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                                {books.map((book) => (
+                                    <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
+                                        <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
+                                            {book.coverUrl ? (
+                                                <Image src={book.coverUrl} alt={book.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
+                                                    <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
+                                                </div>
+                                            )}
+                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full"
+                                                    onClick={() => handleRead(book)}
+                                                >
+                                                    Read
+                                                </Button>
+                                             </div>
+                                        </div>
+                                        <CardContent className="p-3 sm:p-4 flex-1">
+                                            <h3 className="font-semibold text-sm sm:text-base truncate" title={book.title}>{book.title}</h3>
+                                            <p className="text-xs sm:text-sm text-muted-foreground truncate">{book.author}</p>
+                                        </CardContent>
+                                        <CardFooter className="p-3 sm:p-4 pt-0 flex justify-end">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+                                                onClick={() => handleDelete(book.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                            </div>
+                            {loadingMore && (
+                                <div className="flex justify-center p-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                            )}
+                        </>
+                    )}
+                </>
+            )}
+          </TabsContent>
+
+      <TabsContent value="reading" className="mt-6">
+        {loadingReadingList ? (
+            <div className="flex justify-center p-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
+        ) : readingList.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+                <BookIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p>Your reading list is empty.</p>
+            </div>
         ) : (
-            <>
-                {books.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                        <BookIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                        <p>No books found. Upload one to get started!</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-                            {books.map((book) => (
-                                <Card key={book.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
-                                    <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
-                                        {book.coverUrl ? (
-                                            <Image src={book.coverUrl} alt={book.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
-                                                <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
-                                            </div>
-                                        )}
-                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
-                                            <Button
-                                                size="sm"
-                                                className="w-full"
-                                                onClick={() => handleRead(book)}
-                                            >
-                                                Read
-                                            </Button>
-                                         </div>
-                                    </div>
-                                    <CardContent className="p-3 sm:p-4 flex-1">
-                                        <h3 className="font-semibold text-sm sm:text-base truncate" title={book.title}>{book.title}</h3>
-                                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{book.author}</p>
-                                    </CardContent>
-                                    <CardFooter className="p-3 sm:p-4 pt-0 flex justify-end">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-                                            onClick={() => handleDelete(book.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+                {readingList.map((item) => (
+                    <Card key={item.id} className="flex flex-col h-full hover:shadow-md transition-all hover:border-primary/50 group overflow-hidden">
+                        <div className="aspect-[2/3] w-full bg-secondary/30 relative overflow-hidden">
+                            {item.coverUrl ? (
+                                <Image src={item.coverUrl} alt={item.title} fill className="object-cover" sizes="(max-width: 640px) 50vw, 200px" />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground p-4 text-center">
+                                    <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 mb-2 opacity-50" />
+                                </div>
+                            )}
                         </div>
-                        {loadingMore && (
-                            <div className="flex justify-center p-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                            </div>
-                        )}
-                    </>
-                )}
-            </>
+                        <CardContent className="p-3 sm:p-4 flex-1">
+                            <h3 className="font-semibold text-sm sm:text-base truncate" title={item.title}>{item.title}</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">{item.author}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         )}
-      </div>
-    </MainLayout>
+      </TabsContent>
+
+      <TabsContent value="favorites" className="mt-6">
+        <div className="text-center py-12 text-muted-foreground">
+            <Heart className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p>Favorites feature coming soon!</p>
+        </div>
+      </TabsContent>
+    </Tabs>
+  </div>
+</MainLayout>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <LibraryContent />
+    </Suspense>
   );
 }
