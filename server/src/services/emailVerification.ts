@@ -19,7 +19,7 @@ export const generateVerificationToken = (): string => {
 };
 
 // Send verification code via email
-export const sendVerificationCode = async (email: string, code: string, name?: string): Promise<boolean> => {
+export const sendVerificationCode = async (email: string, code: string, name?: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     // Use the verified domain as requested
@@ -29,6 +29,7 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
     console.log(`[Email] Using sender: ${fromEmail}`);
     if (!process.env.RESEND_API_KEY) {
       console.error('[Email] CRITICAL: RESEND_API_KEY is missing in environment variables');
+      return { success: false, error: 'RESEND_API_KEY is missing' };
     }
 
     const { data, error } = await resend.emails.send({
@@ -68,17 +69,18 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
 
     if (error) {
       console.error('[Email] Resend API Error:', JSON.stringify(error, null, 2));
-      return false;
+      return { success: false, error: JSON.stringify(error) };
     }
     
     console.log(`[Email] Successfully sent verification code to ${email}. ID: ${data?.id}`);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('[Email] Unexpected error sending verification code:', error);
     if (error instanceof Error) {
         console.error('[Email] Error stack:', error.stack);
+        return { success: false, error: error.message };
     }
-    return false;
+    return { success: false, error: 'Unknown error occurred' };
   }
 };
 
@@ -211,7 +213,7 @@ export const enhancedSignup = async (req: Request, res: Response) => {
     });
 
     // Step 6: Send verification code
-    const codeSent = await sendVerificationCode(email, verificationCode, name);
+    const { success: codeSent, error: sendError } = await sendVerificationCode(email, verificationCode, name);
     
     if (!codeSent) {
       logSecurityEvent({
@@ -221,7 +223,7 @@ export const enhancedSignup = async (req: Request, res: Response) => {
         userAgent: req.get('User-Agent'),
         path: req.path,
         method: req.method,
-        details: { email, userId: user.id }
+        details: { email, userId: user.id, error: sendError }
       });
       
       // Don't fail the signup, but warn the user
@@ -234,7 +236,8 @@ export const enhancedSignup = async (req: Request, res: Response) => {
           emailVerified: user.emailVerified,
           needsVerification: true
         },
-        warning: "Email verification code could not be sent"
+        warning: "Email verification code could not be sent",
+        details: sendError
       });
     }
 
@@ -376,10 +379,13 @@ export const resendVerificationCode = async (req: Request, res: Response) => {
     });
 
     // Send new code
-    const codeSent = await sendVerificationCode(email, verificationCode, user.name);
+    const { success: codeSent, error: sendError } = await sendVerificationCode(email, verificationCode, user.name);
 
     if (!codeSent) {
-      return res.status(500).json({ message: "Failed to send verification code" });
+      return res.status(500).json({ 
+        message: "Failed to send verification code",
+        details: sendError
+      });
     }
 
     logSecurityEvent({

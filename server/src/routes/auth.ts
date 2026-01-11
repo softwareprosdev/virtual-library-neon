@@ -27,10 +27,10 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limit for resending verification code (5 attempts per 15 mins)
+// Rate limit for resending verification code (20 attempts per 15 mins for debugging)
 const resendLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 attempts per 15 mins
+  max: 20, // Increased limit for debugging
   message: { message: 'Too many verification attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
