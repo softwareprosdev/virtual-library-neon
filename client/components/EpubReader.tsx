@@ -95,7 +95,7 @@ export default function EpubReader({ url, title }: EpubReaderProps) {
         }
 
         // Create book
-        const book = ePub(bookInput);
+        const book = ePub(bookInput as any);
         bookRef.current = book;
 
         // Render book
