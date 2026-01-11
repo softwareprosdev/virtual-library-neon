@@ -57,6 +57,9 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
                     <div style="color: #00f3ff; font-size: 10px; letter-spacing: 1px; margin-top: 5px;">
                       SYSTEM_MESSAGE // ENCRYPTED_CHANNEL
                     </div>
+                    <div style="color: #d946ef; font-size: 14px; letter-spacing: 4px; margin-top: 10px; font-weight: bold; animation: glitch 1s infinite;">
+                      HACK THE PLANET
+                    </div>
                   </div>
 
                   <!-- Content -->
@@ -70,7 +73,7 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
                     </p>
 
                     <div style="background-color: #000; border: 1px dashed #00f3ff; padding: 20px; margin: 30px 0; display: inline-block;">
-                      <span style="font-size: 32px; font-weight: bold; color: #00f3ff; letter-spacing: 8px; font-family: monospace;">
+                      <span style="font-size: 32px; font-weight: bold; color: #00f3ff; letter-spacing: 8px; font-family: 'FiraCode Nerd Font', 'JetBrains Mono', 'Courier New', monospace;">
                         ${code}
                       </span>
                     </div>
@@ -81,11 +84,19 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
                   </div>
 
                   <!-- Footer -->
-                  <div style="background-color: #0f0f0f; padding: 20px; text-align: center; border-top: 1px solid #333; font-size: 10px; color: #555;">
-                    <p style="margin: 0 0 10px 0;">INITIATED_BY: ${name || 'UNKNOWN_USER'}</p>
-                    <p style="margin: 0;">
-                      IF YOU DID NOT REQUEST THIS ACCESS, TERMINATE IMMEDIATELY.
-                    </p>
+                  <div style="background-color: #0f0f0f; padding: 20px; text-align: left; border-top: 1px solid #333; font-size: 10px; color: #444; font-family: 'FiraCode Nerd Font', 'JetBrains Mono', 'Courier New', monospace;">
+                    <p style="margin: 0 0 10px 0; text-align: center; color: #666;">INITIATED_BY: ${name || 'UNKNOWN_USER'}</p>
+                    
+                    <div style="margin-top: 20px; border-left: 2px solid #d946ef; padding-left: 10px; opacity: 0.7;">
+                      <p style="margin: 0 0 5px 0; color: #d946ef; font-weight: bold;">// THE CONSCIENCE OF A HACKER</p>
+                      <p style="margin: 0 0 5px 0;">This is our world now... the world of the electron and the switch, the beauty of the baud.</p>
+                      <p style="margin: 0 0 5px 0;">We make use of a service already existing without paying for what could be dirt-cheap if it wasn't run by profiteering gluttons, and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">We explore... and you call us criminals. We seek after knowledge... and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">We exist without skin color, without nationality, without religious bias... and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">You build atomic bombs, you wage wars, you murder, cheat, and lie to us and try to make us believe it's for our own good, yet we're the criminals.</p>
+                      <p style="margin: 0 0 5px 0;">Yes, I am a criminal. My crime is that of curiosity. My crime is that of judging people by what they say and think, not what they look like. My crime is that of outsmarting you, something that you will never forgive me for.</p>
+                      <p style="margin: 0; color: #00f3ff; text-align: right;">-- The Mentor, 1986</p>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -144,6 +155,9 @@ export const sendVerificationLink = async (email: string, token: string, name?: 
                     <div style="color: #d946ef; font-size: 10px; letter-spacing: 1px; margin-top: 5px;">
                       SYSTEM_MESSAGE // ENCRYPTED_CHANNEL
                     </div>
+                    <div style="color: #00f3ff; font-size: 14px; letter-spacing: 4px; margin-top: 10px; font-weight: bold; animation: glitch 1s infinite;">
+                      HACK THE PLANET
+                    </div>
                   </div>
 
                   <!-- Content -->
@@ -158,7 +172,7 @@ export const sendVerificationLink = async (email: string, token: string, name?: 
 
                     <div style="margin: 30px 0;">
                       <a href="${verificationUrl}" 
-                         style="background-color: #000; color: #00f3ff; padding: 15px 30px; text-decoration: none; border: 1px solid #00f3ff; font-weight: bold; letter-spacing: 2px; display: inline-block; transition: all 0.3s;">
+                         style="background-color: #000; color: #00f3ff; padding: 15px 30px; text-decoration: none; border: 1px solid #00f3ff; font-weight: bold; letter-spacing: 2px; display: inline-block; transition: all 0.3s; font-family: 'FiraCode Nerd Font', 'JetBrains Mono', 'Courier New', monospace;">
                         VERIFY_SIGNAL
                       </a>
                     </div>
@@ -169,9 +183,19 @@ export const sendVerificationLink = async (email: string, token: string, name?: 
                   </div>
 
                   <!-- Footer -->
-                  <div style="background-color: #0f0f0f; padding: 20px; text-align: center; border-top: 1px solid #333; font-size: 10px; color: #555;">
-                     <p style="margin: 0 0 10px 0;">SECURE_TRANSMISSION</p>
-                     <p style="margin: 0;">IF UNKNOWN, DISREGARD.</p>
+                  <div style="background-color: #0f0f0f; padding: 20px; text-align: left; border-top: 1px solid #333; font-size: 10px; color: #444; font-family: 'FiraCode Nerd Font', 'JetBrains Mono', 'Courier New', monospace;">
+                     <p style="margin: 0 0 10px 0; text-align: center; color: #666;">SECURE_TRANSMISSION</p>
+                     
+                    <div style="margin-top: 20px; border-left: 2px solid #00f3ff; padding-left: 10px; opacity: 0.7;">
+                      <p style="margin: 0 0 5px 0; color: #00f3ff; font-weight: bold;">// THE CONSCIENCE OF A HACKER</p>
+                      <p style="margin: 0 0 5px 0;">This is our world now... the world of the electron and the switch, the beauty of the baud.</p>
+                      <p style="margin: 0 0 5px 0;">We make use of a service already existing without paying for what could be dirt-cheap if it wasn't run by profiteering gluttons, and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">We explore... and you call us criminals. We seek after knowledge... and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">We exist without skin color, without nationality, without religious bias... and you call us criminals.</p>
+                      <p style="margin: 0 0 5px 0;">You build atomic bombs, you wage wars, you murder, cheat, and lie to us and try to make us believe it's for our own good, yet we're the criminals.</p>
+                      <p style="margin: 0 0 5px 0;">Yes, I am a criminal. My crime is that of curiosity. My crime is that of judging people by what they say and think, not what they look like. My crime is that of outsmarting you, something that you will never forgive me for.</p>
+                      <p style="margin: 0; color: #d946ef; text-align: right;">-- The Mentor, 1986</p>
+                    </div>
                   </div>
                 </div>
               </td>
