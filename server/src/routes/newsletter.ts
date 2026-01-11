@@ -22,7 +22,7 @@ router.post('/subscribe', authenticateToken, async (req: AuthRequest, res: Respo
 
     // Send Welcome Email via Resend
     await resend.emails.send({
-      from: 'V-Library <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL || 'V-Library <noreply@mail.softwarepros.org>',
       to: email,
       subject: 'Welcome to the Virtual Library Archives',
       html: `

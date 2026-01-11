@@ -91,7 +91,7 @@ export const sendVerificationLink = async (email: string, token: string, name?: 
     const verificationUrl = `${baseUrl}/verify-email/${token}`;
     
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@virtual-library.com',
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
       to: [email],
       subject: 'Verify Your Email - Virtual Library',
       html: `

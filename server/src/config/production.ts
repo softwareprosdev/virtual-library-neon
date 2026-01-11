@@ -51,7 +51,7 @@ const config = {
   // Email settings
   email: {
     apiKey: process.env.RESEND_API_KEY,
-    fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@yourdomain.com',
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
     hunterApiKey: process.env.HUNTER_API_KEY,
     abstractApiKey: process.env.ABSTRACT_API_KEY
   },

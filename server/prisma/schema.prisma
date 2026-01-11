@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -16,103 +17,103 @@ model User {
 
   ageVerified Boolean?
 
-  emailVerified Boolean @default(false)
-  emailVerificationToken String?
-  emailVerificationCode String?
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?
+  emailVerificationCode    String?
   emailVerificationExpires DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // Admin & Moderation
-  role        UserRole  @default(USER)
-  isBanned    Boolean   @default(false)
-  banReason   String?
-  bannedAt    DateTime?
-  bannedBy    String?
-  warningCount Int      @default(0)
-  lastLoginAt DateTime?
-  lastLoginIp String?
+  role         UserRole  @default(USER)
+  isBanned     Boolean   @default(false)
+  banReason    String?
+  bannedAt     DateTime?
+  bannedBy     String?
+  warningCount Int       @default(0)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
 
-  ownedRooms   Room[]   @relation("RoomHost")
-  messages     Message[] @relation("MessageSender")
-  receivedMessages Message[] @relation("MessageReceiver")
-  books        Book[]
-  participants Participant[]
-  moderators   Moderator[]
-  interactions Interaction[]
-  bookPosts    BookPost[]
+  ownedRooms       Room[]        @relation("RoomHost")
+  messages         Message[]     @relation("MessageSender")
+  receivedMessages Message[]     @relation("MessageReceiver")
+  books            Book[]
+  participants     Participant[]
+  moderators       Moderator[]
+  interactions     Interaction[]
+  bookPosts        BookPost[]
 
   // Gamification & Social
-  points      Int       @default(0)
-  level       Int       @default(1)
-  badges      Badge[]   @relation("UserBadges")
-  followedBy  Follows[] @relation("following")
-  following   Follows[] @relation("follower")
-  activity    Activity[]
-  readingList ReadingList[]
-  profileComments ProfileComment[]
-  profileVisits    ProfileVisit[] @relation("ProfileVisits")
-  receivedProfileVisits ProfileVisit[] @relation("ProfileVisitors")
-  sentProfileComments ProfileComment[] @relation("CommentAuthor")
-  reports     Report[]  @relation("ReportedUser")
-  reportsMade Report[]  @relation("ReportingUser")
-  sentFriendRequests FriendRequest[] @relation("RequestSender")
-  receivedFriendRequests FriendRequest[] @relation("RequestReceiver")
+  points                 Int              @default(0)
+  level                  Int              @default(1)
+  badges                 Badge[]          @relation("UserBadges")
+  followedBy             Follows[]        @relation("following")
+  following              Follows[]        @relation("follower")
+  activity               Activity[]
+  readingList            ReadingList[]
+  profileComments        ProfileComment[]
+  profileVisits          ProfileVisit[]   @relation("ProfileVisits")
+  receivedProfileVisits  ProfileVisit[]   @relation("ProfileVisitors")
+  sentProfileComments    ProfileComment[] @relation("CommentAuthor")
+  reports                Report[]         @relation("ReportedUser")
+  reportsMade            Report[]         @relation("ReportingUser")
+  sentFriendRequests     FriendRequest[]  @relation("RequestSender")
+  receivedFriendRequests FriendRequest[]  @relation("RequestReceiver")
 
   // BookFriendSpace-style Profile Customization
-  bio              String?   @db.Text
-  avatarUrl        String?
-  profileTheme     Json?     // { primaryColor, secondaryColor, backgroundColor, textColor, fontFamily, layout }
-  profileSong      String?   // URL to audio file
-  profileSongTitle String?   // Display name for the song
-  profileBackground String?  // URL to background image
-  customCSS        String?   @db.Text
-  profileViews     Int       @default(0)
-  
+  bio               String? @db.Text
+  avatarUrl         String?
+  profileTheme      Json? // { primaryColor, secondaryColor, backgroundColor, textColor, fontFamily, layout }
+  profileSong       String? // URL to audio file
+  profileSongTitle  String? // Display name for the song
+  profileBackground String? // URL to background image
+  customCSS         String? @db.Text
+  profileViews      Int     @default(0)
+
   // Extended Profile Features
-  displayName      String?   // Custom display name
-  location         String?   // User location
-  website          String?   // Personal website
-  socialLinks      Json?     // { twitter, instagram, github, linkedin, etc }
-  interests        String[]   @default([]) // User interests/tags
-  statusMessage    String?   // Current status/mood
-  profileLayout   String?   @default("default") // default, creative, minimalist, neon
-  isProfilePublic  Boolean  @default(true) // Profile visibility
-  
+  displayName     String? // Custom display name
+  location        String? // User location
+  website         String? // Personal website
+  socialLinks     Json? // { twitter, instagram, github, linkedin, etc }
+  interests       String[] @default([]) // User interests/tags
+  statusMessage   String? // Current status/mood
+  profileLayout   String?  @default("default") // default, creative, minimalist, neon
+  isProfilePublic Boolean  @default(true) // Profile visibility
+
   // Top Friends (BookFriendSpace style - ordered list of friend IDs)
-  topFriends       String[]  @default([])
+  topFriends String[] @default([])
 
   // Social Media Features
-  stories          Story[]
-  storyViews       StoryView[] @relation("StoryViews")
-  storyReactions   StoryReaction[] @relation("StoryReactions")
-  posts            Post[]
-  postLikes        PostLike[] @relation("PostLikes")
-  postComments     PostComment[] @relation("PostComments")
-  postShares       PostShare[] @relation("PostShares")
-  postBookmarks    PostBookmark[] @relation("PostBookmarks")
-  notificationsReceived Notification[] @relation("NotificationsReceived")
-  notificationsSent     Notification[] @relation("NotificationsSent")
-  blockedUsers     UserBlock[] @relation("BlockedUsers")
-  blockedByUsers   UserBlock[] @relation("BlockedByUsers")
+  stories               Story[]
+  storyViews            StoryView[]     @relation("StoryViews")
+  storyReactions        StoryReaction[] @relation("StoryReactions")
+  posts                 Post[]
+  postLikes             PostLike[]      @relation("PostLikes")
+  postComments          PostComment[]   @relation("PostComments")
+  postShares            PostShare[]     @relation("PostShares")
+  postBookmarks         PostBookmark[]  @relation("PostBookmarks")
+  notificationsReceived Notification[]  @relation("NotificationsReceived")
+  notificationsSent     Notification[]  @relation("NotificationsSent")
+  blockedUsers          UserBlock[]     @relation("BlockedUsers")
+  blockedByUsers        UserBlock[]     @relation("BlockedByUsers")
 }
 
 model ReadingList {
-  id        String        @id @default(uuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id])
-  bookId    String?       // Optional link to uploaded book
-  googleId  String        // ID from Google Books API
-  title     String
-  author    String?
-  coverUrl  String?
-  status    ReadingStatus @default(WANT_TO_READ)
-  rating    Int?
-  review    String?
-  startDate DateTime?
+  id         String        @id @default(uuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  bookId     String? // Optional link to uploaded book
+  googleId   String // ID from Google Books API
+  title      String
+  author     String?
+  coverUrl   String?
+  status     ReadingStatus @default(WANT_TO_READ)
+  rating     Int?
+  review     String?
+  startDate  DateTime?
   finishDate DateTime?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@unique([userId, googleId])
 }
@@ -134,23 +135,23 @@ enum UserRole {
 model Follows {
   followerId  String
   followingId String
-  follower    User @relation("follower", fields: [followerId], references: [id])
-  following   User @relation("following", fields: [followingId], references: [id])
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  following   User     @relation("following", fields: [followingId], references: [id])
   assignedAt  DateTime @default(now())
 
   @@id([followerId, followingId])
 }
 
 model FriendRequest {
-  id         String   @id @default(uuid())
+  id         String              @id @default(uuid())
   senderId   String
-  sender     User     @relation("RequestSender", fields: [senderId], references: [id])
+  sender     User                @relation("RequestSender", fields: [senderId], references: [id])
   receiverId String
-  receiver   User     @relation("RequestReceiver", fields: [receiverId], references: [id])
+  receiver   User                @relation("RequestReceiver", fields: [receiverId], references: [id])
   status     FriendRequestStatus @default(PENDING)
   message    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
 
   @@unique([senderId, receiverId])
 }
@@ -174,7 +175,7 @@ model Activity {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  type      String   // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE", "FOLLOW_USER", "UNFOLLOW_USER", "CREATE_POST", "LIKE_POST", "COMMENT_POST", "SEND_FRIEND_REQUEST", "ACCEPT_FRIEND_REQUEST", "DECLINE_FRIEND_REQUEST", "FRIEND_REQUEST_ACCEPTED"
+  type      String // "READ_BOOK", "JOIN_ROOM", "CREATE_ROOM", "EARN_BADGE", "FOLLOW_USER", "UNFOLLOW_USER", "CREATE_POST", "LIKE_POST", "COMMENT_POST", "SEND_FRIEND_REQUEST", "ACCEPT_FRIEND_REQUEST", "DECLINE_FRIEND_REQUEST", "FRIEND_REQUEST_ACCEPTED"
   details   String?
   createdAt DateTime @default(now())
 }
@@ -191,17 +192,17 @@ model Interaction {
 }
 
 model Room {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   hostId      String
-  host        User      @relation("RoomHost", fields: [hostId], references: [id])
+  host        User     @relation("RoomHost", fields: [hostId], references: [id])
   genreId     String?
-  genre       Genre?    @relation(fields: [genreId], references: [id])
-  isLive      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  genre       Genre?   @relation(fields: [genreId], references: [id])
+  isLive      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   messages     Message[]
   books        Book[]
   participants Participant[]
@@ -212,37 +213,33 @@ model Room {
 }
 
 model Transcript {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   text      String
   startTime DateTime
   endTime   DateTime?
   roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
+  room      Room      @relation(fields: [roomId], references: [id])
 }
 
 model Recap {
-  id        String   @id @default(uuid())
-  summary   String
+  id         String   @id @default(uuid())
+  summary    String
   highlights String[] // Array of quotes or key points
-  roomId    String   @unique
-  room      Room     @relation(fields: [roomId], references: [id])
-  createdAt DateTime @default(now())
+  roomId     String   @unique
+  room       Room     @relation(fields: [roomId], references: [id])
+  createdAt  DateTime @default(now())
 }
 
 model Genre {
+  id String @id @default(uuid())
 
-  id          String   @id @default(uuid())
-
-  name        String   @unique
-
-
+  name String @unique
 
   description String?
 
-  rooms       Room[]
+  rooms Room[]
 
   interactions Interaction[]
-
 }
 
 model Participant {
@@ -290,7 +287,7 @@ model ProfileComment {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  authorId  String   // ID of user who wrote the comment
+  authorId  String // ID of user who wrote the comment
   author    User     @relation("CommentAuthor", fields: [authorId], references: [id])
   content   String   @db.Text
   createdAt DateTime @default(now())
@@ -313,51 +310,51 @@ model ProfileVisit {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  text      String
-  senderId  String
-  roomId    String?
+  id         String    @id @default(uuid())
+  text       String
+  senderId   String
+  roomId     String?
   receiverId String?
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-  room      Room?    @relation(fields: [roomId], references: [id])
-  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
-  receiver  User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  room       Room?     @relation(fields: [roomId], references: [id])
+  sender     User      @relation("MessageSender", fields: [senderId], references: [id])
+  receiver   User?     @relation("MessageReceiver", fields: [receiverId], references: [id])
 }
 
 // Book Posts - Users can share books they've written
 model BookPost {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  title       String
-  description String   @db.Text
-  coverUrl    String?
-  purchaseUrl String?  // Link to buy the book
-  previewUrl  String?  // Link to preview/read
-  genre       String?
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  title         String
+  description   String    @db.Text
+  coverUrl      String?
+  purchaseUrl   String? // Link to buy the book
+  previewUrl    String? // Link to preview/read
+  genre         String?
   publishedDate DateTime?
-  likes       Int      @default(0)
-  shares      Int      @default(0)
-  isPinned    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  likes         Int       @default(0)
+  shares        Int       @default(0)
+  isPinned      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 // User Reports for moderation
 model Report {
-  id          String       @id @default(uuid())
-  reporterId  String
-  reporter    User         @relation("ReportingUser", fields: [reporterId], references: [id])
-  reportedId  String
-  reported    User         @relation("ReportedUser", fields: [reportedId], references: [id])
-  reason      String
-  details     String?      @db.Text
-  status      ReportStatus @default(PENDING)
-  resolvedBy  String?
-  resolvedAt  DateTime?
-  resolution  String?
-  createdAt   DateTime     @default(now())
+  id         String       @id @default(uuid())
+  reporterId String
+  reporter   User         @relation("ReportingUser", fields: [reporterId], references: [id])
+  reportedId String
+  reported   User         @relation("ReportedUser", fields: [reportedId], references: [id])
+  reason     String
+  details    String?      @db.Text
+  status     ReportStatus @default(PENDING)
+  resolvedBy String?
+  resolvedAt DateTime?
+  resolution String?
+  createdAt  DateTime     @default(now())
 }
 
 enum ReportStatus {
@@ -371,8 +368,8 @@ enum ReportStatus {
 model AdminLog {
   id        String   @id @default(uuid())
   adminId   String
-  action    String   // BAN_USER, UNBAN_USER, DELETE_POST, etc.
-  targetId  String?  // ID of affected user/content
+  action    String // BAN_USER, UNBAN_USER, DELETE_POST, etc.
+  targetId  String? // ID of affected user/content
   details   String?  @db.Text
   ipAddress String?
   createdAt DateTime @default(now())
@@ -400,19 +397,19 @@ model Analytics {
 
 // Stories - Ephemeral content that expires after 24 hours
 model Story {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mediaUrl    String   // Image or video URL
-  mediaType   String   @default("image") // "image" or "video"
-  caption     String?
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUrl        String // Image or video URL
+  mediaType       String          @default("image") // "image" or "video"
+  caption         String?
   backgroundColor String? // For text-only stories
-  textContent String?  // For text overlay or text-only stories
-  duration    Int      @default(5) // Seconds to display (for video or auto-advance)
-  views       StoryView[]
-  reactions   StoryReaction[]
-  expiresAt   DateTime // Auto-calculated to 24 hours from creation
-  createdAt   DateTime @default(now())
+  textContent     String? // For text overlay or text-only stories
+  duration        Int             @default(5) // Seconds to display (for video or auto-advance)
+  views           StoryView[]
+  reactions       StoryReaction[]
+  expiresAt       DateTime // Auto-calculated to 24 hours from creation
+  createdAt       DateTime        @default(now())
 
   @@index([userId])
   @@index([expiresAt])
@@ -435,7 +432,7 @@ model StoryReaction {
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation("StoryReactions", fields: [userId], references: [id], onDelete: Cascade)
-  emoji     String   // Emoji reaction
+  emoji     String // Emoji reaction
   createdAt DateTime @default(now())
 
   @@unique([storyId, userId])
@@ -443,24 +440,24 @@ model StoryReaction {
 
 // Posts - General social media posts
 model Post {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content     String   @db.Text
-  mediaUrls   String[] @default([]) // Array of image/video URLs
-  mediaTypes  String[] @default([]) // Corresponding types for each media
-  hashtags    String[] @default([])
-  mentions    String[] @default([]) // User IDs mentioned
-  visibility  PostVisibility @default(PUBLIC)
-  isEdited    Boolean  @default(false)
-  editedAt    DateTime?
-  isPinned    Boolean  @default(false)
-  likes       PostLike[]
-  comments    PostComment[]
-  shares      PostShare[]
-  bookmarks   PostBookmark[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String         @id @default(uuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    String         @db.Text
+  mediaUrls  String[]       @default([]) // Array of image/video URLs
+  mediaTypes String[]       @default([]) // Corresponding types for each media
+  hashtags   String[]       @default([])
+  mentions   String[]       @default([]) // User IDs mentioned
+  visibility PostVisibility @default(PUBLIC)
+  isEdited   Boolean        @default(false)
+  editedAt   DateTime?
+  isPinned   Boolean        @default(false)
+  likes      PostLike[]
+  comments   PostComment[]
+  shares     PostShare[]
+  bookmarks  PostBookmark[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@index([userId])
   @@index([createdAt])
@@ -484,18 +481,18 @@ model PostLike {
 }
 
 model PostComment {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation("PostComments", fields: [userId], references: [id], onDelete: Cascade)
-  content   String   @db.Text
-  parentId  String?  // For nested replies
-  parent    PostComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  user      User          @relation("PostComments", fields: [userId], references: [id], onDelete: Cascade)
+  content   String        @db.Text
+  parentId  String? // For nested replies
+  parent    PostComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   PostComment[] @relation("CommentReplies")
-  likes     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  likes     Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@index([postId])
   @@index([parentId])
@@ -507,7 +504,7 @@ model PostShare {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation("PostShares", fields: [userId], references: [id], onDelete: Cascade)
-  comment   String?  // Optional quote/comment with share
+  comment   String? // Optional quote/comment with share
   createdAt DateTime @default(now())
 
   @@index([postId])
@@ -527,18 +524,18 @@ model PostBookmark {
 
 // Notifications - Centralized notification system
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String   // User who receives the notification
-  user        User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
-  actorId     String?  // User who triggered the notification
-  actor       User?    @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
-  type        NotificationType
-  title       String
-  body        String
-  data        Json?    // Additional data (postId, storyId, etc.)
-  isRead      Boolean  @default(false)
-  readAt      DateTime?
-  createdAt   DateTime @default(now())
+  id        String           @id @default(uuid())
+  userId    String // User who receives the notification
+  user      User             @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String? // User who triggered the notification
+  actor     User?            @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json? // Additional data (postId, storyId, etc.)
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
 
   @@index([userId, isRead])
   @@index([createdAt])
@@ -573,12 +570,12 @@ model Hashtag {
 
 // User blocks for content moderation
 model UserBlock {
-  id          String   @id @default(uuid())
-  blockerId   String
-  blocker     User     @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
-  blockedId   String
-  blocked     User     @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("BlockedUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedByUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@unique([blockerId, blockedId])
 }

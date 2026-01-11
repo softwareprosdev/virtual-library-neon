@@ -125,7 +125,7 @@ router.post('/register-legacy', registerLimiter as any, async (req: Request, res
       const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
       
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        from: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
         to: [email],
         subject: 'Verify your Virtual Library account',
         html: `
@@ -343,7 +343,7 @@ router.post('/resend-verification', async (req: Request, res: Response): Promise
       const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
       
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        from: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
         to: [email],
         subject: 'Verify your Virtual Library account',
         html: `

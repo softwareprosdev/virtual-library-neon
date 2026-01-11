@@ -33,6 +33,12 @@ import path from 'path';
 
 dotenv.config();
 
+// Ensure correct sender email is used (fix for placeholder)
+if (!process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL === 'noreply@yourdomain.com') {
+  process.env.RESEND_FROM_EMAIL = 'noreply@mail.softwarepros.org';
+  console.log('[Config] Enforcing RESEND_FROM_EMAIL:', process.env.RESEND_FROM_EMAIL);
+}
+
 // Fail fast if JWT_SECRET is missing
 if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET is not defined in environment variables.');
