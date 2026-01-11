@@ -81,16 +81,21 @@ export default function EpubReader({ url, title }: EpubReaderProps) {
         setError(null);
 
         // Determine if we need to proxy the URL (for CORS)
-        let bookUrl = url;
+        let bookInput: string | ArrayBuffer = url;
+        
         if (url.startsWith('http') && !url.includes(window.location.hostname)) {
            const isProduction = process.env.NODE_ENV === 'production';
            const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isProduction ? 'https://api.indexbin.com/api' : 'http://localhost:4000/api');
-           bookUrl = `${apiUrl}/proxy?url=${encodeURIComponent(url)}`;
-           console.log('Using proxy for external book:', bookUrl);
+           const proxyUrl = `${apiUrl}/proxy?url=${encodeURIComponent(url)}`;
+           
+           console.log('Fetching book via proxy:', proxyUrl);
+           const response = await fetch(proxyUrl);
+           if (!response.ok) throw new Error(`Failed to fetch book via proxy: ${response.statusText}`);
+           bookInput = await response.arrayBuffer();
         }
 
         // Create book
-        const book = ePub(bookUrl);
+        const book = ePub(bookInput);
         bookRef.current = book;
 
         // Render book
