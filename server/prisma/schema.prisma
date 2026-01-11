@@ -100,6 +100,14 @@ model User {
   // Marketplace
   listings              MarketplaceListing[] @relation("UserListings")
   savedListings         MarketplaceSave[]    @relation("UserSavedListings")
+
+  // Short-form Video (TikTok-style)
+  videos                Video[]              @relation("UserVideos")
+  videoLikes            VideoLike[]          @relation("VideoLikes")
+  videoComments         VideoComment[]       @relation("VideoComments")
+  videoShares           VideoShare[]         @relation("VideoShares")
+  videoBookmarks        VideoBookmark[]      @relation("VideoBookmarks")
+  userInterests         UserInterest[]
 }
 
 model ReadingList {
@@ -571,6 +579,12 @@ enum NotificationType {
   ROOM_INVITE
   BADGE_EARNED
   SYSTEM
+  // Video notifications
+  VIDEO_LIKE
+  VIDEO_COMMENT
+  VIDEO_MENTION
+  VIDEO_DUET
+  VIDEO_STITCH
 }
 
 // Hashtag tracking for discovery
@@ -648,4 +662,183 @@ model MarketplaceSave {
   createdAt DateTime           @default(now())
 
   @@unique([userId, listingId])
+}
+
+// ============================================
+// SHORT-FORM VIDEO (TikTok-Style)
+// ============================================
+
+// Video content model
+model Video {
+  id              String                @id @default(uuid())
+  userId          String
+  user            User                  @relation("UserVideos", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Video metadata
+  videoUrl        String                // Processed video URL (S3)
+  thumbnailUrl    String?               // Auto-generated thumbnail
+  duration        Int                   // Duration in seconds
+  aspectRatio     String                @default("9:16") // 9:16, 16:9, 1:1
+  width           Int?
+  height          Int?
+
+  // Content
+  caption         String?               @db.Text
+  hashtags        String[]              @default([])
+  mentions        String[]              @default([]) // User IDs mentioned
+
+  // Sound/Music
+  soundId         String?
+  sound           Sound?                @relation(fields: [soundId], references: [id])
+  originalAudio   Boolean               @default(true)
+
+  // Engagement
+  likes           VideoLike[]
+  comments        VideoComment[]
+  shares          VideoShare[]
+  bookmarks       VideoBookmark[]
+  views           VideoView[]
+
+  // Duet/Stitch collaborative features
+  duetSourceId    String?
+  duetSource      Video?                @relation("Duets", fields: [duetSourceId], references: [id])
+  duets           Video[]               @relation("Duets")
+  stitchSourceId  String?
+  stitchSource    Video?                @relation("Stitches", fields: [stitchSourceId], references: [id])
+  stitches        Video[]               @relation("Stitches")
+
+  // Settings
+  visibility      PostVisibility        @default(PUBLIC)
+  allowDuet       Boolean               @default(true)
+  allowStitch     Boolean               @default(true)
+  allowComments   Boolean               @default(true)
+
+  // Processing status
+  processingStatus VideoProcessingStatus @default(PENDING)
+  processingError  String?
+
+  // FYP Algorithm Data
+  categoryScores   Json?                 // ML-generated category scores
+  engagementScore  Float                 @default(0)
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([userId])
+  @@index([soundId])
+  @@index([createdAt])
+  @@index([engagementScore])
+  @@index([processingStatus])
+}
+
+enum VideoProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Sound/Music model for videos
+model Sound {
+  id              String    @id @default(uuid())
+  title           String
+  artistName      String?
+  coverUrl        String?
+  audioUrl        String
+  duration        Int       // Duration in seconds
+  isOriginal      Boolean   @default(false)
+  originalVideoId String?   // If extracted from a video
+  usageCount      Int       @default(0)
+  isTrending      Boolean   @default(false)
+  videos          Video[]
+  createdAt       DateTime  @default(now())
+
+  @@index([usageCount])
+  @@index([isTrending])
+  @@index([title])
+}
+
+model VideoLike {
+  id        String   @id @default(uuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("VideoLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([videoId])
+  @@index([userId])
+}
+
+model VideoComment {
+  id        String          @id @default(uuid())
+  videoId   String
+  video     Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation("VideoComments", fields: [userId], references: [id], onDelete: Cascade)
+  content   String          @db.Text
+  parentId  String?
+  parent    VideoComment?   @relation("VideoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   VideoComment[]  @relation("VideoCommentReplies")
+  likes     Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([videoId])
+  @@index([parentId])
+}
+
+model VideoShare {
+  id        String   @id @default(uuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("VideoShares", fields: [userId], references: [id], onDelete: Cascade)
+  platform  String?  // twitter, facebook, copy, internal, etc.
+  createdAt DateTime @default(now())
+
+  @@index([videoId])
+  @@index([userId])
+}
+
+model VideoBookmark {
+  id        String   @id @default(uuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("VideoBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([userId])
+}
+
+model VideoView {
+  id          String    @id @default(uuid())
+  videoId     String
+  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId      String?
+  viewerIp    String?   // For anonymous views
+  watchTime   Int       @default(0) // Seconds watched
+  completed   Boolean   @default(false) // Whether video was watched to completion
+  createdAt   DateTime  @default(now())
+
+  @@index([videoId])
+  @@index([userId])
+}
+
+// User interest model for FYP recommendations
+model UserInterest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String   // e.g., "comedy", "education", "books", "cooking", "music"
+  score     Float    @default(0) // -1 to 1, updated by engagement
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, category])
+  @@index([userId])
+  @@index([score])
 }

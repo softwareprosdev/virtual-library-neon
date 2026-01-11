@@ -225,13 +225,101 @@ export const setupSocket = async (io: Server) => {
 
     socket.on('markNotificationsRead', async () => {
       if (!socket.user?.id) return;
-      
+
       try {
         // Mark notifications as read (would implement notification model)
         io.to(`user:${socket.user.id}`).emit('notificationsRead');
       } catch (error) {
         console.error('Error marking notifications read:', error);
       }
+    });
+
+    // ============================================
+    // VIDEO SOCKET EVENTS
+    // ============================================
+
+    // Join video feed room for real-time updates
+    socket.on('joinVideoFeed', async () => {
+      if (!socket.user?.id) return;
+      socket.join('video-feed');
+    });
+
+    // Leave video feed room
+    socket.on('leaveVideoFeed', async () => {
+      if (!socket.user?.id) return;
+      socket.leave('video-feed');
+    });
+
+    // Broadcast new video to feed
+    socket.on('newVideo', async ({ videoId }) => {
+      if (!socket.user?.id) return;
+
+      try {
+        const video = await prisma.video.findUnique({
+          where: { id: videoId },
+          include: {
+            user: {
+              select: { id: true, name: true, displayName: true, avatarUrl: true }
+            },
+            sound: {
+              select: { id: true, title: true, artistName: true, coverUrl: true }
+            },
+            _count: {
+              select: { likes: true, comments: true, shares: true, views: true }
+            }
+          }
+        });
+
+        if (video) {
+          // Broadcast to users following this creator
+          const followers = await prisma.follows.findMany({
+            where: { followingId: socket.user.id },
+            select: { followerId: true }
+          });
+
+          followers.forEach(f => {
+            io.to(`user:${f.followerId}`).emit('newVideoFromFollowing', video);
+          });
+
+          // Also broadcast to general feed
+          io.to('video-feed').emit('newVideo', video);
+        }
+      } catch (error) {
+        console.error('Error broadcasting new video:', error);
+      }
+    });
+
+    // Real-time video engagement updates
+    socket.on('videoLiked', async ({ videoId, liked }) => {
+      if (!socket.user?.id) return;
+
+      io.to('video-feed').emit('videoEngagementUpdate', {
+        videoId,
+        type: 'like',
+        userId: socket.user.id,
+        liked
+      });
+    });
+
+    socket.on('videoCommented', async ({ videoId, comment }) => {
+      if (!socket.user?.id) return;
+
+      io.to('video-feed').emit('videoEngagementUpdate', {
+        videoId,
+        type: 'comment',
+        userId: socket.user.id,
+        comment
+      });
+    });
+
+    socket.on('videoShared', async ({ videoId }) => {
+      if (!socket.user?.id) return;
+
+      io.to('video-feed').emit('videoEngagementUpdate', {
+        videoId,
+        type: 'share',
+        userId: socket.user.id
+      });
     });
 
     socket.on('disconnect', async () => {

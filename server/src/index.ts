@@ -30,6 +30,8 @@ import postsRoutes from './routes/posts';
 import notificationsRoutes from './routes/notifications';
 import proxyRoutes from './routes/proxy';
 import marketplaceRoutes from './routes/marketplace';
+import videosRoutes from './routes/videos';
+import soundsRoutes from './routes/sounds';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -270,6 +272,10 @@ app.use('/api/proxy', proxyRoutes);
 app.use('/proxy', proxyRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/marketplace', marketplaceRoutes);
+app.use('/api/videos', videosRoutes);
+app.use('/videos', videosRoutes);
+app.use('/api/sounds', soundsRoutes);
+app.use('/sounds', soundsRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
