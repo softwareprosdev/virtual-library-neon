@@ -266,6 +266,7 @@ app.use('/posts', postsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/api/proxy', proxyRoutes);
+app.use('/proxy', proxyRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/marketplace', marketplaceRoutes);
 
