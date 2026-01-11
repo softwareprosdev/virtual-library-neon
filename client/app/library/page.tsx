@@ -162,13 +162,19 @@ export default function LibraryPage() {
 
   const handleRead = (book: Book) => {
     if (!book.fileUrl) return;
-    
-    if (book.fileUrl.startsWith('http')) {
-      window.open(book.fileUrl, '_blank');
+
+    // Determine file type from URL
+    const isEpub = book.fileUrl.toLowerCase().endsWith('.epub');
+    const fileUrl = book.fileUrl.startsWith('http')
+      ? book.fileUrl
+      : `${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000'}${book.fileUrl}`;
+
+    if (isEpub) {
+      // Use EPUB reader
+      router.push(`/reader?url=${encodeURIComponent(fileUrl)}&title=${encodeURIComponent(book.title)}`);
     } else {
-      // Local upload
-      const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
-      window.open(`${baseUrl}${book.fileUrl}`, '_blank');
+      // Use PDF reader (navigate to read page with book id)
+      router.push(`/read/${book.id}`);
     }
   };
 
@@ -215,7 +221,7 @@ export default function LibraryPage() {
                     <DialogHeader>
                         <DialogTitle>Upload New Book</DialogTitle>
                         <DialogDescription>
-                            Add a new book to your library. Supported formats: PDF.
+                            Add a new book to your library. Supported formats: PDF, EPUB.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -238,12 +244,12 @@ export default function LibraryPage() {
                             />
                         </div>
                          <div className="grid gap-2">
-                            <label htmlFor="file" className="text-sm font-medium">Book File (PDF)</label>
-                            <Input 
-                                id="file" 
-                                type="file" 
-                                accept=".pdf"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)} 
+                            <label htmlFor="file" className="text-sm font-medium">Book File (PDF or EPUB)</label>
+                            <Input
+                                id="file"
+                                type="file"
+                                accept=".pdf,.epub"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)}
                             />
                         </div>
                     </div>

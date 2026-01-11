@@ -48,6 +48,7 @@ import {
   Send
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { formatDistanceToNow } from 'date-fns';
 
 interface BookPost {
@@ -152,7 +153,12 @@ export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentUserId(getUser()?.id || null);
+  }, []);
+
   const isOwnProfile = currentUserId === userId;
 
   const [user, setUser] = useState<ProfileUser | null>(null);

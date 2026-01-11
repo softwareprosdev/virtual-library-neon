@@ -29,6 +29,7 @@ import storiesRoutes from './routes/stories';
 import postsRoutes from './routes/posts';
 import notificationsRoutes from './routes/notifications';
 import proxyRoutes from './routes/proxy';
+import marketplaceRoutes from './routes/marketplace';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -265,6 +266,7 @@ app.use('/posts', postsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/api/proxy', proxyRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);

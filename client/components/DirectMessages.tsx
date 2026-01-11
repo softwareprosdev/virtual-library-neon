@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { useSocket } from '@/hooks/useSocket';
 
 interface User {
@@ -53,9 +54,13 @@ export default function DirectMessages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+
+  useEffect(() => {
+    setCurrentUserId(getUser()?.id || null);
+  }, []);
 
   useEffect(() => {
     fetchConversations();

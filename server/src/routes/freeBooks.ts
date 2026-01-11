@@ -62,17 +62,47 @@ router.get('/gutenberg', authenticateToken, async (req: AuthRequest, res: Respon
 // Open Library API
 router.get('/openlibrary', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { search, page = '1', limit = '20' } = req.query;
+    const { search, page = '1', limit = '20', subject } = req.query;
     const pageNum = Math.max(1, parseInt(page as string) || 1);
     const limitNum = Math.max(1, parseInt(limit as string) || 20);
+    const offset = (pageNum - 1) * limitNum;
 
+    let url: string;
+
+    // If no search provided, return trending/featured books by subject
     if (!search) {
-      res.status(400).json({ message: 'Search query is required' });
+      const defaultSubject = (subject as string) || 'fiction';
+      url = `https://openlibrary.org/subjects/${encodeURIComponent(defaultSubject)}.json?limit=${limitNum}&offset=${offset}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Open Library API failed: ${response.status} ${response.statusText}`);
+        res.status(response.status).json({ message: 'Failed to fetch from Open Library' });
+        return;
+      }
+
+      const data = await response.json();
+      res.json({
+        books: data.works?.map((book: any) => ({
+          id: `openlibrary-${book.key}`,
+          title: book.title,
+          authors: book.authors?.map((a: any) => a.name) || ['Unknown'],
+          publishYear: book.first_publish_year,
+          coverImage: book.cover_id
+            ? `https://covers.openlibrary.org/b/id/${book.cover_id}-L.jpg`
+            : null,
+          openLibraryId: book.key,
+          hasFulltext: book.has_fulltext || false,
+          ia: book.ia,
+          source: 'openlibrary'
+        })) || [],
+        totalFound: data.work_count || 0,
+        start: offset
+      });
       return;
     }
 
-    const offset = (pageNum - 1) * limitNum;
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(search as string)}&limit=${limitNum}&offset=${offset}`;
+    url = `https://openlibrary.org/search.json?q=${encodeURIComponent(search as string)}&limit=${limitNum}&offset=${offset}`;
 
     const response = await fetch(url);
     

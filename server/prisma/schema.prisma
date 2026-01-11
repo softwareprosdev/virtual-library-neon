@@ -96,6 +96,10 @@ model User {
   notificationsSent     Notification[]  @relation("NotificationsSent")
   blockedUsers          UserBlock[]     @relation("BlockedUsers")
   blockedByUsers        UserBlock[]     @relation("BlockedByUsers")
+
+  // Marketplace
+  listings              MarketplaceListing[] @relation("UserListings")
+  savedListings         MarketplaceSave[]    @relation("UserSavedListings")
 }
 
 model ReadingList {
@@ -578,4 +582,58 @@ model UserBlock {
   createdAt DateTime @default(now())
 
   @@unique([blockerId, blockedId])
+}
+
+// ============================================
+// MARKETPLACE
+// ============================================
+
+model MarketplaceListing {
+  id          String            @id @default(uuid())
+  sellerId    String
+  seller      User              @relation("UserListings", fields: [sellerId], references: [id], onDelete: Cascade)
+  title       String
+  description String            @db.Text
+  price       Float
+  currency    String            @default("USD")
+  condition   ListingCondition  @default(GOOD)
+  category    String
+  images      String[]          @default([])
+  location    String?
+  status      ListingStatus     @default(ACTIVE)
+  viewCount   Int               @default(0)
+  savedBy     MarketplaceSave[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ListingCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  RESERVED
+  DELETED
+}
+
+model MarketplaceSave {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation("UserSavedListings", fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+
+  @@unique([userId, listingId])
 }

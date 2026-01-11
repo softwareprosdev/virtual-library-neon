@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home, ShoppingBag } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout, getUser } from '../lib/auth';
 import NotificationCenter from './NotificationCenter';
@@ -26,15 +26,13 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
   }, []);
 
   const menuItems = [
-    { text: 'Feed', path: '/feed', icon: Home },
+    { text: 'Home', path: '/feed', icon: Home },
+    { text: 'Explore', path: '/explore', icon: Compass },
+    { text: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
     { text: 'Messages', path: '/messages', icon: MessageSquare },
-    { text: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { text: 'Free Books', path: '/free-books', icon: BookOpen },
-    { text: 'Browse', path: '/browse', icon: Compass },
     { text: 'Community', path: '/community', icon: Users },
-    { text: 'Reading Log', path: '/reading-list', icon: Bookmark },
-    { text: 'My Uploads', path: '/library', icon: Library },
-    { text: 'Profile', path: userId ? `/profile/${userId}` : '/dashboard', icon: UserCircle },
+    { text: 'My Library', path: '/library', icon: Library },
+    { text: 'Profile', path: userId ? `/profile/${userId}` : '/feed', icon: UserCircle },
   ];
 
   const toggleMobileMenu = () => {

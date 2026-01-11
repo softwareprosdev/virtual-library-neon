@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import prisma from '../db';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
+import { validateUUID } from '../middleware/validation';
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -130,6 +131,13 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
 router.get('/:id', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    // Validate UUID format before database query
+    if (!validateUUID(id as string)) {
+      res.status(400).json({ message: "Invalid room ID format" });
+      return;
+    }
+
     const room = await prisma.room.findUnique({
       where: { id },
       include: {

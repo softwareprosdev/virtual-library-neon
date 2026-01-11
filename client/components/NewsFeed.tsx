@@ -1,23 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MessageSquare, 
-  BookOpen, 
-  Users, 
-  Star, 
-  Heart, 
+import {
+  MessageSquare,
+  BookOpen,
+  Users,
+  Star,
+  Heart,
   Share2,
   Eye,
   Link as LinkIcon,
-  Clock
+  Clock,
+  Bell
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
+import { useSocket } from '@/hooks/useSocket';
 import Link from 'next/link';
 
 interface Activity {
@@ -68,12 +70,10 @@ export default function NewsFeed({ userId }: NewsFeedProps) {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newItemsCount, setNewItemsCount] = useState(0);
+  const { socket, isConnected } = useSocket();
 
-  useEffect(() => {
-    fetchFeed();
-  }, [userId]);
-
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -101,6 +101,75 @@ export default function NewsFeed({ userId }: NewsFeedProps) {
     } finally {
       setLoading(false);
     }
+  }, [userId]);
+
+  // Fetch feed on mount and when userId changes
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  // Real-time updates via Socket.io
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for new feed items
+    const handleNewFeedItem = (item: FeedItem) => {
+      setFeed(prev => {
+        // Check if item already exists
+        if (prev.some(existing => existing.id === item.id)) {
+          return prev;
+        }
+        setNewItemsCount(count => count + 1);
+        return [item, ...prev];
+      });
+    };
+
+    // Listen for feed item updates (likes, etc.)
+    const handleFeedItemUpdated = (updatedItem: FeedItem) => {
+      setFeed(prev =>
+        prev.map(item => (item.id === updatedItem.id ? updatedItem : item))
+      );
+    };
+
+    // Listen for new activities
+    const handleNewActivity = (activity: Activity) => {
+      const feedItem: FeedItem = {
+        id: `activity-${activity.id}`,
+        type: 'activity',
+        data: activity,
+        createdAt: activity.createdAt
+      };
+      handleNewFeedItem(feedItem);
+    };
+
+    // Listen for new book posts
+    const handleNewBookPost = (post: BookPost) => {
+      const feedItem: FeedItem = {
+        id: `book-${post.id}`,
+        type: 'book_post',
+        data: post,
+        createdAt: post.createdAt
+      };
+      handleNewFeedItem(feedItem);
+    };
+
+    socket.on('newFeedItem', handleNewFeedItem);
+    socket.on('feedItemUpdated', handleFeedItemUpdated);
+    socket.on('newActivity', handleNewActivity);
+    socket.on('newBookPost', handleNewBookPost);
+
+    return () => {
+      socket.off('newFeedItem', handleNewFeedItem);
+      socket.off('feedItemUpdated', handleFeedItemUpdated);
+      socket.off('newActivity', handleNewActivity);
+      socket.off('newBookPost', handleNewBookPost);
+    };
+  }, [socket]);
+
+  // Clear new items notification when scrolled to top
+  const handleShowNewItems = () => {
+    setNewItemsCount(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getActivityIcon = (type: string) => {
@@ -369,6 +438,25 @@ export default function NewsFeed({ userId }: NewsFeedProps) {
 
   return (
     <div className="space-y-4">
+      {/* New items notification banner */}
+      {newItemsCount > 0 && (
+        <Button
+          onClick={handleShowNewItems}
+          className="w-full bg-primary/90 hover:bg-primary animate-pulse"
+        >
+          <Bell className="w-4 h-4 mr-2" />
+          {newItemsCount} new {newItemsCount === 1 ? 'update' : 'updates'} - Click to view
+        </Button>
+      )}
+
+      {/* Connection status indicator */}
+      {isConnected && (
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          Live updates enabled
+        </div>
+      )}
+
       {feed.map(renderFeedItem)}
     </div>
   );

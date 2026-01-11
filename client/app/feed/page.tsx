@@ -1,24 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import React from 'react';
 import MainLayout from '@/components/MainLayout';
 import NewsFeed from '@/components/NewsFeed';
+import PostComposer from '@/components/PostComposer';
+import { StoriesBar } from '@/components/Stories';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare, 
-  Users, 
-  TrendingUp, 
+import {
+  MessageSquare,
+  Users,
+  TrendingUp,
   BookmarkIcon,
   RefreshCw
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { getUser } from '@/lib/auth';
 
 export default function FeedPage() {
   const [activeTab, setActiveTab] = useState('following');
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentUserId(getUser()?.id || null);
+  }, []);
 
   const refreshFeed = () => {
     // Trigger a re-render of the NewsFeed component
@@ -59,9 +66,15 @@ export default function FeedPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="following" className="mt-6">
+          <TabsContent value="following" className="mt-6 space-y-6">
+            {/* Stories */}
+            <StoriesBar />
+
             {currentUserId ? (
-              <NewsFeed userId={currentUserId} />
+              <>
+                <PostComposer onPostCreated={refreshFeed} />
+                <NewsFeed userId={currentUserId} />
+              </>
             ) : (
               <Card>
                 <CardContent className="p-6 text-center">
@@ -70,7 +83,7 @@ export default function FeedPage() {
                   <p className="text-muted-foreground mb-4">
                     Follow users to see their latest updates and activities
                   </p>
-                  <Button>Sign In</Button>
+                  <Button onClick={() => window.location.href = '/'}>Sign In</Button>
                 </CardContent>
               </Card>
             )}
