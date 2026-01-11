@@ -28,6 +28,7 @@ import directMessageRoutes from './routes/directMessages';
 import storiesRoutes from './routes/stories';
 import postsRoutes from './routes/posts';
 import notificationsRoutes from './routes/notifications';
+import proxyRoutes from './routes/proxy';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -263,6 +264,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/posts', postsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/notifications', notificationsRoutes);
+app.use('/api/proxy', proxyRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
