@@ -16,7 +16,8 @@ const router = Router();
 
 // Configure Storage (S3 or Local)
 const isS3Enabled = !!process.env.AWS_S3_BUCKET;
-let storage: multer.StorageEngine;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let storage: any;
 
 if (isS3Enabled) {
   const s3Config: {
@@ -368,7 +369,7 @@ router.get('/favorites/list', authenticateToken, async (req: AuthRequest, res: R
     }, {} as Record<string, number>);
 
     const sortedSoundIds = Object.entries(soundCounts)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
       .slice(0, 20)
       .map(([id]) => id);
 

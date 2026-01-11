@@ -7,6 +7,7 @@ import { logSecurityEvent } from '../middleware/monitoring';
 export interface JWTPayload {
   id: string;
   email: string;
+  name?: string;
   iat?: number;
   exp?: number;
 }

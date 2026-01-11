@@ -15,9 +15,16 @@ interface AuthRequestWithFile extends AuthRequest {
 
 const router = Router();
 
+// Helper to ensure videoId is a string
+const getVideoId = (req: Request): string => {
+  const { videoId } = req.params;
+  return Array.isArray(videoId) ? videoId[0] : videoId;
+};
+
 // Configure Storage (S3 or Local)
 const isS3Enabled = !!process.env.AWS_S3_BUCKET;
-let storage: multer.StorageEngine;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let storage: any;
 
 if (isS3Enabled) {
   const s3Config: {
@@ -364,143 +371,11 @@ router.get('/:videoId', authenticateToken, async (req: AuthRequest, res: Respons
       return;
     }
 
-    const { videoId } = req.params;
+const { videoId } = req.params;
+    const videoIdStr = Array.isArray(videoId) ? videoId[0] : videoId;
 
     const video = await prisma.video.findUnique({
-      where: { id: videoId },
-      include: {
-        user: {
-          select: { id: true, name: true, displayName: true, avatarUrl: true }
-        },
-        sound: {
-          select: { id: true, title: true, artistName: true, coverUrl: true, audioUrl: true }
-        },
-        duetSource: {
-          select: { id: true, user: { select: { id: true, name: true, displayName: true } } }
-        },
-        stitchSource: {
-          select: { id: true, user: { select: { id: true, name: true, displayName: true } } }
-        },
-        likes: {
-          where: { userId: req.user.id },
-          select: { id: true }
-        },
-        bookmarks: {
-          where: { userId: req.user.id },
-          select: { id: true }
-        },
-        _count: {
-          select: { likes: true, comments: true, shares: true, views: true, duets: true, stitches: true }
-        }
-      }
-    });
-
-    if (!video) {
-      res.status(404).json({ message: 'Video not found' });
-      return;
-    }
-
-    res.json({
-      ...video,
-      isLiked: video.likes.length > 0,
-      isBookmarked: video.bookmarks.length > 0,
-      likeCount: video._count.likes,
-      commentCount: video._count.comments,
-      shareCount: video._count.shares,
-      viewCount: video._count.views,
-      duetCount: video._count.duets,
-      stitchCount: video._count.stitches
-    });
-  } catch (error) {
-    console.error('Get video error:', error);
-    res.status(500).json({ message: 'Failed to get video' });
-  }
-});
-
-// Get user's videos
-router.get('/user/:userId', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    const { userId } = req.params;
-    const { cursor, limit = '12' } = req.query;
-    const take = parseInt(limit as string);
-
-    const isOwnProfile = userId === req.user.id;
-    const isFollowing = await prisma.follows.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: req.user.id,
-          followingId: userId
-        }
-      }
-    });
-
-    const visibilityFilter = isOwnProfile
-      ? {}
-      : isFollowing
-        ? { visibility: { in: ['PUBLIC', 'FOLLOWERS_ONLY'] as const } }
-        : { visibility: 'PUBLIC' as const };
-
-    const videos = await prisma.video.findMany({
-      where: {
-        userId,
-        processingStatus: 'COMPLETED',
-        ...visibilityFilter
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, displayName: true, avatarUrl: true }
-        },
-        likes: {
-          where: { userId: req.user.id },
-          select: { id: true }
-        },
-        _count: {
-          select: { likes: true, comments: true, views: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: take + 1,
-      ...(cursor && { cursor: { id: cursor as string }, skip: 1 })
-    });
-
-    const hasMore = videos.length > take;
-    const userVideos = hasMore ? videos.slice(0, -1) : videos;
-
-    const result = userVideos.map(video => ({
-      ...video,
-      isLiked: video.likes.length > 0,
-      likeCount: video._count.likes,
-      commentCount: video._count.comments,
-      viewCount: video._count.views
-    }));
-
-    res.json({
-      videos: result,
-      nextCursor: hasMore ? userVideos[userVideos.length - 1]?.id : null
-    });
-  } catch (error) {
-    console.error('Get user videos error:', error);
-    res.status(500).json({ message: 'Failed to get videos' });
-  }
-});
-
-// Like a video
-router.post('/:videoId/like', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Unauthorized' });
-      return;
-    }
-
-    const { videoId } = req.params;
-
-    const video = await prisma.video.findUnique({
-      where: { id: videoId }
+      where: { id: videoIdStr }
     });
 
     if (!video) {
@@ -524,7 +399,7 @@ router.post('/:videoId/like', authenticateToken, async (req: AuthRequest, res: R
       });
 
       // Update engagement score
-      await updateVideoEngagementScore(videoId);
+      await updateVideoEngagementScore(getVideoId(req));
 
       res.json({ liked: false });
     } else {
@@ -540,7 +415,7 @@ router.post('/:videoId/like', authenticateToken, async (req: AuthRequest, res: R
       await updateUserInterests(req.user.id, video.hashtags, 0.1);
 
       // Update engagement score
-      await updateVideoEngagementScore(videoId);
+      await updateVideoEngagementScore(getVideoId(req));
 
       // Create notification
       if (video.userId !== req.user.id) {
@@ -609,7 +484,7 @@ router.post('/:videoId/comment', authenticateToken, async (req: AuthRequest, res
     });
 
     // Update engagement score
-    await updateVideoEngagementScore(videoId);
+    await updateVideoEngagementScore(getVideoId(req));
 
     // Create notification
     if (video.userId !== req.user.id) {
@@ -716,7 +591,7 @@ router.post('/:videoId/share', authenticateToken, async (req: AuthRequest, res: 
     });
 
     // Update engagement score
-    await updateVideoEngagementScore(videoId);
+    await updateVideoEngagementScore(getVideoId(req));
 
     res.json({ shared: true });
   } catch (error) {
@@ -792,11 +667,11 @@ router.post('/:videoId/view', authenticateToken, async (req: AuthRequest, res: R
     // Update user interests based on watch time
     if (req.user && watchTime > 5) {
       const score = Math.min(watchTime / video.duration, 1) * 0.2;
-      await updateUserInterests(req.user.id, video.hashtags, score);
+      await updateUserInterests(req.user.id, video.hashtags as string[], score);
     }
 
     // Update engagement score
-    await updateVideoEngagementScore(videoId);
+    await updateVideoEngagementScore(getVideoId(req));
 
     res.json({ viewed: true });
   } catch (error) {
@@ -1372,7 +1247,8 @@ router.get('/mux/upload-status/:uploadId', authenticateToken, async (req: AuthRe
     }
 
     const { uploadId } = req.params;
-    const status = await muxService.getUploadStatus(uploadId);
+    const uploadIdStr = Array.isArray(uploadId) ? uploadId[0] : uploadId;
+    const status = await muxService.getUploadStatus(uploadIdStr);
     res.json(status);
   } catch (error) {
     console.error('Error checking upload status:', error);

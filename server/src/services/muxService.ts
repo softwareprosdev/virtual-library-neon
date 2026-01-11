@@ -1,4 +1,7 @@
-import Mux from '@mux/mux-node';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+// import Mux from '@mux/mux-node';
+// TODO: Fix Mux integration
+const Mux = require('@mux/mux-node');
 
 // Initialize Mux client
 const mux = new Mux({
