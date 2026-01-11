@@ -27,6 +27,15 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limit for resending verification code (5 attempts per 15 mins)
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 attempts per 15 mins
+  message: { message: 'Too many verification attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Enhanced Register with email verification code
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.post('/register', registerLimiter as any, async (req: Request, res: Response): Promise<void> => {
@@ -39,7 +48,7 @@ router.post('/verify-email', async (req: Request, res: Response): Promise<void> 
 });
 
 // Resend verification code
-router.post('/resend-verification', async (req: Request, res: Response): Promise<void> => {
+router.post('/resend-verification', resendLimiter as any, async (req: Request, res: Response): Promise<void> => {
   await resendVerificationCode(req, res);
 });
 

@@ -22,7 +22,8 @@ export const generateVerificationToken = (): string => {
 export const sendVerificationCode = async (email: string, code: string, name?: string): Promise<boolean> => {
   try {
     const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    // Use the verified domain as requested
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org';
     
     console.log(`[Email] Attempting to send verification code to ${email}`);
     console.log(`[Email] Using sender: ${fromEmail}`);
@@ -358,16 +359,8 @@ export const resendVerificationCode = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email is already verified" });
     }
 
-    // Rate limiting: check if recently sent
-    const lastSent = user.emailVerificationExpires;
-    const now = new Date();
-    const timeDiff = lastSent ? lastSent.getTime() - now.getTime() : 0;
-    
-    if (timeDiff > 10 * 60 * 1000) { // More than 10 minutes remaining
-      return res.status(429).json({ 
-        message: "Please wait before requesting another verification code" 
-      });
-    }
+    // Rate limiting logic removed to allow user retries as requested
+    // (Handled by route rate limiter instead)
 
     // Generate new code
     const verificationCode = generateVerificationCode();
