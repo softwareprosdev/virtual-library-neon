@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import DOMPurify from 'isomorphic-dompurify';
 import validator from 'validator';
+import multer from 'multer';
 
 // SQL injection patterns
 const sqlInjectionPatterns = [
@@ -209,7 +210,7 @@ export const validateRequest = (validationRules: { [key: string]: SanitizationOp
 };
 
 // File upload validation
-export const validateFileUpload = (file: Multer.File): { valid: boolean; errors: string[] } => {
+export const validateFileUpload = (file: Express.Multer.File): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
   const allowedMimeTypes = [
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
