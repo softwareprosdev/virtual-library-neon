@@ -22,9 +22,16 @@ export const generateVerificationToken = (): string => {
 export const sendVerificationCode = async (email: string, code: string, name?: string): Promise<boolean> => {
   try {
     const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'noreply@virtual-library.com',
+    console.log(`[Email] Attempting to send verification code to ${email}`);
+    console.log(`[Email] Using sender: ${fromEmail}`);
+    if (!process.env.RESEND_API_KEY) {
+      console.error('[Email] CRITICAL: RESEND_API_KEY is missing in environment variables');
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
       to: [email],
       subject: 'Your Verification Code - Virtual Library',
       html: `
@@ -57,10 +64,19 @@ export const sendVerificationCode = async (email: string, code: string, name?: s
         </div>
       `
     });
+
+    if (error) {
+      console.error('[Email] Resend API Error:', JSON.stringify(error, null, 2));
+      return false;
+    }
     
+    console.log(`[Email] Successfully sent verification code to ${email}. ID: ${data?.id}`);
     return true;
   } catch (error) {
-    console.error('Failed to send verification code:', error);
+    console.error('[Email] Unexpected error sending verification code:', error);
+    if (error instanceof Error) {
+        console.error('[Email] Error stack:', error.stack);
+    }
     return false;
   }
 };
