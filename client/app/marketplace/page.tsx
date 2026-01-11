@@ -144,7 +144,7 @@ export default function MarketplacePage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, searchQuery, activeTab, currentUser]);
+  }, [selectedCategory, searchQuery, activeTab, currentUser?.id]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

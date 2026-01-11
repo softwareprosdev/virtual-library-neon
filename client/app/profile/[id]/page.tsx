@@ -126,6 +126,21 @@ const THEME_PRESETS = [
     colors: { primary: '#ff006e', secondary: '#ffbe0b', background: '#1a0033', text: '#ffffff' }
   },
   { 
+    id: 'blood-rave', 
+    name: 'Blood Rave', 
+    colors: { primary: '#ff0000', secondary: '#8a0000', background: '#000000', text: '#ffcccc' }
+  },
+  { 
+    id: 'vampire', 
+    name: 'Vampire', 
+    colors: { primary: '#990000', secondary: '#4d0000', background: '#1a0505', text: '#e6e6e6' }
+  },
+  { 
+    id: 'goth', 
+    name: 'Goth', 
+    colors: { primary: '#666666', secondary: '#333333', background: '#000000', text: '#d9d9d9' }
+  },
+  { 
     id: 'pastel', 
     name: 'Pastel Kawaii', 
     colors: { primary: '#ffb3ba', secondary: '#bae1ff', background: '#fff0f3', text: '#333333' }
@@ -197,6 +212,9 @@ export default function ProfilePage() {
   const [comments, setComments] = useState<ProfileComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  
+  // File input ref for avatar upload
+  const fileInputRef = useState<HTMLInputElement | null>(null);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -242,6 +260,37 @@ export default function ProfilePage() {
     }
   }, [userId]);
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      // Direct fetch call needed for FormData since api wrapper might assume JSON
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/users/${userId}/avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
+        alert('Profile picture updated!');
+      } else {
+        alert('Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert('Error uploading profile picture');
+    }
+  };
+
   const fetchBookPosts = useCallback(async () => {
     try {
       const response = await api(`/book-posts/user/${userId}`);
@@ -283,15 +332,19 @@ export default function ProfilePage() {
       });
       
       if (response.ok) {
-        setUser(await response.json());
+        const updatedUser = await response.json();
+        setUser(updatedUser);
         setEditing(false);
-        // Add profile visit if own profile (just to refresh view)
-        if (isOwnProfile) {
-          // No-op for self visit usually, but good to refresh data
-        }
+        // Show success feedback
+        alert('Profile updated successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Profile update failed:', errorData);
+        alert(errorData.message || 'Failed to update profile');
       }
     } catch (error) {
       console.error('Failed to save profile:', error);
+      alert('Failed to update profile. Please try again.');
     }
   };
 
@@ -1096,6 +1149,21 @@ export default function ProfilePage() {
                   onChange={(e) => setEditForm(prev => ({ ...prev, statusMessage: e.target.value }))}
                   placeholder="What's on your mind?"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Profile Layout</label>
+                <select
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={editForm.profileLayout}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, profileLayout: e.target.value }))}
+                >
+                  {LAYOUT_OPTIONS.map(layout => (
+                    <option key={layout.id} value={layout.id}>
+                      {layout.icon} {layout.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
