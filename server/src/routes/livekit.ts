@@ -2,9 +2,9 @@ import { Router, Response } from 'express';
 import { AccessToken } from 'livekit-server-sdk';
 import { AuthRequest, authenticateToken } from '../middlewares/auth';
 import { getRoomRole } from '../permissions';
+import { validateUUID } from '../middleware/validation';
 
 const router = Router();
-const isProduction = process.env.NODE_ENV === 'production';
 
 router.get('/token', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -14,8 +14,14 @@ router.get('/token', authenticateToken, async (req: AuthRequest, res: Response):
     }
 
     const { roomId } = req.query as { roomId: string };
+
     if (!roomId) {
       res.status(400).json({ message: "Room ID is required" });
+      return;
+    }
+
+    if (!validateUUID(roomId)) {
+      res.status(400).json({ message: "Invalid Room ID format" });
       return;
     }
 

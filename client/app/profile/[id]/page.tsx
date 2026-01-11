@@ -167,7 +167,10 @@ export default function ProfilePage() {
     interests: [] as string[],
     socialLinks: {} as Record<string, string>,
     isProfilePublic: true,
-    profileLayout: 'default'
+    profileLayout: 'default',
+    profileSong: '',
+    profileSongTitle: '',
+    profileBackground: ''
   });
   const [selectedTheme, setSelectedTheme] = useState('neon');
   const [interestInput, setInterestInput] = useState('');
@@ -220,7 +223,10 @@ export default function ProfilePage() {
         interests: safeUserData.interests,
         socialLinks: safeUserData.socialLinks,
         isProfilePublic: safeUserData.isProfilePublic ?? true,
-        profileLayout: safeUserData.profileLayout || 'default'
+        profileLayout: safeUserData.profileLayout || 'default',
+        profileSong: safeUserData.profileSong || '',
+        profileSongTitle: safeUserData.profileSongTitle || '',
+        profileBackground: safeUserData.profileBackground || ''
       });
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -328,9 +334,30 @@ export default function ProfilePage() {
           body: JSON.stringify({ theme: theme.colors })
         });
         setSelectedTheme(themeId);
+        // Also update local user state for immediate feedback
+        if (user) {
+          setUser({ ...user, profileTheme: theme.colors });
+        }
       }
     } catch (error) {
       console.error('Failed to update theme:', error);
+    }
+  };
+
+  const updateLayout = async (layoutId: string) => {
+    try {
+      // Reuse the generic profile update endpoint
+      const response = await api(`/users/${userId}/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({ profileLayout: layoutId })
+      });
+      
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error('Failed to update layout:', error);
     }
   };
 
@@ -932,6 +959,7 @@ export default function ProfilePage() {
                           <button
                             key={layout.id}
                             disabled={!isOwnProfile}
+                            onClick={() => updateLayout(layout.id)}
                             className={`
                               p-4 rounded-lg border-2 transition-all text-center
                               ${user.profileLayout === layout.id 
@@ -1062,6 +1090,34 @@ export default function ProfilePage() {
                   onChange={(e) => setEditForm(prev => ({ ...prev, statusMessage: e.target.value }))}
                   placeholder="What's on your mind?"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Profile Background URL</label>
+                <Input
+                  value={editForm.profileBackground || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, profileBackground: e.target.value }))}
+                  placeholder="https://example.com/background.jpg"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm font-medium">Profile Song URL</label>
+                  <Input
+                    value={editForm.profileSong || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, profileSong: e.target.value }))}
+                    placeholder="https://example.com/song.mp3"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Song Title</label>
+                  <Input
+                    value={editForm.profileSongTitle || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, profileSongTitle: e.target.value }))}
+                    placeholder="Song Title - Artist"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

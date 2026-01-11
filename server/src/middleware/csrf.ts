@@ -53,21 +53,32 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
 // Middleware to provide CSRF token
 export const provideCSRFToken = (req: Request, res: Response, next: NextFunction) => {
   const sessionToken = req.headers['x-session-token'] as string || crypto.randomBytes(16).toString('hex');
-  const token = generateCSRFToken();
   
-  // Store token with 1 hour expiration
-  csrfTokens.set(sessionToken, {
-    token,
-    expires: Date.now() + (60 * 60 * 1000)
-  });
+  // Reuse existing token if valid, otherwise generate new one
+  let tokenData = csrfTokens.get(sessionToken);
+  let token: string;
+
+  if (tokenData && Date.now() < tokenData.expires) {
+    token = tokenData.token;
+  } else {
+    token = generateCSRFToken();
+    // Store token with 1 hour expiration
+    csrfTokens.set(sessionToken, {
+      token,
+      expires: Date.now() + (60 * 60 * 1000)
+    });
+  }
   
-  // Clean up expired tokens
-  const now = Date.now();
-  csrfTokens.forEach((value, key) => {
-    if (now > value.expires) {
-      csrfTokens.delete(key);
-    }
-  });
+  // Clean up expired tokens (occasionally or scheduled, but here is fine for now)
+  // Optimization: Don't scan map on every request.
+  if (Math.random() < 0.01) { // 1% chance to cleanup
+    const now = Date.now();
+    csrfTokens.forEach((value, key) => {
+      if (now > value.expires) {
+        csrfTokens.delete(key);
+      }
+    });
+  }
   
   res.setHeader('X-CSRF-Token', token);
   res.setHeader('X-Session-Token', sessionToken);

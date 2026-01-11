@@ -71,7 +71,8 @@ router.put('/:id/profile', authenticateToken, async (req: AuthRequest, res: Resp
 
     const { 
       displayName, bio, location, website, socialLinks, 
-      interests, statusMessage, profileLayout, isProfilePublic 
+      interests, statusMessage, profileLayout, isProfilePublic,
+      profileSong, profileSongTitle, profileBackground
     } = req.body;
 
     const updatedUser = await prisma.user.update({
@@ -85,7 +86,10 @@ router.put('/:id/profile', authenticateToken, async (req: AuthRequest, res: Resp
         interests,
         statusMessage,
         profileLayout,
-        isProfilePublic
+        isProfilePublic,
+        profileSong,
+        profileSongTitle,
+        profileBackground
       }
     });
 
