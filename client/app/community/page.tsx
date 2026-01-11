@@ -22,14 +22,32 @@ export default function CommunityPage() {
   const router = useRouter();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api('/rooms')
-      .then(res => res.json())
-      .then(setRooms)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    const fetchRooms = async () => {
+      try {
+        const res = await api('/rooms');
+        if (res.ok) {
+          const data = await res.json();
+          setRooms(data);
+        } else if (res.status === 401) {
+          // Redirect to login if not authenticated
+          router.push('/feed');
+          return;
+        } else {
+          setError('Failed to load community rooms');
+        }
+      } catch (error) {
+        console.error('Failed to fetch rooms:', error);
+        setError('Connection error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, [router]);
 
   return (
     <MainLayout>
@@ -45,6 +63,24 @@ export default function CommunityPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1,2,3,4,5,6].map(i => <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />)}
         </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Unable to load community rooms</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      ) : rooms.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No active community rooms</h3>
+          <p className="text-muted-foreground">Be the first to create a discussion room!</p>
+          <Button className="mt-4" onClick={() => router.push('/dashboard')}>
+            Create Room
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map(room => (
@@ -54,9 +90,27 @@ export default function CommunityPage() {
                             {room.genre && (
                                 <Badge variant="outline" className="border-secondary/50 text-secondary">
                                     {room.genre.name}
-
                                 </Badge>
                             )}
+                            <div className="flex items-center text-xs text-muted-foreground gap-2">
+                                <span className="flex items-center gap-1"><Users size={12}/> {room._count.participants}</span>
+                                <span className="flex items-center gap-1"><MessageSquare size={12}/> {room._count.messages}</span>
+                            </div>
+                        </div>
+                        <CardTitle className="text-xl group-hover:text-secondary transition-colors">{room.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{room.description}</p>
+                        <p className="text-xs text-muted-foreground mb-4">Host: <span className="text-foreground font-bold">{room.host.name}</span></p>
+                        
+                        <Button className="w-full gap-2" onClick={() => router.push(`/room/${room.id}`)}>
+                            Join Channel <ExternalLink size={16} />
+                        </Button>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+      )}
                             <div className="flex items-center text-xs text-muted-foreground gap-2">
                                 <span className="flex items-center gap-1"><Users size={12}/> {room._count.participants}</span>
                                 <span className="flex items-center gap-1"><MessageSquare size={12}/> {room._count.messages}</span>
