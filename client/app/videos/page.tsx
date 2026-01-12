@@ -49,8 +49,23 @@ export default function VideosPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await api('/pexels/categories') as any;
-      setCategories(response.categories);
+      const response = await api('/pexels/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.categories);
+      } else {
+        // Use fallback categories if API fails
+        setCategories([
+          { id: 'popular', name: 'Trending Now', icon: '🔥' },
+          { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
+          { id: 'technology', name: 'Technology', icon: '💻' },
+          { id: 'music', name: 'Music & Dance', icon: '🎵' },
+          { id: 'sports', name: 'Sports', icon: '⚽' },
+          { id: 'travel', name: 'Travel', icon: '✈️' },
+          { id: 'food', name: 'Food & Cooking', icon: '🍕' },
+          { id: 'comedy', name: 'Comedy', icon: '😄' },
+        ]);
+      }
     } catch (error) {
       console.error('Failed to load categories:', error);
       // Use fallback categories if API fails
@@ -78,23 +93,31 @@ export default function VideosPage() {
         ...(category && { category })
       });
 
-      const response = await api(`${endpoint}?${params}`) as any;
+      const response = await api(`${endpoint}?${params}`);
 
-      // Check if there's an error response
-      if (response.error) {
-        throw new Error(response.message);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Check if there's an error in the response data
+        if (data.error) {
+          throw new Error(data.message);
+        }
+
+        setVideos(prev => pageNum === 1 ? data.videos : [...prev, ...data.videos]);
+        setTotalVideos(data.totalVideos);
+        setPage(pageNum);
+        setHasMore(data.videos.length === 20);
+      } else {
+        // Handle non-200 responses (like 503)
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
       }
-
-      setVideos(prev => pageNum === 1 ? response.videos : [...prev, ...response.videos]);
-      setTotalVideos(response.totalVideos);
-      setPage(pageNum);
-      setHasMore(response.videos.length === 20);
     } catch (error: any) {
       console.error('Failed to load videos:', error);
 
-      // If it's a 503 error, show a user-friendly message
-      if (error.message?.includes('Stock video service not configured')) {
-        // For now, show an empty state
+      // If it's a service unavailable error, show empty state
+      if (error.message?.includes('Stock video service not configured') ||
+          error.message?.includes('Service Unavailable')) {
         setVideos([]);
         setTotalVideos(0);
       }
