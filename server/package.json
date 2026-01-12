@@ -16,7 +16,9 @@
     "db:export": "ts-node scripts/export-database.ts",
     "dev": "ts-node src/index.ts",
     "setup:admin": "node src/scripts/setupAdmin.js",
-    "seed:videos": "ts-node src/scripts/seedVideos.ts"
+    "seed:videos": "ts-node src/scripts/seedVideos.ts",
+    "seed:rooms": "ts-node scripts/seedRooms.ts",
+    "seed:permanent-rooms": "ts-node scripts/seedPermanentRooms.ts"
   },
   "keywords": [],
   "author": "",

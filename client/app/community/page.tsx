@@ -28,6 +28,7 @@ export default function CommunityPage() {
     const fetchRooms = async () => {
       try {
         const res = await api('/rooms');
+
         if (res.ok) {
           const data = await res.json();
           setRooms(data);
@@ -36,11 +37,11 @@ export default function CommunityPage() {
           router.push('/feed');
           return;
         } else {
-          setError('Failed to load community rooms');
+          setError(`Unable to load community rooms. Please try again later. (${res.status})`);
         }
       } catch (error) {
         console.error('Failed to fetch rooms:', error);
-        setError('Connection error. Please try again.');
+        setError('Network error. Please check your connection and try again.');
       } finally {
         setLoading(false);
       }
@@ -54,9 +55,9 @@ export default function CommunityPage() {
       <div className="mb-12">
         <h1 className="text-4xl font-black mb-2 flex items-center gap-3">
           <Users className="h-8 w-8 text-secondary" />
-          COMMUNITY_HUBS
+          Community Rooms
         </h1>
-        <p className="text-muted-foreground">Join active neural links and discuss your favorite reads.</p>
+        <p className="text-muted-foreground">Join active discussion rooms and connect with fellow readers through voice and video chat.</p>
       </div>
 
       {loading ? (
@@ -75,11 +76,16 @@ export default function CommunityPage() {
       ) : rooms.length === 0 ? (
         <div className="text-center py-12">
           <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No active community rooms</h3>
-          <p className="text-muted-foreground">Be the first to create a discussion room!</p>
-          <Button className="mt-4" onClick={() => router.push('/dashboard')}>
-            Create Room
-          </Button>
+          <h3 className="text-xl font-semibold mb-2">Community rooms are being set up</h3>
+          <p className="text-muted-foreground mb-4">Permanent discussion rooms will be available soon. Check back later to join conversations about books, relationships, and trending topics.</p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+            <Button onClick={() => router.push('/feed')}>
+              Go to Feed
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
