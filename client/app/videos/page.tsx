@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Play, Eye, Heart, MessageCircle, User, Search, Filter, TrendingUp } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface PexelsVideo {
   id: string;
@@ -49,7 +49,7 @@ export default function VideosPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await api('/pexels/categories');
+      const response = await api('/pexels/categories') as any;
       setCategories(response.categories);
     } catch (error) {
       console.error('Failed to load categories:', error);
@@ -67,7 +67,7 @@ export default function VideosPage() {
         ...(category && { category })
       });
 
-      const response = await api(`${endpoint}?${params}`);
+      const response = await api(`${endpoint}?${params}`) as any;
       setVideos(prev => pageNum === 1 ? response.videos : [...prev, ...response.videos]);
       setTotalVideos(response.totalVideos);
       setPage(pageNum);
