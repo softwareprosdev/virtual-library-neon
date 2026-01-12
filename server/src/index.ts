@@ -32,6 +32,7 @@ import proxyRoutes from './routes/proxy';
 import marketplaceRoutes from './routes/marketplace';
 import videosRoutes from './routes/videos';
 import soundsRoutes from './routes/sounds';
+import pexelsRoutes from './routes/pexels';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -276,6 +277,8 @@ app.use('/api/videos', videosRoutes);
 app.use('/videos', videosRoutes);
 app.use('/api/sounds', soundsRoutes);
 app.use('/sounds', soundsRoutes);
+app.use('/api/pexels', pexelsRoutes);
+app.use('/pexels', pexelsRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
