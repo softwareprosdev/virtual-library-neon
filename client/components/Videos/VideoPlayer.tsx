@@ -42,7 +42,9 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartX = useRef<number>(0);
+  const touchStartTime = useRef<number>(0);
 
   // Hide controls after inactivity
   const resetControlsTimeout = useCallback(() => {
@@ -180,6 +182,32 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
+  }, []);
+
+  // Touch gesture support for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartTime.current = currentTime;
+  }, [currentTime]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!duration) return;
+
+    const touchX = e.touches[0].clientX;
+    const deltaX = touchX - touchStartX.current;
+    const seekAmount = (deltaX / window.innerWidth) * duration * 0.5; // 50% of screen width = full video duration
+    const newTime = Math.max(0, Math.min(duration, touchStartTime.current + seekAmount));
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    }
+  }, [duration]);
+
+  // Double tap for fullscreen on mobile
+  const handleDoubleClick = useCallback(() => {
+    if (window.innerWidth <= 768) { // Mobile breakpoint
+      toggleFullscreen();
+    }
   }, []);
 
   // Cleanup on unmount
@@ -401,6 +429,9 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
             onWaiting={handleWaiting}
             onCanPlay={handleCanPlay}
             onError={handleError}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onDoubleClick={handleDoubleClick}
             preload="metadata"
             playsInline
           >
@@ -599,6 +630,11 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
             {/* Desktop Controls Hint */}
             <div className="mt-3 text-xs text-gray-500 hidden md:block">
               Space/K: Play/Pause • F: Fullscreen • M: Mute • ←→: Skip • ↑↓: Volume • Esc: Close
+            </div>
+
+            {/* Mobile Controls Hint */}
+            <div className="mt-3 text-xs text-gray-500 md:hidden">
+              Tap: Play/Pause • Pinch: Zoom • Swipe: Seek • Double tap: Fullscreen
             </div>
           </div>
         )}

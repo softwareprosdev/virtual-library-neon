@@ -1,14 +1,12 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import MainLayout from '@/components/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Play, Eye, Heart, MessageCircle, User, Search, Filter } from 'lucide-react';
-import MainLayout from '@/components/MainLayout';
-import VideoPlayer from '@/components/Videos/VideoPlayer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Search, Play, Heart, MessageCircle, User, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface PexelsVideo {
@@ -42,8 +40,6 @@ export default function VideosPage() {
   const [page, setPage] = useState(1);
   const [totalVideos, setTotalVideos] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [selectedVideo, setSelectedVideo] = useState<PexelsVideo | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -52,35 +48,26 @@ export default function VideosPage() {
 
   const loadCategories = async () => {
     try {
-      const response = await api('/pexels/categories');
+      const response = await api('/pexels/categories') as any;
       if (response.ok) {
         const data = await response.json();
         setCategories(data.categories);
       } else {
-        // Use fallback categories if API fails
         setCategories([
           { id: 'popular', name: 'Trending Now', icon: '🔥' },
           { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
           { id: 'technology', name: 'Technology', icon: '💻' },
           { id: 'music', name: 'Music & Dance', icon: '🎵' },
           { id: 'sports', name: 'Sports', icon: '⚽' },
-          { id: 'travel', name: 'Travel', icon: '✈️' },
-          { id: 'food', name: 'Food & Cooking', icon: '🍕' },
-          { id: 'comedy', name: 'Comedy', icon: '😄' },
         ]);
       }
     } catch (error) {
-      console.error('Failed to load categories:', error);
-      // Use fallback categories if API fails
       setCategories([
         { id: 'popular', name: 'Trending Now', icon: '🔥' },
         { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
         { id: 'technology', name: 'Technology', icon: '💻' },
         { id: 'music', name: 'Music & Dance', icon: '🎵' },
         { id: 'sports', name: 'Sports', icon: '⚽' },
-        { id: 'travel', name: 'Travel', icon: '✈️' },
-        { id: 'food', name: 'Food & Cooking', icon: '🍕' },
-        { id: 'comedy', name: 'Comedy', icon: '😄' },
       ]);
     }
   };
@@ -96,35 +83,29 @@ export default function VideosPage() {
         ...(category && { category })
       });
 
-      const response = await api(`${endpoint}?${params}`);
+      const response = await api(`${endpoint}?${params}`) as any;
 
       if (response.ok) {
         const data = await response.json();
-
-        // Check if there's an error in the response data
         if (data.error) {
-          throw new Error(data.message);
+          console.error('API Error:', data.message);
+          setVideos([]);
+          setTotalVideos(0);
+        } else {
+          setVideos(prev => pageNum === 1 ? data.videos : [...prev, ...data.videos]);
+          setTotalVideos(data.totalVideos);
+          setPage(pageNum);
+          setHasMore(data.videos.length === 20);
         }
-
-        setVideos(prev => pageNum === 1 ? data.videos : [...prev, ...data.videos]);
-        setTotalVideos(data.totalVideos);
-        setPage(pageNum);
-        setHasMore(data.videos.length === 20);
       } else {
-        // Handle non-200 responses (like 503)
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Failed to load videos:', error);
-
-      // If it's a service unavailable error, show empty state
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('Stock video service not configured') ||
-          errorMessage.includes('Service Unavailable')) {
+        console.error('API request failed');
         setVideos([]);
         setTotalVideos(0);
       }
+    } catch (error) {
+      console.error('Failed to load videos:', error);
+      setVideos([]);
+      setTotalVideos(0);
     } finally {
       setLoading(false);
     }
@@ -154,13 +135,7 @@ export default function VideosPage() {
   };
 
   const handleVideoClick = (video: PexelsVideo) => {
-    setSelectedVideo(video);
-    setIsPlayerOpen(true);
-  };
-
-  const handleClosePlayer = () => {
-    setIsPlayerOpen(false);
-    setSelectedVideo(null);
+    alert(`Video clicked: ${video.title}\n\nVideo player will be implemented soon!`);
   };
 
   return (
@@ -194,21 +169,20 @@ export default function VideosPage() {
             </div>
 
             {/* Category Filter */}
-            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{category.icon}</span>
-                      <span>{category.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 overflow-x-auto">
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? 'default' : 'outline'}
+                  onClick={() => handleCategoryChange(category.id)}
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  <span className="mr-1">{category.icon}</span>
+                  {category.name}
+                </Button>
+              ))}
+            </div>
 
             {/* Search Button */}
             <Button onClick={handleSearch} disabled={loading}>
@@ -250,18 +224,19 @@ export default function VideosPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {videos.map((video) => (
-                  <Card 
-                    key={video.id} 
+                  <Card
+                    key={video.id}
                     className="group cursor-pointer overflow-hidden border-border hover:border-secondary transition-all hover:shadow-lg"
                     onClick={() => handleVideoClick(video)}
                   >
                     <CardHeader className="p-0">
                       {/* Video Thumbnail */}
                       <div className="relative">
-                        <img 
-                          src={video.thumbnailUrl} 
+                        <img
+                          src={video.thumbnailUrl}
                           alt={video.title}
                           className="w-full h-48 object-cover"
+                          loading="lazy"
                         />
                         {/* Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -295,9 +270,9 @@ export default function VideosPage() {
                       {video.source === 'pexels' && video.attribution && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                           <span>Video by</span>
-                          <a 
-                            href={video.attribution.photographerUrl} 
-                            target="_blank" 
+                          <a
+                            href={video.attribution.photographerUrl}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
@@ -343,8 +318,8 @@ export default function VideosPage() {
               {/* Load More Button */}
               {hasMore && videos.length >= 20 && (
                 <div className="flex justify-center mt-8">
-                  <Button 
-                    onClick={handleLoadMore} 
+                  <Button
+                    onClick={handleLoadMore}
                     disabled={loading}
                     variant="outline"
                     className="w-full sm:w-auto"
@@ -352,23 +327,14 @@ export default function VideosPage() {
                     {loading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Filter className="mr-2 h-4 w-4" />
+                      'Load More Videos'
                     )}
-                    Load More Videos
                   </Button>
                 </div>
               )}
             </>
-        )}
-
-        {/* Video Player Modal */}
-        {selectedVideo && (
-          <VideoPlayer
-            video={selectedVideo}
-            isOpen={isPlayerOpen}
-            onClose={handleClosePlayer}
-          />
-        )}
+          )}
+        </div>
       </div>
     </MainLayout>
   );
