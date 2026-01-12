@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Play, Eye, Heart, MessageCircle, User, Search, Filter, TrendingUp } from 'lucide-react';
+import { Loader2, Play, Eye, Heart, MessageCircle, User, Search, Filter } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
+import VideoPlayer from '@/components/Videos/VideoPlayer';
 import { api } from '@/lib/api';
 
 interface PexelsVideo {
@@ -41,6 +42,8 @@ export default function VideosPage() {
   const [page, setPage] = useState(1);
   const [totalVideos, setTotalVideos] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<PexelsVideo | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -112,12 +115,13 @@ export default function VideosPage() {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to load videos:', error);
 
       // If it's a service unavailable error, show empty state
-      if (error.message?.includes('Stock video service not configured') ||
-          error.message?.includes('Service Unavailable')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Stock video service not configured') ||
+          errorMessage.includes('Service Unavailable')) {
         setVideos([]);
         setTotalVideos(0);
       }
@@ -149,10 +153,14 @@ export default function VideosPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleVideoClick = async (video: PexelsVideo) => {
-    // In a real app, this would open video player
-    // For now, just show alert
-    alert(`Would play: ${video.title}\n\nThis would open the video player where users can:\n- View the full video\n- Like/comment/share\n- Use sounds from this video\n- Create duets/stitches\n\nVideo ID: ${video.id}`);
+  const handleVideoClick = (video: PexelsVideo) => {
+    setSelectedVideo(video);
+    setIsPlayerOpen(true);
+  };
+
+  const handleClosePlayer = () => {
+    setIsPlayerOpen(false);
+    setSelectedVideo(null);
   };
 
   return (
@@ -351,8 +359,16 @@ export default function VideosPage() {
                 </div>
               )}
             </>
-          )}
-        </div>
+        )}
+
+        {/* Video Player Modal */}
+        {selectedVideo && (
+          <VideoPlayer
+            video={selectedVideo}
+            isOpen={isPlayerOpen}
+            onClose={handleClosePlayer}
+          />
+        )}
       </div>
     </MainLayout>
   );
