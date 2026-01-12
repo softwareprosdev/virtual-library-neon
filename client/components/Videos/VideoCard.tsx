@@ -15,7 +15,9 @@ import {
   Play,
   Pause,
   MoreHorizontal,
-  UserPlus
+  UserPlus,
+  ExternalLink,
+  ImageIcon
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import CommentSheet from './CommentSheet';
@@ -23,14 +25,14 @@ import ShareSheet from './ShareSheet';
 
 interface Video {
   id: string;
-  userId: string;
+  userId?: string;
   videoUrl: string;
   thumbnailUrl?: string;
   duration: number;
   aspectRatio: string;
   caption?: string;
   hashtags: string[];
-  mentions: string[];
+  mentions?: string[];
   soundId?: string;
   sound?: {
     id: string;
@@ -42,7 +44,7 @@ interface Video {
     id: string;
     name: string;
     displayName?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   };
   isLiked: boolean;
   isBookmarked: boolean;
@@ -50,10 +52,13 @@ interface Video {
   commentCount: number;
   shareCount: number;
   viewCount: number;
-  allowDuet: boolean;
-  allowStitch: boolean;
-  allowComments: boolean;
-  createdAt: string;
+  allowDuet?: boolean;
+  allowStitch?: boolean;
+  allowComments?: boolean;
+  createdAt?: string;
+  // Stock video properties
+  source?: 'user' | 'pexels';
+  pexelsUrl?: string;
 }
 
 interface VideoCardProps {
@@ -222,14 +227,20 @@ export default function VideoCard({
         <div className="relative">
           <Avatar
             className="w-12 h-12 border-2 border-white cursor-pointer"
-            onClick={() => router.push(`/profile/${video.user.id}`)}
+            onClick={() => {
+              if (video.source === 'pexels' && video.pexelsUrl) {
+                window.open(video.pexelsUrl, '_blank');
+              } else {
+                router.push(`/profile/${video.user.id}`);
+              }
+            }}
           >
-            <AvatarImage src={video.user.avatarUrl} />
+            <AvatarImage src={video.user.avatarUrl || undefined} />
             <AvatarFallback>
               {(video.user.displayName || video.user.name).charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          {currentUserId !== video.user.id && (
+          {currentUserId !== video.user.id && video.source !== 'pexels' && (
             <Button
               size="icon"
               className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-pink-500 hover:bg-pink-600"
@@ -303,14 +314,33 @@ export default function VideoCard({
 
       {/* Bottom info */}
       <div className="absolute left-4 right-20 bottom-24">
+        {/* Stock video badge */}
+        {video.source === 'pexels' && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="bg-gradient-to-r from-[#05A081] to-[#07A081] text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" />
+              Pexels Stock
+            </span>
+          </div>
+        )}
+
         {/* Username */}
         <div
           className="flex items-center gap-2 cursor-pointer mb-2"
-          onClick={() => router.push(`/profile/${video.user.id}`)}
+          onClick={() => {
+            if (video.source === 'pexels' && video.pexelsUrl) {
+              window.open(video.pexelsUrl, '_blank');
+            } else {
+              router.push(`/profile/${video.user.id}`);
+            }
+          }}
         >
           <span className="text-white font-bold text-lg">
             @{video.user.displayName || video.user.name}
           </span>
+          {video.source === 'pexels' && (
+            <ExternalLink className="w-4 h-4 text-white/70" />
+          )}
         </div>
 
         {/* Caption */}
@@ -361,7 +391,7 @@ export default function VideoCard({
         videoId={video.id}
         isOpen={showComments}
         onClose={() => setShowComments(false)}
-        allowComments={video.allowComments}
+        allowComments={video.allowComments ?? true}
       />
 
       {/* Share Sheet */}

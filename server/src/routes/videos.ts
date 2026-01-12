@@ -8,6 +8,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const multerS3 = require('multer-s3');
 import muxService from '../services/muxService';
+import pexelsService from '../services/pexelsService';
 
 interface AuthRequestWithFile extends AuthRequest {
   file?: Express.Multer.File;
@@ -185,7 +186,7 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: Au
   }
 });
 
-// Get For You Page feed (FYP)
+// Get For You Page feed (FYP) - includes stock videos when user content is limited
 router.get('/fyp', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
@@ -193,8 +194,9 @@ router.get('/fyp', authenticateToken, async (req: AuthRequest, res: Response): P
       return;
     }
 
-    const { cursor, limit = '10' } = req.query;
+    const { cursor, limit = '10', page = '1' } = req.query;
     const take = parseInt(limit as string);
+    const pageNum = parseInt(page as string);
 
     // Get blocked users
     const blockedUsers = await prisma.userBlock.findMany({
@@ -208,13 +210,6 @@ router.get('/fyp', authenticateToken, async (req: AuthRequest, res: Response): P
     const blockedIds = blockedUsers.map(b =>
       b.blockerId === req.user!.id ? b.blockedId : b.blockerId
     );
-
-    // Get user's interests for personalization
-    const userInterests = await prisma.userInterest.findMany({
-      where: { userId: req.user.id },
-      orderBy: { score: 'desc' },
-      take: 5
-    });
 
     // FYP Algorithm: Mix of engagement score, recency, and user interests
     const videos = await prisma.video.findMany({
@@ -250,11 +245,13 @@ router.get('/fyp', authenticateToken, async (req: AuthRequest, res: Response): P
       ...(cursor && { cursor: { id: cursor as string }, skip: 1 })
     });
 
-    const hasMore = videos.length > take;
-    const feedVideos = hasMore ? videos.slice(0, -1) : videos;
+    const hasMoreUserVideos = videos.length > take;
+    const userVideos = hasMoreUserVideos ? videos.slice(0, -1) : videos;
 
-    const result = feedVideos.map(video => ({
+    // Transform user videos
+    const transformedUserVideos = userVideos.map(video => ({
       ...video,
+      source: 'user' as const,
       isLiked: video.likes.length > 0,
       isBookmarked: video.bookmarks.length > 0,
       likeCount: video._count.likes,
@@ -263,13 +260,65 @@ router.get('/fyp', authenticateToken, async (req: AuthRequest, res: Response): P
       viewCount: video._count.views
     }));
 
+    // If we have fewer than requested videos, fill with Pexels stock videos
+    let result = transformedUserVideos;
+    let hasMore = hasMoreUserVideos;
+    let nextCursor = hasMoreUserVideos ? userVideos[userVideos.length - 1]?.id : null;
+
+    if (transformedUserVideos.length < take) {
+      const neededStockVideos = take - transformedUserVideos.length;
+      const stockVideos = await pexelsService.getMixedFeed(pageNum, neededStockVideos);
+
+      // Mix user videos with stock videos
+      result = [...transformedUserVideos, ...stockVideos];
+
+      // If we got stock videos, there might be more
+      hasMore = stockVideos.length === neededStockVideos;
+      if (!nextCursor && hasMore) {
+        nextCursor = `pexels-page-${pageNum + 1}`;
+      }
+    }
+
     res.json({
       videos: result,
-      nextCursor: hasMore ? feedVideos[feedVideos.length - 1]?.id : null
+      nextCursor,
+      hasMore
     });
   } catch (error) {
     console.error('Get FYP error:', error);
     res.status(500).json({ message: 'Failed to get FYP feed' });
+  }
+});
+
+// Get stock videos from Pexels (for discover/explore)
+router.get('/stock', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { page = '1', limit = '10', category, query } = req.query;
+    const pageNum = parseInt(page as string);
+    const perPage = parseInt(limit as string);
+
+    let videos;
+    if (query && typeof query === 'string') {
+      // Search videos
+      videos = await pexelsService.searchVideos(query, pageNum, perPage, 'portrait');
+    } else if (category && typeof category === 'string') {
+      // Get curated category videos
+      const validCategories = ['trending', 'nature', 'technology', 'lifestyle', 'food', 'travel'] as const;
+      const cat = validCategories.includes(category as any) ? category as typeof validCategories[number] : 'trending';
+      videos = await pexelsService.getCuratedVideos(cat, pageNum, perPage);
+    } else {
+      // Get popular videos
+      videos = await pexelsService.getPopularVideos(pageNum, perPage);
+    }
+
+    res.json({
+      videos,
+      page: pageNum,
+      hasMore: videos.length === perPage
+    });
+  } catch (error) {
+    console.error('Get stock videos error:', error);
+    res.status(500).json({ message: 'Failed to get stock videos' });
   }
 });
 

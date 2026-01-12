@@ -12,14 +12,14 @@ import { Plus, Home, UserCircle, Search, Music2 } from 'lucide-react';
 
 interface Video {
   id: string;
-  userId: string;
+  userId?: string;
   videoUrl: string;
   thumbnailUrl?: string;
   duration: number;
   aspectRatio: string;
   caption?: string;
   hashtags: string[];
-  mentions: string[];
+  mentions?: string[];
   soundId?: string;
   sound?: {
     id: string;
@@ -31,7 +31,7 @@ interface Video {
     id: string;
     name: string;
     displayName?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   };
   isLiked: boolean;
   isBookmarked: boolean;
@@ -39,10 +39,13 @@ interface Video {
   commentCount: number;
   shareCount: number;
   viewCount: number;
-  allowDuet: boolean;
-  allowStitch: boolean;
-  allowComments: boolean;
-  createdAt: string;
+  allowDuet?: boolean;
+  allowStitch?: boolean;
+  allowComments?: boolean;
+  createdAt?: string;
+  // Stock video properties
+  source?: 'user' | 'pexels';
+  pexelsUrl?: string;
 }
 
 export default function VideosPage() {
@@ -52,6 +55,7 @@ export default function VideosPage() {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [pexelsPage, setPexelsPage] = useState(1);
   const [showCreator, setShowCreator] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -65,7 +69,19 @@ export default function VideosPage() {
   const fetchVideos = useCallback(async (cursor?: string) => {
     try {
       const endpoint = activeTab === 'fyp' ? '/videos/fyp' : '/videos/following';
-      const url = cursor ? `${endpoint}?cursor=${cursor}` : endpoint;
+
+      // Handle Pexels pagination
+      let url: string;
+      if (cursor?.startsWith('pexels-page-')) {
+        const page = parseInt(cursor.split('-').pop() || '1');
+        url = `${endpoint}?page=${page}`;
+        setPexelsPage(page);
+      } else if (cursor) {
+        url = `${endpoint}?cursor=${cursor}&page=${pexelsPage}`;
+      } else {
+        url = `${endpoint}?page=1`;
+        setPexelsPage(1);
+      }
 
       const response = await api(url);
       if (response.ok) {
@@ -76,14 +92,14 @@ export default function VideosPage() {
           setVideos(data.videos);
         }
         setNextCursor(data.nextCursor);
-        setHasMore(!!data.nextCursor);
+        setHasMore(data.hasMore !== false && !!data.nextCursor);
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, pexelsPage]);
 
   useEffect(() => {
     setLoading(true);
@@ -104,6 +120,21 @@ export default function VideosPage() {
   };
 
   const handleLike = async (videoId: string) => {
+    // Skip API call for stock videos
+    if (videoId.startsWith('pexels-')) {
+      setVideos(prev => prev.map(v => {
+        if (v.id === videoId) {
+          return {
+            ...v,
+            isLiked: !v.isLiked,
+            likeCount: v.isLiked ? v.likeCount - 1 : v.likeCount + 1
+          };
+        }
+        return v;
+      }));
+      return;
+    }
+
     try {
       const response = await api(`/videos/${videoId}/like`, { method: 'POST' });
       if (response.ok) {
@@ -125,6 +156,17 @@ export default function VideosPage() {
   };
 
   const handleBookmark = async (videoId: string) => {
+    // Skip API call for stock videos
+    if (videoId.startsWith('pexels-')) {
+      setVideos(prev => prev.map(v => {
+        if (v.id === videoId) {
+          return { ...v, isBookmarked: !v.isBookmarked };
+        }
+        return v;
+      }));
+      return;
+    }
+
     try {
       const response = await api(`/videos/${videoId}/bookmark`, { method: 'POST' });
       if (response.ok) {
@@ -142,6 +184,17 @@ export default function VideosPage() {
   };
 
   const handleShare = async (videoId: string, platform?: string) => {
+    // For stock videos, just update local state
+    if (videoId.startsWith('pexels-')) {
+      setVideos(prev => prev.map(v => {
+        if (v.id === videoId) {
+          return { ...v, shareCount: v.shareCount + 1 };
+        }
+        return v;
+      }));
+      return;
+    }
+
     try {
       await api(`/videos/${videoId}/share`, {
         method: 'POST',
@@ -159,6 +212,9 @@ export default function VideosPage() {
   };
 
   const handleView = async (videoId: string, watchTime: number, completed: boolean) => {
+    // Skip API call for stock videos
+    if (videoId.startsWith('pexels-')) return;
+
     try {
       await api(`/videos/${videoId}/view`, {
         method: 'POST',

@@ -5,14 +5,14 @@ import VideoCard from './VideoCard';
 
 interface Video {
   id: string;
-  userId: string;
+  userId?: string;
   videoUrl: string;
   thumbnailUrl?: string;
   duration: number;
   aspectRatio: string;
   caption?: string;
   hashtags: string[];
-  mentions: string[];
+  mentions?: string[];
   soundId?: string;
   sound?: {
     id: string;
@@ -24,7 +24,7 @@ interface Video {
     id: string;
     name: string;
     displayName?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
   };
   isLiked: boolean;
   isBookmarked: boolean;
@@ -32,10 +32,13 @@ interface Video {
   commentCount: number;
   shareCount: number;
   viewCount: number;
-  allowDuet: boolean;
-  allowStitch: boolean;
-  allowComments: boolean;
-  createdAt: string;
+  allowDuet?: boolean;
+  allowStitch?: boolean;
+  allowComments?: boolean;
+  createdAt?: string;
+  // Stock video properties
+  source?: 'user' | 'pexels';
+  pexelsUrl?: string;
 }
 
 interface VideoFeedProps {
