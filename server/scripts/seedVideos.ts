@@ -80,10 +80,9 @@ export async function seedPexelsVideos() {
           data: {
             email: `creator${i}@demo.com`,
             name: `Creator${i}`,
-            displayName: `Demo Creator ${i}`,
-            username: `creator${i}`,
+            password: '$2b$10$hashedpassword', // Demo password hash
             avatarUrl: `https://ui-avatars.com/api/?name=Creator${i}&background=random`,
-            isEmailVerified: true
+            emailVerified: true
           }
         });
         demoUsers.push(user);
