@@ -23,7 +23,7 @@ interface PexelsVideo {
 }
 
 // Get trending videos from Pexels
-router.get('/pexels/trending', authenticateToken, async (req: any, res: Response): Promise<void> => {
+router.get('/trending', authenticateToken, async (req: any, res: Response): Promise<void> => {
   try {
     const { category = 'popular', page = '1', per_page = '20' } = req.query;
 
@@ -80,7 +80,7 @@ router.get('/pexels/trending', authenticateToken, async (req: any, res: Response
 });
 
 // Search Pexels videos
-router.get('/pexels/search', authenticateToken, async (req: any, res: Response): Promise<void> => {
+router.get('/search', authenticateToken, async (req: any, res: Response): Promise<void> => {
   try {
     const { query, category = 'popular', page = '1', per_page = '20' } = req.query;
 
@@ -179,7 +179,7 @@ router.get('/pexels/search', authenticateToken, async (req: any, res: Response):
 });
 
 // Get video categories
-router.get('/pexels/categories', authenticateToken, async (req: any, res: Response): Promise<void> => {
+router.get('/categories', authenticateToken, async (req: any, res: Response): Promise<void> => {
   try {
     const categories = [
       { id: 'popular', name: 'Trending Now', icon: '🔥' },
