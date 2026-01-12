@@ -27,6 +27,15 @@ router.get('/pexels/trending', authenticateToken, async (req: any, res: Response
   try {
     const { category = 'popular', page = '1', per_page = '20' } = req.query;
 
+    // Check if PEXELS_API_KEY is configured
+    if (!process.env.PEXELS_API_KEY) {
+      res.status(503).json({
+        error: 'Stock video service not configured',
+        message: 'Pexels API key is not set. Please contact administrator.'
+      });
+      return;
+    }
+
     const response = await axios.get('https://api.pexels.com/videos/popular', {
       params: {
         query: category as string,
@@ -74,6 +83,15 @@ router.get('/pexels/trending', authenticateToken, async (req: any, res: Response
 router.get('/pexels/search', authenticateToken, async (req: any, res: Response): Promise<void> => {
   try {
     const { query, category = 'popular', page = '1', per_page = '20' } = req.query;
+
+    // Check if PEXELS_API_KEY is configured
+    if (!process.env.PEXELS_API_KEY) {
+      res.status(503).json({
+        error: 'Stock video service not configured',
+        message: 'Pexels API key is not set. Please contact administrator.'
+      });
+      return;
+    }
 
     if (!query && category === 'popular') {
       // If no specific query, get trending

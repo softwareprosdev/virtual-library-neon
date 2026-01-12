@@ -53,6 +53,17 @@ export default function VideosPage() {
       setCategories(response.categories);
     } catch (error) {
       console.error('Failed to load categories:', error);
+      // Use fallback categories if API fails
+      setCategories([
+        { id: 'popular', name: 'Trending Now', icon: '🔥' },
+        { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
+        { id: 'technology', name: 'Technology', icon: '💻' },
+        { id: 'music', name: 'Music & Dance', icon: '🎵' },
+        { id: 'sports', name: 'Sports', icon: '⚽' },
+        { id: 'travel', name: 'Travel', icon: '✈️' },
+        { id: 'food', name: 'Food & Cooking', icon: '🍕' },
+        { id: 'comedy', name: 'Comedy', icon: '😄' },
+      ]);
     }
   };
 
@@ -68,12 +79,25 @@ export default function VideosPage() {
       });
 
       const response = await api(`${endpoint}?${params}`) as any;
+
+      // Check if there's an error response
+      if (response.error) {
+        throw new Error(response.message);
+      }
+
       setVideos(prev => pageNum === 1 ? response.videos : [...prev, ...response.videos]);
       setTotalVideos(response.totalVideos);
       setPage(pageNum);
       setHasMore(response.videos.length === 20);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load videos:', error);
+
+      // If it's a 503 error, show a user-friendly message
+      if (error.message?.includes('Stock video service not configured')) {
+        // For now, show an empty state
+        setVideos([]);
+        setTotalVideos(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -173,12 +197,23 @@ export default function VideosPage() {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-          ) : videos.length === 0 ? (
+          ) : videos.length === 0 && !loading ? (
             <div className="text-center py-12">
-              <div className="text-muted-foreground mb-4">No videos found</div>
-              <Button onClick={() => loadVideos('popular', '', 1)}>
-                Try trending videos
-              </Button>
+              <div className="text-muted-foreground mb-4">
+                {totalVideos === 0 && !loading ?
+                  'Stock video service is not configured. Please contact the administrator.' :
+                  'No videos found'
+                }
+              </div>
+              {totalVideos === 0 && !loading ? (
+                <Button onClick={() => window.location.href = '/feed'}>
+                  Go to User Videos
+                </Button>
+              ) : (
+                <Button onClick={() => loadVideos('popular', '', 1)}>
+                  Try trending videos
+                </Button>
+              )}
             </div>
           ) : (
             <>
