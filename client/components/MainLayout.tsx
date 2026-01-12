@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home, ShoppingBag, Play } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout, getUser } from '../lib/auth';
 import NotificationCenter from './NotificationCenter';
@@ -27,6 +27,7 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
 
   const menuItems = [
     { text: 'Home', path: '/feed', icon: Home },
+    { text: 'Videos', path: '/videos', icon: Play },
     { text: 'Explore', path: '/explore', icon: Compass },
     { text: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
     { text: 'Messages', path: '/messages', icon: MessageSquare },

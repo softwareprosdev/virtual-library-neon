@@ -371,11 +371,63 @@ router.get('/:videoId', authenticateToken, async (req: AuthRequest, res: Respons
       return;
     }
 
-const { videoId } = req.params;
-    const videoIdStr = Array.isArray(videoId) ? videoId[0] : videoId;
+    const videoId = getVideoId(req);
 
     const video = await prisma.video.findUnique({
-      where: { id: videoIdStr }
+      where: { id: videoId },
+      include: {
+        user: {
+          select: { id: true, name: true, displayName: true, avatarUrl: true }
+        },
+        sound: {
+          select: { id: true, title: true, artistName: true, coverUrl: true }
+        },
+        likes: {
+          where: { userId: req.user.id },
+          select: { id: true }
+        },
+        bookmarks: {
+          where: { userId: req.user.id },
+          select: { id: true }
+        },
+        _count: {
+          select: { likes: true, comments: true, shares: true, views: true }
+        }
+      }
+    });
+
+    if (!video) {
+      res.status(404).json({ message: 'Video not found' });
+      return;
+    }
+
+    res.json({
+      ...video,
+      isLiked: video.likes.length > 0,
+      isBookmarked: video.bookmarks.length > 0,
+      likeCount: video._count.likes,
+      commentCount: video._count.comments,
+      shareCount: video._count.shares,
+      viewCount: video._count.views
+    });
+  } catch (error) {
+    console.error('Get video error:', error);
+    res.status(500).json({ message: 'Failed to get video' });
+  }
+});
+
+// Like/unlike a video
+router.post('/:videoId/like', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const videoId = getVideoId(req);
+
+    const video = await prisma.video.findUnique({
+      where: { id: videoId }
     });
 
     if (!video) {
@@ -399,7 +451,7 @@ const { videoId } = req.params;
       });
 
       // Update engagement score
-      await updateVideoEngagementScore(getVideoId(req));
+      await updateVideoEngagementScore(videoId);
 
       res.json({ liked: false });
     } else {
@@ -415,7 +467,7 @@ const { videoId } = req.params;
       await updateUserInterests(req.user.id, video.hashtags, 0.1);
 
       // Update engagement score
-      await updateVideoEngagementScore(getVideoId(req));
+      await updateVideoEngagementScore(videoId);
 
       // Create notification
       if (video.userId !== req.user.id) {

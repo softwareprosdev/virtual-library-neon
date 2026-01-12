@@ -281,24 +281,24 @@ export default function LiveAudio({ roomId }: LiveAudioProps) {
     }
   }, [isJoined, previewStream]);
 
-  // Handle self-audio monitoring
+  // Handle self-audio monitoring using previewStream before joining
   useEffect(() => {
     if (!audioMonitorRef.current) return;
-    
-    if (monitorOwnAudio && isJoined && rawStream) {
-      // Create a low-volume version of local audio for monitoring
+
+    if (monitorOwnAudio && !isJoined && previewStream) {
+      // Create a low-volume version of local audio for monitoring during preview
       const audioContext = new window.AudioContext();
-      const source = audioContext.createMediaStreamSource(rawStream);
+      const source = audioContext.createMediaStreamSource(previewStream);
       const gainNode = audioContext.createGain();
       gainNode.gain.value = 0.1; // Very low volume to avoid feedback
       source.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       return () => {
         audioContext.close();
       };
     }
-  }, [monitorOwnAudio, isJoined, rawStream]);
+  }, [monitorOwnAudio, isJoined, previewStream]);
 
   // Start preview stream when not joined
   useEffect(() => {

@@ -96,7 +96,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req: Au
     const sound = await prisma.sound.create({
       data: {
         title,
-        artistName: artistName || req.user.name || 'Unknown Artist',
+        artistName: artistName || 'Unknown Artist',
         audioUrl: fileUrl,
         coverUrl,
         duration: parseInt(duration) || 0,

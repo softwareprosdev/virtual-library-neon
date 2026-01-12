@@ -334,10 +334,12 @@ export default function VideoCard({
         {/* Sound */}
         {video.sound && (
           <div className="flex items-center gap-2 text-white/80">
-            <Music2 className="w-4 h-4" />
-            <marquee className="text-sm max-w-[200px]">
-              {video.sound.title} - {video.sound.artistName || 'Original Sound'}
-            </marquee>
+            <Music2 className="w-4 h-4 flex-shrink-0" />
+            <div className="overflow-hidden max-w-[200px]">
+              <span className="inline-block text-sm whitespace-nowrap animate-[marquee_8s_linear_infinite]">
+                {video.sound.title} - {video.sound.artistName || 'Original Sound'}
+              </span>
+            </div>
           </div>
         )}
       </div>

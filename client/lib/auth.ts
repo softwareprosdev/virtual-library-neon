@@ -2,6 +2,8 @@ export interface User {
   id: string;
   name: string | null;
   email: string;
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export const setToken = (token: string) => {

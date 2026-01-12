@@ -111,14 +111,6 @@ export default function CommunityPage() {
             ))}
         </div>
       )}
-                        <Button className="w-full gap-2" onClick={() => router.push(`/room/${room.id}`)}>
-                            Join Channel <ExternalLink size={16} />
-                        </Button>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-      )}
     </MainLayout>
   );
 }

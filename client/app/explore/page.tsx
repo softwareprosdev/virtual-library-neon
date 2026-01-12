@@ -102,7 +102,13 @@ function ExploreContent() {
         if (googleBooks.status === 'fulfilled') {
           allTrending = allTrending.concat(
             googleBooks.value.books.map(book => ({
-              ...book,
+              id: book.id,
+              title: book.volumeInfo.title,
+              authors: book.volumeInfo.authors,
+              description: book.volumeInfo.description,
+              coverImage: book.volumeInfo.imageLinks?.thumbnail,
+              previewLink: book.volumeInfo.previewLink,
+              infoLink: book.volumeInfo.infoLink,
               source: 'google' as const
             }))
           );
@@ -174,7 +180,13 @@ function ExploreContent() {
         try {
           const googleData = await searchGoogleBooks(query, 0, 20);
           const googleBooks = googleData.books.map(book => ({
-            ...book,
+            id: book.id,
+            title: book.volumeInfo.title,
+            authors: book.volumeInfo.authors,
+            description: book.volumeInfo.description,
+            coverImage: book.volumeInfo.imageLinks?.thumbnail,
+            previewLink: book.volumeInfo.previewLink,
+            infoLink: book.volumeInfo.infoLink,
             source: 'google' as const
           }));
           results = [...results, ...googleBooks];
