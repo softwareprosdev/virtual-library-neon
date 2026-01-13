@@ -27,10 +27,10 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Rate limit for resending verification code (20 attempts per 15 mins for debugging)
+// Rate limit for resending verification code (3 attempts per 15 mins for production)
 const resendLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Increased limit for debugging
+  max: 3, // Stricter limit for production
   message: { message: 'Too many verification attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -304,80 +304,6 @@ router.get('/verify-email/:token', async (req: Request, res: Response): Promise<
   }
 });
 
-// Resend Verification Email
-router.post('/resend-verification', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      res.status(400).json({ message: "Email is required" });
-      return;
-    }
-
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      res.status(400).json({ message: "User not found" });
-      return;
-    }
-
-    if (user.emailVerified) {
-      res.status(400).json({ message: "Email already verified" });
-      return;
-    }
-
-    // Generate new verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: verificationExpires
-      }
-    });
-
-// Send verification email
-    try {
-      const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-      const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
-      
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'noreply@mail.softwarepros.org',
-        to: [email],
-        subject: 'Verify your Virtual Library account',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Verify Your Email</h2>
-            <p>Hi ${user.name || 'there'},</p>
-            <p>You requested to verify your email address for Virtual Library.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationUrl}" 
-                 style="background-color: #007bff; color: white; padding: 12px 30px; 
-                        text-decoration: none; border-radius: 5px; display: inline-block;">
-                Verify Email Address
-              </a>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              This link will expire in 24 hours.
-            </p>
-            <p style="color: #666; font-size: 12px;">
-              Alternatively, you can copy and paste this link: ${verificationUrl}
-            </p>
-          </div>
-        `
-      });
-      
-      res.json({ message: "Verification email sent successfully" });
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      res.status(500).json({ message: "Failed to send verification email" });
-    }
-  } catch (error) {
-    console.error("Resend verification error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 // Get Current User
 router.get('/me', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
