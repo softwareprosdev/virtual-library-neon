@@ -161,6 +161,12 @@ export default function MarketplacePage() {
 
     setIsCreating(true);
     try {
+      console.log('[Marketplace] Creating listing with data:', {
+        ...newListing,
+        price: parseFloat(newListing.price),
+        images: newListing.images.filter(img => img.trim())
+      });
+
       const response = await api('/marketplace', {
         method: 'POST',
         body: JSON.stringify({
@@ -170,7 +176,12 @@ export default function MarketplacePage() {
         })
       });
 
+      console.log('[Marketplace] Response status:', response.status);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('[Marketplace] Listing created successfully:', data);
+        alert('Listing created successfully!');
         setShowCreateDialog(false);
         setNewListing({
           title: '',
@@ -183,12 +194,22 @@ export default function MarketplacePage() {
         });
         fetchListings();
       } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to create listing');
+        const errorText = await response.text();
+        console.error('[Marketplace] Error response:', errorText);
+
+        let errorMessage = 'Failed to create listing';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+
+        alert(`Error: ${errorMessage}`);
       }
     } catch (error) {
-      console.error('Error creating listing:', error);
-      alert('Failed to create listing');
+      console.error('[Marketplace] Exception creating listing:', error);
+      alert(`Failed to create listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsCreating(false);
     }
@@ -206,10 +227,10 @@ export default function MarketplacePage() {
               : l
           )
         );
-        
+
         // If we're on the saved tab and unsaved it, remove it from the list
         if (activeTab === 'saved' && !data.saved) {
-           setListings(prev => prev.filter(l => l.id !== listingId));
+          setListings(prev => prev.filter(l => l.id !== listingId));
         }
 
         if (selectedListing?.id === listingId) {
@@ -252,13 +273,13 @@ export default function MarketplacePage() {
           <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="font-semibold mb-2">No listings found</h3>
           <p className="text-muted-foreground">
-            {activeTab === 'saved' 
-              ? 'You haven\'t saved any listings yet' 
+            {activeTab === 'saved'
+              ? 'You haven\'t saved any listings yet'
               : activeTab === 'my-listings'
-              ? 'You haven\'t created any listings yet'
-              : searchQuery 
-                ? 'Try a different search term' 
-                : 'Be the first to create a listing!'}
+                ? 'You haven\'t created any listings yet'
+                : searchQuery
+                  ? 'Try a different search term'
+                  : 'Be the first to create a listing!'}
           </p>
         </div>
       );
