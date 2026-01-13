@@ -2,26 +2,27 @@ import { Request, Response, NextFunction } from 'express';
 import { logSecurityEvent } from './monitoring';
 
 // Block any external HTTP requests that might exfiltrate data
+// NOTE: Be careful not to block legitimate browser requests!
 export const blockExternalRequests = (req: Request, res: Response, next: NextFunction) => {
   const userAgent = req.get('User-Agent') || '';
   const ip = (req.ip as string) || 'unknown';
   
-  // Block suspicious user agents that might be scrapers or automated tools
-  const suspiciousAgents = [
-    /python/i,
-    /curl/i,
-    /wget/i,
-    /perl/i,
-    /java/i,
+  // Only block truly malicious/automated attack tools, NOT development tools
+  // Be very conservative here - false positives break the entire app
+  const trulyMaliciousAgents = [
     /scrapy/i,
     /beautifulsoup/i,
-    /selenium/i,
     /phantomjs/i,
     /casperjs/i,
-    /node-fetch/i
+    /nikto/i,
+    /sqlmap/i,
+    /nmap/i,
+    /openvas/i,
+    /masscan/i
   ];
   
-  if (suspiciousAgents.some(agent => agent.test(userAgent))) {
+  // Only block if user agent is DEFINITELY malicious AND not empty
+  if (userAgent && trulyMaliciousAgents.some(agent => agent.test(userAgent))) {
     logSecurityEvent({
       type: 'SUSPICIOUS_USER_AGENT_BLOCKED',
       severity: 'HIGH',
@@ -35,32 +36,30 @@ export const blockExternalRequests = (req: Request, res: Response, next: NextFun
     return res.status(403).json({ message: 'Access denied' });
   }
   
-  // Block requests containing suspicious payload patterns
-  const bodyString = JSON.stringify(req.body);
-  const suspiciousPatterns = [
-    /fetch\s*\(\s*['"`]https?:\/\/./i,
-    /axios\s*\.\s*(get|post)\s*\(\s*['"`]https?:\/\/./i,
-    /https?:\/\/.*password/i,
-    /webhook|hook\.|web\.hook/i,
-    /exfiltrate|exfiltration/i,
-    /base64.*password|password.*base64/i,
-    /btoa\s*\([^)]*password|password[^)]*btoa\s*\(/i
-  ];
-  
-  if (suspiciousPatterns.some(pattern => pattern.test(bodyString))) {
-    logSecurityEvent({
-      type: 'SUSPICIOUS_PAYLOAD_BLOCKED',
-      severity: 'CRITICAL',
-      ip,
-      userAgent,
-      path: req.path,
-      method: req.method,
-      details: { 
-        body: bodyString.substring(0, 200) // Log first 200 chars for analysis
-      }
-    });
+  // Only block request body patterns for POST/PUT requests (not GET)
+  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+    const bodyString = JSON.stringify(req.body);
+    // Only block truly dangerous exfiltration patterns
+    const trulyDangerousPatterns = [
+      /exfiltrate|exfiltration/i,
+      /password.*base64|base64.*password/i
+    ];
     
-    return res.status(400).json({ message: 'Invalid request' });
+    if (trulyDangerousPatterns.some(pattern => pattern.test(bodyString))) {
+      logSecurityEvent({
+        type: 'SUSPICIOUS_PAYLOAD_BLOCKED',
+        severity: 'CRITICAL',
+        ip,
+        userAgent,
+        path: req.path,
+        method: req.method,
+        details: { 
+          body: bodyString.substring(0, 200)
+        }
+      });
+      
+      return res.status(400).json({ message: 'Invalid request' });
+    }
   }
   
   next();
