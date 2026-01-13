@@ -88,7 +88,7 @@ router.get('/@:username', async (req: Request, res: Response): Promise<void> => 
     });
 
     if (!user) {
-      res.status(404).json({ message: \"User not found\" });
+      res.status(404).json({ message: "User not found" });
       return;
     }
 
@@ -119,8 +119,8 @@ router.get('/@:username', async (req: Request, res: Response): Promise<void> => 
       topFriends: topFriendsDetails
     });
   } catch (error) {
-    console.error(\"Get Profile by Username Error:\", error);
-    res.status(500).json({ message: \"Server error\" });
+    console.error("Get Profile by Username Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -475,12 +475,12 @@ router.put('/:id/username', authenticateToken, async (req: AuthRequest, res: Res
     const { username } = req.body;
 
     if (!userId || userId !== id) {
-      res.status(403).json({ message: \"Unauthorized\" });
+      res.status(403).json({ message: "Unauthorized" });
       return;
     }
 
     if (!username || !username.trim()) {
-      res.status(400).json({ message: \"Username is required\" });
+      res.status(400).json({ message: "Username is required" });
       return;
     }
 
@@ -488,7 +488,7 @@ router.put('/:id/username', authenticateToken, async (req: AuthRequest, res: Res
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(username)) {
       res.status(400).json({ 
-        message: \"Username must be 3-20 characters and contain only letters, numbers, and underscores\" 
+        message: "Username must be 3-20 characters and contain only letters, numbers, and underscores" 
       });
       return;
     }
@@ -499,7 +499,7 @@ router.put('/:id/username', authenticateToken, async (req: AuthRequest, res: Res
     });
 
     if (existingUser && existingUser.id !== id) {
-      res.status(400).json({ message: \"Username already taken\" });
+      res.status(400).json({ message: "Username already taken" });
       return;
     }
 
@@ -537,25 +537,25 @@ router.put('/:id/username', authenticateToken, async (req: AuthRequest, res: Res
     });
 
     res.json({ 
-      message: \"Username updated successfully\",
+      message: "Username updated successfully",
       username: updatedUser.username,
       nextChangeAvailable: new Date(updatedUser.usernameChangedAt!.getTime() + 30 * 24 * 60 * 60 * 1000)
     });
   } catch (error) {
-    console.error(\"Update Username Error:\", error);
-    res.status(500).json({ message: \"Server error\" });
+    console.error("Update Username Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // Check Username Availability
 router.get('/username/check/:username', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username } = req.params;
+    const username = String(req.params.username);
 
     // Validate format
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!usernameRegex.test(username)) {
-      res.json({ available: false, reason: \"Invalid format\" });
+      res.json({ available: false, reason: "Invalid format" });
       return;
     }
 
@@ -565,8 +565,8 @@ router.get('/username/check/:username', async (req: Request, res: Response): Pro
 
     res.json({ available: !existingUser });
   } catch (error) {
-    console.error(\"Check Username Error:\", error);
-    res.status(500).json({ message: \"Server error\" });
+    console.error("Check Username Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
