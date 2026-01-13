@@ -203,7 +203,7 @@ function ExploreContent() {
     fetchTrending();
   }, []);
 
-  // Search books with pagination
+  // Search books with pagination - includes free sources
   const searchBooks = useCallback(async (query: string, pageNum: number, append = false) => {
     if (!query.trim()) return;
     
@@ -212,26 +212,64 @@ function ExploreContent() {
 
     try {
       const startIndex = pageNum * 20;
-      const data = await searchGoogleBooks(query, startIndex, 20);
       
-      const newBooks = data.books.map(book => ({
-        id: book.id,
-        title: book.volumeInfo.title,
-        authors: book.volumeInfo.authors,
-        description: book.volumeInfo.description,
-        coverImage: book.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
-        previewLink: book.volumeInfo.previewLink,
-        infoLink: book.volumeInfo.infoLink,
-        source: 'google' as const
-      }));
-
-      if (append) {
-        setBooks(prev => [...prev, ...newBooks]);
-      } else {
-        setBooks(newBooks);
+      // Search multiple sources in parallel
+      const [googleResult, gutenbergResult, openLibResult] = await Promise.allSettled([
+        searchGoogleBooks(query, startIndex, 15),
+        pageNum === 0 ? api(`/free-books/gutenberg?search=${encodeURIComponent(query)}`).then(r => r.ok ? r.json() : null) : null,
+        pageNum === 0 ? api(`/free-books/openlibrary?search=${encodeURIComponent(query)}`).then(r => r.ok ? r.json() : null) : null,
+      ]);
+      
+      let allBooks: Book[] = [];
+      
+      // Google Books
+      if (googleResult.status === 'fulfilled' && googleResult.value) {
+        allBooks = googleResult.value.books.map(book => ({
+          id: book.id,
+          title: book.volumeInfo.title,
+          authors: book.volumeInfo.authors,
+          description: book.volumeInfo.description,
+          coverImage: book.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+          previewLink: book.volumeInfo.previewLink,
+          infoLink: book.volumeInfo.infoLink,
+          source: 'google' as const
+        }));
       }
       
-      setHasMore(newBooks.length === 20);
+      // Gutenberg free books (only on first page)
+      if (pageNum === 0 && gutenbergResult.status === 'fulfilled' && gutenbergResult.value) {
+        const gutenbergBooks = (gutenbergResult.value.books || []).slice(0, 8).map((book: any) => ({
+          id: `gutenberg-${book.id}`,
+          title: book.title,
+          authors: book.authors || [],
+          coverImage: book.coverUrl,
+          formats: book.formats,
+          source: 'gutenberg' as const
+        }));
+        // Mix free books at the start
+        allBooks = [...gutenbergBooks, ...allBooks];
+      }
+      
+      // Open Library (only on first page)
+      if (pageNum === 0 && openLibResult.status === 'fulfilled' && openLibResult.value) {
+        const openLibBooks = (openLibResult.value.books || []).slice(0, 5).map((book: any) => ({
+          id: book.id,
+          title: book.title,
+          authors: book.authors || [],
+          coverImage: book.coverUrl,
+          ia: book.ia,
+          source: 'openlibrary' as const
+        }));
+        allBooks = [...openLibBooks, ...allBooks];
+      }
+
+      if (append) {
+        setBooks(prev => [...prev, ...allBooks]);
+      } else {
+        setBooks(allBooks);
+      }
+      
+      setHasMore(allBooks.length >= 10);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -374,7 +412,9 @@ function ExploreContent() {
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
           <AnimatePresence>
-            {books.map((book, idx) => (
+            {books.map((book, idx) => {
+              const isFree = book.source === 'gutenberg' || book.source === 'openlibrary';
+              return (
               <motion.div
                 key={`${book.id}-${idx}`}
                 initial={{ opacity: 0, y: 20 }}
@@ -397,17 +437,26 @@ function ExploreContent() {
                       <BookOpen className="w-8 h-8 text-white/30" />
                     </div>
                   )}
-                  {/* Hover play button */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {/* Free badge */}
+                  {isFree && (
+                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-md shadow-lg">
+                      FREE
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                     <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                       <Play className="w-5 h-5 text-white fill-white" />
                     </div>
+                    <span className="text-white text-xs font-medium">
+                      {isFree ? 'Read Free' : 'Preview'}
+                    </span>
                   </div>
                 </div>
                 <p className="text-xs text-white/70 mt-2 truncate">{book.title}</p>
                 <p className="text-[10px] text-white/40 truncate">{book.authors?.join(', ') || 'Unknown'}</p>
               </motion.div>
-            ))}
+            );})}
           </AnimatePresence>
         </div>
 
