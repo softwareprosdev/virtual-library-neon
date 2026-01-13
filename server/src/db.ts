@@ -59,6 +59,15 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
     },
   },
   log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error'],
+  // PostgreSQL 17 Connection Pool Optimization for Coolify/VPS
+  // Optimized for efficient resource usage on limited VPS environments
+  __internal: {
+    engine: {
+      connection_limit: parseInt(process.env.DB_CONNECTION_LIMIT || '5'),
+      pool_timeout: parseInt(process.env.DB_POOL_TIMEOUT || '10'),
+      connect_timeout: parseInt(process.env.DB_CONNECT_TIMEOUT || '10'),
+    }
+  }
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
