@@ -163,6 +163,14 @@ export default function VideosPage() {
     setSelectedVideo(null);
   };
 
+  // Get related videos (same category or similar)
+  const getRelatedVideos = (currentVideo: PexelsVideo) => {
+    return videos
+      .filter(video => video.id !== currentVideo.id)
+      .sort(() => Math.random() - 0.5) // Randomize order
+      .slice(0, 8); // Show up to 8 related videos
+  };
+
   return (
     <MainLayout>
       <div className="min-h-screen bg-background">
@@ -255,14 +263,19 @@ export default function VideosPage() {
                     onClick={() => handleVideoClick(video)}
                   >
                     <CardHeader className="p-0">
-                      {/* Video Thumbnail */}
-                      <div className="relative">
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.title}
-                          className="w-full h-48 object-cover"
-                          loading="lazy"
-                        />
+                       {/* Video Thumbnail */}
+                       <div className="relative">
+                         <img
+                           src={video.thumbnailUrl}
+                           alt={video.title}
+                           className="w-full h-48 object-cover"
+                           loading="lazy"
+                           onError={(e) => {
+                             // Fallback to a placeholder if thumbnail fails to load
+                             const target = e.target as HTMLImageElement;
+                             target.src = `https://via.placeholder.com/400x225/1a1a1a/ffffff?text=${encodeURIComponent(video.title.substring(0, 20))}`;
+                           }}
+                         />
                         {/* Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-xs">
@@ -364,12 +377,77 @@ export default function VideosPage() {
 
       {/* Video Player Modal */}
       {selectedVideo && (
-        <VideoPlayer
-          video={selectedVideo}
-          isOpen={isPlayerOpen}
-          onClose={handleClosePlayer}
-          autoPlay={true}
-        />
+        <div className="fixed inset-0 z-50 bg-black/95 flex">
+          {/* Main Video Player */}
+          <div className="flex-1 flex items-center justify-center p-4">
+            <VideoPlayer
+              video={selectedVideo}
+              isOpen={isPlayerOpen}
+              onClose={handleClosePlayer}
+              autoPlay={true}
+            />
+          </div>
+
+          {/* Related Videos Sidebar */}
+          {isPlayerOpen && (
+            <div className="w-80 bg-background border-l border-border overflow-y-auto">
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Play className="h-5 w-5" />
+                  Up Next
+                </h3>
+                <div className="space-y-3">
+                  {getRelatedVideos(selectedVideo).map((video) => (
+                    <Card
+                      key={video.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => {
+                        setSelectedVideo(video);
+                        // VideoPlayer will automatically reload with new video
+                      }}
+                    >
+                      <div className="flex gap-3 p-3">
+                        <div className="relative w-20 h-12 flex-shrink-0">
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="w-full h-full object-cover rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = `https://via.placeholder.com/80x48/1a1a1a/ffffff?text=Video`;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/20 rounded flex items-center justify-center">
+                            <Play className="h-3 w-3 text-white fill-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium line-clamp-2 leading-tight">
+                            {video.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDuration(video.duration)}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Close button for sidebar */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    onClick={handleClosePlayer}
+                    className="w-full"
+                  >
+                    Close Player
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </MainLayout>
   );
