@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { connectSocket, getSocket } from '../../../lib/socket';
-import { getToken } from '../../../lib/auth';
+import { getToken, getUser } from '../../../lib/auth';
 import BookPanel from '../../../components/BookPanel';
 import nextDynamic from 'next/dynamic';
 import { Button } from '../../../components/ui/button';
@@ -498,5 +498,6 @@ export default function RoomPage() {
           </div>
         </div>
       </div>
-      );
+    </div>
+  );
 }
