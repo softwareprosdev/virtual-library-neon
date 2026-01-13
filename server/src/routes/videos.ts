@@ -94,7 +94,7 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: Au
     const fileLocation = (req.file as any).location;
     const fileUrl = fileLocation || `/uploads/videos/${req.file.filename}`;
 
-    const { caption, hashtags, mentions, visibility, allowDuet, allowStitch, allowComments, soundId, duration } = req.body;
+    const { caption, hashtags, mentions, visibility, allowDuet, allowStitch, allowComments, soundId, duration, category } = req.body;
 
     // Extract hashtags from caption
     const hashtagRegex = /#(\w+)/g;
@@ -136,6 +136,7 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: Au
         allowStitch: allowStitch !== 'false',
         allowComments: allowComments !== 'false',
         soundId: soundId || null,
+        category: category || 'OTHER',
         processingStatus: 'COMPLETED' // For now, mark as completed since we're not doing server-side processing
       },
       include: {
@@ -319,6 +320,113 @@ router.get('/stock', authenticateToken, async (req: AuthRequest, res: Response):
   } catch (error) {
     console.error('Get stock videos error:', error);
     res.status(500).json({ message: 'Failed to get stock videos' });
+  }
+});
+
+// Get videos by category (user videos + stock videos)
+router.get('/category/:category', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { category } = req.params;
+    const { cursor, limit = '10', page = '1' } = req.query;
+    const take = parseInt(limit as string);
+    const pageNum = parseInt(page as string);
+
+    // Get blocked users
+    const blockedUsers = await prisma.userBlock.findMany({
+      where: {
+        OR: [
+          { blockerId: req.user.id },
+          { blockedId: req.user.id }
+        ]
+      }
+    });
+    const blockedIds = blockedUsers.map(b =>
+      b.blockerId === req.user!.id ? b.blockedId : b.blockerId
+    );
+
+    // Get user videos from this category
+    const userVideos = await prisma.video.findMany({
+      where: {
+        category: category as any,
+        visibility: 'PUBLIC',
+        userId: { notIn: blockedIds },
+        processingStatus: 'COMPLETED'
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, displayName: true, avatarUrl: true }
+        },
+        likes: {
+          where: { userId: req.user.id },
+          select: { id: true }
+        },
+        _count: {
+          select: { likes: true, comments: true, shares: true, views: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: take + 1,
+      ...(cursor && { cursor: { id: cursor as string }, skip: 1 })
+    });
+
+    const hasMoreUser = userVideos.length > take;
+    const userResults = hasMoreUser ? userVideos.slice(0, -1) : userVideos;
+
+    const transformedUserVideos = userResults.map(video => ({
+      ...video,
+      source: 'user' as const,
+      isLiked: video.likes.length > 0,
+      likeCount: video._count.likes,
+      commentCount: video._count.comments,
+      shareCount: video._count.shares,
+      viewCount: video._count.views
+    }));
+
+    // If we need more videos, fill with Pexels stock
+    let result = transformedUserVideos;
+    let hasMore = hasMoreUser;
+
+    if (transformedUserVideos.length < take) {
+      const neededStock = take - transformedUserVideos.length;
+      let stockVideos = [];
+
+      // Map our categories to Pexels categories
+      const pexelsCategoryMap: Record<string, string> = {
+        'NATURE': 'nature',
+        'TRAVEL': 'travel',
+        'FOOD': 'food',
+        'MUSIC': 'music',
+        'SPORTS': 'sports',
+        'TECH': 'technology',
+        'FASHION': 'lifestyle'
+      };
+
+      const pexelsCategory = pexelsCategoryMap[category] || 'popular';
+
+      try {
+        stockVideos = await pexelsService.getCuratedVideos(pexelsCategory, pageNum, neededStock);
+      } catch (error) {
+        // Fallback to popular if category not available
+        stockVideos = await pexelsService.getPopularVideos(pageNum, neededStock);
+      }
+
+      result = [...transformedUserVideos, ...stockVideos];
+      hasMore = stockVideos.length === neededStock;
+    }
+
+    res.json({
+      videos: result,
+      nextCursor: hasMoreUser ? userResults[userResults.length - 1]?.id : null,
+      hasMore
+    });
+  } catch (error) {
+    console.error('Get category videos error:', error);
+    res.status(500).json({ message: 'Failed to get category videos' });
   }
 });
 
@@ -1218,7 +1326,7 @@ router.post('/mux/create', authenticateToken, async (req: AuthRequest, res: Resp
       return;
     }
 
-    const { uploadId, caption, hashtags, mentions, visibility, allowDuet, allowStitch, allowComments, soundId } = req.body;
+    const { uploadId, caption, hashtags, mentions, visibility, allowDuet, allowStitch, allowComments, soundId, category } = req.body;
 
     if (!uploadId) {
       res.status(400).json({ message: 'Upload ID is required' });
@@ -1288,6 +1396,7 @@ router.post('/mux/create', authenticateToken, async (req: AuthRequest, res: Resp
         allowStitch: allowStitch !== false,
         allowComments: allowComments !== false,
         soundId: soundId || null,
+        category: category || 'OTHER',
         processingStatus: 'COMPLETED',
         categoryScores: { muxAssetId: asset.id, muxPlaybackId: asset.playbackId }
       },
@@ -1388,6 +1497,122 @@ router.post('/mux/webhook', async (req: Request, res: Response): Promise<void> =
   } catch (error) {
     console.error('Error handling Mux webhook:', error);
     res.status(500).json({ message: 'Webhook handling failed' });
+  }
+});
+
+// Create video from external URL (YouTube, Vimeo, etc.)
+router.post('/embed', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { url, caption, hashtags, mentions, visibility, category } = req.body;
+
+    if (!url) {
+      res.status(400).json({ message: 'Video URL is required' });
+      return;
+    }
+
+    // Validate URL is from supported platforms
+    const supportedPlatforms = ['youtube.com', 'youtu.be', 'vimeo.com'];
+    const urlObj = new URL(url);
+    const isSupported = supportedPlatforms.some(platform => urlObj.hostname.includes(platform));
+
+    if (!isSupported) {
+      res.status(400).json({ message: 'Unsupported video platform. Currently supports YouTube and Vimeo.' });
+      return;
+    }
+
+    // Extract hashtags from caption
+    const hashtagRegex = /#(\w+)/g;
+    const extractedHashtags = caption
+      ? [...caption.matchAll(hashtagRegex)].map((match: RegExpMatchArray) => match[1].toLowerCase())
+      : [];
+    const allHashtags = [...new Set([...extractedHashtags, ...(hashtags || [])])];
+
+    // Extract mentions from caption
+    const mentionRegex = /@(\w+)/g;
+    const mentionedNames = caption
+      ? [...caption.matchAll(mentionRegex)].map((match: RegExpMatchArray) => match[1])
+      : [];
+
+    // Find mentioned users
+    const mentionedUsers = mentionedNames.length > 0 ? await prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { in: mentionedNames, mode: 'insensitive' } },
+          { displayName: { in: mentionedNames, mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true }
+    }) : [];
+
+    const mentionIds = [...new Set([...mentionedUsers.map(u => u.id), ...(mentions || [])])];
+
+    // Create video record for external URL
+    const video = await prisma.video.create({
+      data: {
+        userId: req.user.id,
+        videoUrl: url,
+        duration: 0, // External videos don't have duration in our schema
+        caption,
+        hashtags: allHashtags,
+        mentions: mentionIds,
+        visibility: visibility || 'PUBLIC',
+        allowDuet: false, // External videos don't support duet/stitch
+        allowStitch: false,
+        allowComments: true,
+        soundId: null,
+        category: category || 'OTHER',
+        processingStatus: 'COMPLETED'
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, displayName: true, avatarUrl: true }
+        }
+      }
+    });
+
+    // Update hashtag counts
+    for (const tag of allHashtags) {
+      await prisma.hashtag.upsert({
+        where: { name: tag },
+        create: { name: tag, postCount: 1 },
+        update: { postCount: { increment: 1 } }
+      });
+    }
+
+    // Create notifications for mentioned users
+    for (const userId of mentionIds) {
+      if (userId !== req.user.id) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            actorId: req.user.id,
+            type: 'VIDEO_MENTION',
+            title: 'You were tagged',
+            body: 'tagged you in a video',
+            data: { videoId: video.id }
+          }
+        });
+      }
+    }
+
+    // Create activity
+    await prisma.activity.create({
+      data: {
+        userId: req.user.id,
+        type: 'CREATE_VIDEO',
+        details: JSON.stringify({ videoId: video.id })
+      }
+    });
+
+    res.status(201).json(video);
+  } catch (error) {
+    console.error('Embed video error:', error);
+    res.status(500).json({ message: 'Failed to embed video' });
   }
 });
 

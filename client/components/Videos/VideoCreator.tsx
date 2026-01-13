@@ -37,7 +37,8 @@ interface VideoCreatorProps {
 }
 
 export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorProps) {
-  const [step, setStep] = useState<'upload' | 'edit'>('upload');
+  const [step, setStep] = useState<'upload' | 'embed' | 'edit'>('upload');
+  const [embedUrl, setEmbedUrl] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
@@ -47,6 +48,7 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
   // Form state
   const [caption, setCaption] = useState('');
   const [visibility, setVisibility] = useState<'PUBLIC' | 'FOLLOWERS_ONLY' | 'PRIVATE'>('PUBLIC');
+  const [category, setCategory] = useState<'EDUCATION' | 'ENTERTAINMENT' | 'MUSIC' | 'SPORTS' | 'FOOD' | 'TRAVEL' | 'FASHION' | 'TECH' | 'GAMING' | 'COMEDY' | 'DIY' | 'NEWS' | 'OTHER'>('OTHER');
   const [allowDuet, setAllowDuet] = useState(true);
   const [allowStitch, setAllowStitch] = useState(true);
   const [allowComments, setAllowComments] = useState(true);
@@ -108,6 +110,7 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
         formData.append('video', videoFile);
         formData.append('caption', caption);
         formData.append('visibility', visibility);
+        formData.append('category', category);
         formData.append('allowDuet', String(allowDuet));
         formData.append('allowStitch', String(allowStitch));
         formData.append('allowComments', String(allowComments));
@@ -180,6 +183,7 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
           uploadId,
           caption,
           visibility,
+          category,
           allowDuet,
           allowStitch,
           allowComments
@@ -202,6 +206,33 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
     }
   };
 
+  const handleEmbed = async () => {
+    if (!embedUrl.trim()) return;
+
+    try {
+      const response = await api('/videos/embed', {
+        method: 'POST',
+        body: JSON.stringify({
+          url: embedUrl,
+          caption,
+          visibility,
+          category
+        })
+      });
+
+      if (response.ok) {
+        const video = await response.json();
+        onVideoCreated(video);
+      } else {
+        console.error('Embed failed');
+        alert('Failed to embed video. Please check the URL.');
+      }
+    } catch (error) {
+      console.error('Error embedding video:', error);
+      alert('Failed to embed video. Please try again.');
+    }
+  };
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -216,7 +247,7 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
           <X className="w-6 h-6 text-white" />
         </Button>
         <span className="text-white font-semibold">
-          {step === 'upload' ? 'Upload Video' : 'Post'}
+          {step === 'upload' ? 'Upload Video' : step === 'embed' ? 'Embed Video' : 'Post'}
         </span>
         {step === 'edit' ? (
           <Button
@@ -233,6 +264,14 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
             ) : (
               'Post'
             )}
+          </Button>
+        ) : step === 'embed' ? (
+          <Button
+            size="sm"
+            className="bg-pink-500 hover:bg-pink-600"
+            onClick={handleEmbed}
+          >
+            Embed
           </Button>
         ) : (
           <div className="w-16" />
@@ -266,13 +305,23 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
               </p>
             </div>
 
-            <Button
-              className="mt-6 bg-pink-500 hover:bg-pink-600"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Select file
-            </Button>
+            <div className="flex gap-4 mt-6">
+              <Button
+                className="flex-1 bg-pink-500 hover:bg-pink-600"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Video
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex-1 bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700"
+                onClick={() => setStep('embed')}
+              >
+                Embed URL
+              </Button>
+            </div>
 
             <input
               ref={fileInputRef}
@@ -281,6 +330,42 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
               className="hidden"
               onChange={handleFileSelect}
             />
+          </div>
+        </div>
+      ) : step === 'embed' ? (
+        <div className="flex-1 flex flex-col p-8">
+          <div className="max-w-md mx-auto w-full space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-white mb-2">Embed External Video</h2>
+              <p className="text-zinc-400 text-sm">Paste a YouTube or Vimeo URL to embed</p>
+            </div>
+
+            <div className="space-y-4">
+              <Input
+                placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                value={embedUrl}
+                onChange={(e) => setEmbedUrl(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white"
+              />
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 bg-zinc-800 border-zinc-700 text-white"
+                  onClick={() => setStep('upload')}
+                >
+                  Upload File Instead
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 bg-zinc-800 border-zinc-700 text-white"
+                  onClick={() => setStep('edit')}
+                  disabled={!embedUrl.trim()}
+                >
+                  Continue to Edit
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -368,9 +453,33 @@ export default function VideoCreator({ onClose, onVideoCreated }: VideoCreatorPr
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+               </div>
 
-              {/* Toggle Options */}
+               <div>
+                 <Label className="text-white mb-2 block">Category</Label>
+                 <Select value={category} onValueChange={(v: any) => setCategory(v)}>
+                   <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="EDUCATION">Education</SelectItem>
+                     <SelectItem value="ENTERTAINMENT">Entertainment</SelectItem>
+                     <SelectItem value="MUSIC">Music</SelectItem>
+                     <SelectItem value="SPORTS">Sports</SelectItem>
+                     <SelectItem value="FOOD">Food</SelectItem>
+                     <SelectItem value="TRAVEL">Travel</SelectItem>
+                     <SelectItem value="FASHION">Fashion</SelectItem>
+                     <SelectItem value="TECH">Technology</SelectItem>
+                     <SelectItem value="GAMING">Gaming</SelectItem>
+                     <SelectItem value="COMEDY">Comedy</SelectItem>
+                     <SelectItem value="DIY">DIY</SelectItem>
+                     <SelectItem value="NEWS">News</SelectItem>
+                     <SelectItem value="OTHER">Other</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+
+               {/* Toggle Options */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

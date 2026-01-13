@@ -5,6 +5,13 @@ import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, RotateCcw, Settin
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for ReactPlayer to avoid SSR issues
+const ReactPlayer = dynamic(() => import('react-player'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-black flex items-center justify-center text-white">Loading player...</div>
+});
 
 interface VideoPlayerProps {
   video: {
@@ -23,6 +30,11 @@ interface VideoPlayerProps {
   onClose: () => void;
   autoPlay?: boolean;
 }
+
+// Helper function to detect if video is from external platform
+const isExternalVideo = (url: string) => {
+  return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com');
+};
 
 export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }: VideoPlayerProps) {
   // Player State
@@ -417,29 +429,75 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
 
         {/* Video Container */}
         <div className="relative group">
-          <video
-            ref={videoRef}
-            className="w-full h-full object-contain"
-            poster={video.thumbnailUrl}
-            onLoadedMetadata={handleLoadedMetadata}
-            onTimeUpdate={handleTimeUpdate}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onEnded={handleEnded}
-            onWaiting={handleWaiting}
-            onCanPlay={handleCanPlay}
-            onError={handleError}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onDoubleClick={handleDoubleClick}
-            preload="metadata"
-            playsInline
-          >
-            <source src={video.videoUrl} type="video/mp4" />
-            <source src={video.videoUrl} type="video/webm" />
-            <source src={video.videoUrl} type="video/ogg" />
-            Your browser does not support the video tag.
-          </video>
+          {isExternalVideo(video.videoUrl) ? (
+            <ReactPlayer
+              ref={videoRef}
+              url={video.videoUrl}
+              playing={isPlaying}
+              volume={isMuted ? 0 : volume}
+              playbackRate={playbackSpeed}
+              width="100%"
+              height="100%"
+              controls={false}
+              muted={isMuted}
+              playsinline
+              onReady={() => setIsLoading(false)}
+              onStart={() => setIsPlaying(true)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+              onError={(error) => {
+                setHasError(true);
+                setErrorMessage('Failed to load external video');
+                console.error('ReactPlayer error:', error);
+              }}
+              onProgress={(progress) => {
+                setCurrentTime(progress.playedSeconds);
+                if (progress.loaded < 1) setIsBuffering(true);
+                else setIsBuffering(false);
+              }}
+              onDuration={(duration) => setDuration(duration)}
+              config={{
+                youtube: {
+                  playerVars: {
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0
+                  }
+                },
+                vimeo: {
+                  playerOptions: {
+                    title: false,
+                    portrait: false
+                  }
+                }
+              }}
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-contain"
+              poster={video.thumbnailUrl}
+              onLoadedMetadata={handleLoadedMetadata}
+              onTimeUpdate={handleTimeUpdate}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onEnded={handleEnded}
+              onWaiting={handleWaiting}
+              onCanPlay={handleCanPlay}
+              onError={handleError}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onDoubleClick={handleDoubleClick}
+              preload="metadata"
+              playsInline
+            >
+              <source src={video.videoUrl} type="video/mp4" />
+              <source src={video.videoUrl} type="video/webm" />
+              <source src={video.videoUrl} type="video/ogg" />
+              Your browser does not support the video tag.
+            </video>
+          )}
 
           {/* Loading State */}
           {isLoading && (

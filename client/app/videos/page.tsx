@@ -69,24 +69,44 @@ export default function VideosPage() {
     try {
       const response = await api('/pexels/categories') as any;
       if (response.ok) {
+      const data = await response.json();
+      if (response.ok) {
         const data = await response.json();
         setCategories(data.categories);
       } else {
         setCategories([
           { id: 'popular', name: 'Trending Now', icon: '🔥' },
-          { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
-          { id: 'technology', name: 'Technology', icon: '💻' },
-          { id: 'music', name: 'Music & Dance', icon: '🎵' },
-          { id: 'sports', name: 'Sports', icon: '⚽' },
+          { id: 'EDUCATION', name: 'Education', icon: '📚' },
+          { id: 'ENTERTAINMENT', name: 'Entertainment', icon: '🎭' },
+          { id: 'MUSIC', name: 'Music', icon: '🎵' },
+          { id: 'SPORTS', name: 'Sports', icon: '⚽' },
+          { id: 'FOOD', name: 'Food', icon: '🍕' },
+          { id: 'TRAVEL', name: 'Travel', icon: '✈️' },
+          { id: 'FASHION', name: 'Fashion', icon: '👗' },
+          { id: 'TECH', name: 'Technology', icon: '💻' },
+          { id: 'GAMING', name: 'Gaming', icon: '🎮' },
+          { id: 'COMEDY', name: 'Comedy', icon: '😂' },
+          { id: 'DIY', name: 'DIY', icon: '🔨' },
+          { id: 'NEWS', name: 'News', icon: '📰' },
+          { id: 'OTHER', name: 'Other', icon: '📂' },
         ]);
       }
     } catch (error) {
       setCategories([
         { id: 'popular', name: 'Trending Now', icon: '🔥' },
-        { id: 'nature', name: 'Nature & Wildlife', icon: '🌿' },
-        { id: 'technology', name: 'Technology', icon: '💻' },
-        { id: 'music', name: 'Music & Dance', icon: '🎵' },
-        { id: 'sports', name: 'Sports', icon: '⚽' },
+        { id: 'EDUCATION', name: 'Education', icon: '📚' },
+        { id: 'ENTERTAINMENT', name: 'Entertainment', icon: '🎭' },
+        { id: 'MUSIC', name: 'Music', icon: '🎵' },
+        { id: 'SPORTS', name: 'Sports', icon: '⚽' },
+        { id: 'FOOD', name: 'Food', icon: '🍕' },
+        { id: 'TRAVEL', name: 'Travel', icon: '✈️' },
+        { id: 'FASHION', name: 'Fashion', icon: '👗' },
+        { id: 'TECH', name: 'Technology', icon: '💻' },
+        { id: 'GAMING', name: 'Gaming', icon: '🎮' },
+        { id: 'COMEDY', name: 'Comedy', icon: '😂' },
+        { id: 'DIY', name: 'DIY', icon: '🔨' },
+        { id: 'NEWS', name: 'News', icon: '📰' },
+        { id: 'OTHER', name: 'Other', icon: '📂' },
       ]);
     }
   };
@@ -94,13 +114,28 @@ export default function VideosPage() {
   const loadVideos = async (category: string, query: string, pageNum: number = 1) => {
     setLoading(true);
     try {
-      const endpoint = query ? '/pexels/search' : '/pexels/trending';
-      const params = new URLSearchParams({
-        page: pageNum.toString(),
-        per_page: '20',
-        ...(query && { query }),
-        ...(category && { category })
-      });
+      // For our platform categories, use our API; for stock categories, use Pexels
+      let endpoint: string;
+      let params: URLSearchParams;
+
+      if (category === 'popular' || category === 'nature' || category === 'technology' || category === 'music' || category === 'sports') {
+        // Pexels stock categories
+        endpoint = query ? '/pexels/search' : '/pexels/trending';
+        params = new URLSearchParams({
+          page: pageNum.toString(),
+          per_page: '20',
+          ...(query && { query }),
+          ...(category && category !== 'popular' && { category })
+        });
+      } else {
+        // Our platform categories - use our database
+        endpoint = `/videos/category/${category}`;
+        params = new URLSearchParams({
+          page: pageNum.toString(),
+          limit: '20',
+          ...(query && { query })
+        });
+      }
 
       const response = await api(`${endpoint}?${params}`) as any;
 
@@ -112,9 +147,9 @@ export default function VideosPage() {
           setTotalVideos(0);
         } else {
           setVideos(prev => pageNum === 1 ? data.videos : [...prev, ...data.videos]);
-          setTotalVideos(data.totalVideos);
+          setTotalVideos(data.totalVideos || data.videos.length);
           setPage(pageNum);
-          setHasMore(data.videos.length === 20);
+          setHasMore(data.hasMore || data.videos.length === 20);
         }
       } else {
         console.error('API request failed');

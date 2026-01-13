@@ -717,18 +717,22 @@ model Video {
   processingStatus VideoProcessingStatus @default(PENDING)
   processingError  String?
 
-  // FYP Algorithm Data
-  categoryScores   Json?                 // ML-generated category scores
-  engagementScore  Float                 @default(0)
+   // Category
+   category         VideoCategory         @default(OTHER)
+
+   // FYP Algorithm Data
+   categoryScores   Json?                 // ML-generated category scores
+   engagementScore  Float                 @default(0)
 
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
-  @@index([userId])
-  @@index([soundId])
-  @@index([createdAt])
-  @@index([engagementScore])
-  @@index([processingStatus])
+   @@index([userId])
+   @@index([soundId])
+   @@index([createdAt])
+   @@index([engagementScore])
+   @@index([processingStatus])
+   @@index([category])
 }
 
 enum VideoProcessingStatus {
@@ -736,6 +740,22 @@ enum VideoProcessingStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+enum VideoCategory {
+  EDUCATION
+  ENTERTAINMENT
+  MUSIC
+  SPORTS
+  FOOD
+  TRAVEL
+  FASHION
+  TECH
+  GAMING
+  COMEDY
+  DIY
+  NEWS
+  OTHER
 }
 
 // Sound/Music model for videos
