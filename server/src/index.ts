@@ -33,6 +33,7 @@ import marketplaceRoutes from './routes/marketplace';
 import videosRoutes from './routes/videos';
 import soundsRoutes from './routes/sounds';
 import pexelsRoutes from './routes/pexels';
+import googleBooksRoutes from './routes/googleBooks';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -279,6 +280,8 @@ app.use('/api/sounds', soundsRoutes);
 app.use('/sounds', soundsRoutes);
 app.use('/api/pexels', pexelsRoutes);
 app.use('/pexels', pexelsRoutes);
+app.use('/api/google-books', googleBooksRoutes);
+app.use('/google-books', googleBooksRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
@@ -324,78 +327,78 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Run database migrations (for emergency use)
 app.post('/admin/migrate', async (req: Request, res: Response) => {
-    try {
-        const { execSync } = require('child_process');
-        const result = execSync('cd /home/rogue/Documents/ding/virtual-library-neon/server && npx prisma migrate deploy', {
-            encoding: 'utf8'
-        });
+  try {
+    const { execSync } = require('child_process');
+    const result = execSync('cd /home/rogue/Documents/ding/virtual-library-neon/server && npx prisma migrate deploy', {
+      encoding: 'utf8'
+    });
 
-        res.json({
-            status: 'success',
-            message: 'Migrations completed',
-            output: result
-        });
-    } catch (error) {
-        console.error('Migration failed:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'Migration failed',
-            error: error.message
-        });
-    }
+    res.json({
+      status: 'success',
+      message: 'Migrations completed',
+      output: result
+    });
+  } catch (error) {
+    console.error('Migration failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Migration failed',
+      error: error.message
+    });
+  }
 });
 
 // Diagnostics endpoint (Protected by simple key or open for now if critical)
 app.get('/diagnostics', async (req: Request, res: Response) => {
-    try {
-        // Check DB connection by running a simple query
-        const userCount = await prisma.user.count();
-        const roomCount = await prisma.room.count();
-        const marketplaceCount = await prisma.marketplaceListing.count().catch(() => 0);
-        const messageCount = await prisma.message.count();
+  try {
+    // Check DB connection by running a simple query
+    const userCount = await prisma.user.count();
+    const roomCount = await prisma.room.count();
+    const marketplaceCount = await prisma.marketplaceListing.count().catch(() => 0);
+    const messageCount = await prisma.message.count();
 
-        // Check specific tables that are failing
-        const tables = [
-            'User', 'Room', 'MarketplaceListing', 'Message',
-            'Book', 'Genre', 'Participant'
-        ];
+    // Check specific tables that are failing
+    const tables = [
+      'User', 'Room', 'MarketplaceListing', 'Message',
+      'Book', 'Genre', 'Participant'
+    ];
 
-        const tableCounts = {};
-        for (const table of tables) {
-            try {
-                const count = await prisma[table.toLowerCase()].count();
-                tableCounts[table] = count;
-            } catch (error) {
-                tableCounts[table] = `ERROR: ${error.message}`;
-            }
-        }
-
-        res.json({
-            status: 'ok',
-            database: {
-                connected: true,
-                counts: tableCounts,
-                summary: {
-                    users: userCount,
-                    rooms: roomCount,
-                    marketplaceListings: marketplaceCount,
-                    messages: messageCount
-                }
-            },
-            env: {
-                node_env: process.env.NODE_ENV,
-                database_url_set: !!process.env.DATABASE_URL,
-                client_url: process.env.CLIENT_URL,
-            }
-        });
-    } catch (error) {
-        console.error('Diagnostics failed:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'Diagnostics failed',
-            error: error instanceof Error ? error.message : String(error)
-        });
+    const tableCounts = {};
+    for (const table of tables) {
+      try {
+        const count = await prisma[table.toLowerCase()].count();
+        tableCounts[table] = count;
+      } catch (error) {
+        tableCounts[table] = `ERROR: ${error.message}`;
+      }
     }
+
+    res.json({
+      status: 'ok',
+      database: {
+        connected: true,
+        counts: tableCounts,
+        summary: {
+          users: userCount,
+          rooms: roomCount,
+          marketplaceListings: marketplaceCount,
+          messages: messageCount
+        }
+      },
+      env: {
+        node_env: process.env.NODE_ENV,
+        database_url_set: !!process.env.DATABASE_URL,
+        client_url: process.env.CLIENT_URL,
+      }
+    });
+  } catch (error) {
+    console.error('Diagnostics failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Diagnostics failed',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 
 // Global error handler - ensures CORS headers are sent even on errors
