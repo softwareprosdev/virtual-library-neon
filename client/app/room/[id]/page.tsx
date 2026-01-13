@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../
 import { Trash2, ArrowLeft, Send } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
+
 const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
   ssr: false,
   loading: () => (
@@ -43,9 +44,11 @@ interface Message {
   id: string;
   text: string;
   sender: { name: string; email: string; id: string };
+  receiver?: { name: string; email: string; id: string };
   createdAt: string;
   isFlagged?: boolean;
   isSystem?: boolean;
+  isPrivate?: boolean;
 }
 
 interface Participant {
@@ -65,6 +68,10 @@ export default function RoomPage() {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showPrivateMessage, setShowPrivateMessage] = useState(false);
+  const [privateRecipient, setPrivateRecipient] = useState<Participant | null>(null);
+  const [privateMessageText, setPrivateMessageText] = useState('');
+  const currentUser = getUser();
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -219,6 +226,11 @@ fetchRoomData();
     socket.on('userLeft', (data: unknown) => onUserLeft(data as { userId: string }));
     socket.on('typingStart', (data: unknown) => onTypingStart(data as { userId: string }));
     socket.on('typingStop', (data: unknown) => onTypingStop(data as { userId: string }));
+    socket.on('directMessage', (data: unknown) => {
+      const privateMessage = data as Message;
+      privateMessage.isPrivate = true;
+      onMessage(privateMessage);
+    });
 
     if (socket.connected) {
       onConnect();
@@ -245,14 +257,21 @@ fetchRoomData();
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     const socket = getSocket();
-    if (inputText.trim() && socket) {
-      socket.emit('chat', { roomId, text: inputText });
-      setInputText('');
-      // Stop typing indicator when sending message
-      emitTypingStop();
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
+    
+    if (showPrivateMessage) {
+      if (privateMessageText.trim() && privateRecipient && socket) {
+        socket.emit('directMessage', { receiverId: privateRecipient.userId, text: privateMessageText });
+        setPrivateMessageText('');
+      }
+    } else {
+      if (inputText.trim() && socket) {
+        socket.emit('chat', { roomId, text: inputText });
+        setInputText('');
+        emitTypingStop();
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = null;
+        }
       }
     }
   };
@@ -333,42 +352,105 @@ fetchRoomData();
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-            {messages.map((msg, index) => (
-              msg.isSystem ? (
-                <p key={msg.id} className="text-xs text-center text-muted-foreground italic my-2">
-                  {msg.text}
-                </p>
-              ) : (
-                <div key={msg.id || index} className="flex gap-2 group">
-                  <Avatar className={cn("w-8 h-8 opacity-80", msg.isFlagged ? "bg-destructive" : "bg-secondary")}>
+<div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {messages.map((msg, index) => {
+              if (msg.isSystem) {
+                return (
+                  <p key={msg.id} className="text-xs text-center text-muted-foreground italic my-2">
+                    {msg.text}
+                  </p>
+                );
+              }
+
+              const isPrivate = msg.isPrivate || false;
+              const isFlagged = msg.isFlagged || false;
+
+              return (
+                <div key={msg.id || index} className={`flex gap-2 group ${isPrivate ? "bg-blue-500/10 border-blue-200 rounded-lg" : ""}`}>
+                  {isPrivate && (
+                    <div className="text-xs text-blue-600 font-medium px-2 py-1 bg-blue-100 rounded-md">
+                      🔒 PRIVATE
+                    </div>
+                  )}
+                  <Avatar className="w-8 h-8 opacity-80 bg-secondary">
                     <AvatarFallback>{msg.sender.name ? msg.sender.name[0] : '?'}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className={cn("text-xs font-bold truncate", msg.isFlagged ? "text-destructive" : "text-primary")}>
+<span className={
+                        "text-xs font-bold truncate " +
+                        (isPrivate ? "text-blue-600" : 
+                          (isFlagged ? "text-destructive" : "text-primary"))
+                      }>
                         {msg.sender.name || 'Anonymous'}
                       </span>
+                      {isPrivate && msg.receiver && (
+                        <span className="text-xs text-blue-500">
+                          → {msg.receiver.name}
+                        </span>
+                      )}
                       <span className="text-[10px] text-muted-foreground">
                         {new Date(msg.createdAt).toLocaleTimeString()}
                       </span>
-                      {/* Deletion Button for Admins/Mods */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleDelete(msg.id)}
-                      >
-                        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                      </Button>
+                      {!isPrivate && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDelete(msg.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      )}
                     </div>
-                    <div className={cn(
-                      "p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border",
-                      msg.isFlagged 
-                        ? "bg-destructive/10 border-destructive text-destructive" 
-                        : "bg-muted/30 border-border text-foreground"
-                    )}>
+                    <div className={
+                        "p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border " +
+                        (isPrivate 
+                          ? "bg-blue-50 border-blue-200 text-blue-800" 
+                          : isFlagged 
+                            ? "bg-destructive/10 border-destructive text-destructive" 
+                            : "bg-muted/30 border-border text-foreground")
+                      }>
                       {msg.text}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+                      )}
+<Avatar className="w-8 h-8 opacity-80 bg-secondary">
+                    <AvatarFallback>{msg.sender.name ? msg.sender.name[0] : '?'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-xs font-bold truncate text-primary">
+                        {msg.sender.name || 'Anonymous'}
+                      </span>
+                      {msg.isPrivate && msg.receiver && (
+                        <span className="text-xs text-blue-500">
+                          → {msg.receiver.name}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </span>
+                      {!msg.isPrivate && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDelete(msg.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border bg-muted/30 border-border text-foreground">
+                      {msg.text}
+                    </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -398,17 +480,56 @@ fetchRoomData();
             </div>
           )}
 
-          <form onSubmit={handleSend} className="p-4 bg-muted/5 border-t border-border">
+          <div className="border-t border-border bg-muted/5">
+          <div className="p-2 border-b border-border">
+            <Button
+              variant={showPrivateMessage ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPrivateMessage(!showPrivateMessage)}
+              className="w-full"
+            >
+              {showPrivateMessage ? "🔓 Public Chat" : "🔒 Send Private Message"}
+            </Button>
+          </div>
+
+          {showPrivateMessage && (
+            <div className="p-2 border-b border-border bg-blue-50">
+              <div className="text-xs font-medium text-blue-600 mb-2">Select Recipient:</div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {participants
+                  .filter(p => p.userId !== currentUser?.id && p.role !== 'LISTENER')
+                  .map((p) => (
+                    <Button
+                      key={p.userId}
+                      variant={privateRecipient?.userId === p.userId ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPrivateRecipient(p)}
+                      className="text-xs"
+                    >
+                      {p.email.split('@')[0]} ({p.role})
+                    </Button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSend} className="p-4">
             <div className="flex gap-2">
               <Input
-                placeholder="TRANSMIT_DATA..."
-                value={inputText}
-                onChange={handleInputChange}
+                placeholder={showPrivateMessage ? `Private message to ${privateRecipient?.email.split('@')[0] || 'Select recipient'}...` : "TRANSMIT_DATA..."}
+                value={showPrivateMessage ? privateMessageText : inputText}
+                onChange={(e) => {
+                  if (showPrivateMessage) {
+                    setPrivateMessageText(e.target.value);
+                  } else {
+                    handleInputChange(e);
+                  }
+                }}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
-                className="bg-background font-mono text-sm"
+                className={cn("bg-background font-mono text-sm", showPrivateMessage && "border-blue-300 focus:border-blue-500")}
               />
-              <Button type="submit" disabled={!inputText.trim()} size="icon">
+              <Button type="submit" disabled={!showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} size="icon">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
