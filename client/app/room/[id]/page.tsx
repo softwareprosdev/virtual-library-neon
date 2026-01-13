@@ -484,10 +484,10 @@ export default function RoomPage() {
               </div>
             )}
 
-            <form onSubmit={handleSend} className="p-4 bg-card/50">
+            <form onSubmit={handleSend} className="p-4 bg-[#0a0a0f] border-t border-white/10">
               <div className="flex gap-2">
                 <Input
-                  placeholder={showPrivateMessage ? `Private message to ${privateRecipient?.email.split('@')[0] || 'Select recipient'}...` : "Type a message..."}
+                  placeholder={showPrivateMessage ? `Private to ${privateRecipient?.email.split('@')[0] || 'Select'}...` : "Type a message..."}
                   value={showPrivateMessage ? privateMessageText : inputText}
                   onChange={(e) => {
                     if (showPrivateMessage) {
@@ -498,20 +498,21 @@ export default function RoomPage() {
                   }}
                   onFocus={handleInputFocus}
                   onBlur={handleInputBlur}
+                  style={{ color: '#ffffff', backgroundColor: 'rgba(255,255,255,0.08)' }}
                   className={cn(
-                    "flex-1 bg-white/10 border-white/20 text-foreground placeholder:text-muted-foreground/70",
-                    "focus:bg-white/15 focus:border-primary focus:ring-1 focus:ring-primary/30",
-                    "h-11 rounded-xl text-sm",
-                    showPrivateMessage && "border-blue-400/50 focus:border-blue-500 bg-blue-500/10"
+                    "flex-1 border-white/20 placeholder:text-gray-400",
+                    "focus:border-primary focus:ring-1 focus:ring-primary/30",
+                    "h-12 rounded-lg text-base",
+                    showPrivateMessage && "border-blue-400/50 focus:border-blue-500"
                   )}
                 />
                 <Button 
                   type="submit" 
                   disabled={showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} 
                   size="icon"
-                  className="h-11 w-11 rounded-xl gradient-primary"
+                  className="h-12 w-12 rounded-lg bg-primary hover:bg-primary/90"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
             </form>

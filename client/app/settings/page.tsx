@@ -121,17 +121,24 @@ export default function SettingsPage() {
     setUploadingAvatar(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/users/${user.id}/avatar`, {
+      // Ensure we use /api prefix for production
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const avatarEndpoint = `${apiUrl}/api/users/${user.id}/avatar`;
+      
+      const response = await fetch(avatarEndpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: formData
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null);
+        // Refresh the page to show new avatar everywhere
+        window.location.reload();
       } else {
         const error = await response.json().catch(() => ({}));
         alert(error.message || 'Failed to upload profile picture');

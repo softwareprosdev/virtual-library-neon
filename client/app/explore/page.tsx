@@ -301,12 +301,16 @@ function ExploreContent() {
 
     // Handle Open Library
     if (book.source === 'openlibrary') {
-      // Check if it has Internet Archive access
+      // Check if it has Internet Archive access - load in our reader
       if (book.ia && book.ia.length > 0) {
-        window.open(`https://archive.org/details/${book.ia[0]}`, '_blank');
+        // Use Archive.org's BookReader embed URL for internal viewing
+        const archiveId = book.ia[0];
+        const readerUrl = `https://archive.org/stream/${archiveId}?ui=embed`;
+        router.push(`/reader?url=${encodeURIComponent(readerUrl)}&title=${encodeURIComponent(book.title)}&source=archive`);
         return;
       }
-      window.open(`https://openlibrary.org${book.id.replace('openlibrary-', '')}`, '_blank');
+      // Fallback to Open Library page if no IA access
+      router.push(`/reader?url=${encodeURIComponent(`https://openlibrary.org${book.id.replace('openlibrary-', '')}`)}&title=${encodeURIComponent(book.title)}&source=openlibrary`);
       return;
     }
   };
