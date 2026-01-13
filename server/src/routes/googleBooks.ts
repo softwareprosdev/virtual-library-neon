@@ -1,1 +1,120 @@
-import { Router, Response } from 'express'; \nimport { AuthRequest, authenticateToken } from '../middlewares/auth'; \n\nconst router = Router(); \n\nconst GOOGLE_BOOKS_API_KEY = process.env.GOOGLE_BOOKS_API_KEY || ''; \nconst GOOGLE_BOOKS_BASE_URL = 'https://www.googleapis.com/books/v1'; \n\n// Simple in-memory cache for book searches (production should use Redis)\nconst cache = new Map<string, { data: any; timestamp: number }>();\nconst CACHE_DURATION = 60 * 60 * 1000; // 1 hour\n\nfunction getCached(key: string) {\n  const cached = cache.get(key);\n  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {\n    return cached.data;\n  }\n  cache.delete(key);\n  return null;\n}\n\nfunction setCache(key: string, data: any) {\n  cache.set(key, { data, timestamp: Date.now() });\n}\n\n// Search books\nrouter.get('/search', async (req: AuthRequest, res: Response): Promise<void> => {\n  try {\n    const {\n      q,\n      maxResults = '20',\n      startIndex = '0',\n      orderBy = 'relevance',\n      printType = 'books',\n      filter,\n    } = req.query as Record<string, string>;\n\n    if (!q) {\n      res.status(400).json({ message: 'Query parameter \"q\" is required' });\n      return;\n    }\n\n    const cacheKey = `search:${q}:${maxResults}:${startIndex}:${orderBy}:${\n      printType\n    }:${filter || ''}`;\n    const cached = getCached(cacheKey);\n    \n    if (cached) {\n      res.json(cached);\n      return;\n    }\n\n    const params = new URLSearchParams({\n      q,\n      maxResults,\n      startIndex,\n      orderBy,\n      printType,\n      ...(filter && { filter }),\n      ...(GOOGLE_BOOKS_API_KEY && { key: GOOGLE_BOOKS_API_KEY }),\n    });\n\n    const response = await fetch(`${GOOGLE_BOOKS_BASE_URL}/volumes?${params}`);\n\n    if (!response.ok) {\n      throw new Error(`Google Books API error: ${response.statusText}`);\n    }\n\n    const data = await response.json();\n    const result = {\n      items: data.items || [],\n      totalItems: data.totalItems || 0,\n    };\n\n    setCache(cacheKey, result);\n    res.json(result);\n  } catch (error) {\n    console.error('Error searching books:', error);\n    res.status(500).json({ message: 'Failed to search books' });\n  }\n});\n\n// Get book by ID\nrouter.get('/:bookId', async (req: AuthRequest, res: Response): Promise<void> => {\n  try {\n    const { bookId } = req.params;\n\n    const cacheKey = `book:${bookId}`;\n    const cached = getCached(cacheKey);\n    \n    if (cached) {\n      res.json(cached);\n      return;\n    }\n\n    const params = new URLSearchParams({\n      ...(GOOGLE_BOOKS_API_KEY && { key: GOOGLE_BOOKS_API_KEY }),\n    });\n\n    const response = await fetch(\n      `${GOOGLE_BOOKS_BASE_URL}/volumes/${bookId}?${params}`\n    );\n\n    if (!response.ok) {\n      if (response.status === 404) {\n        res.status(404).json({ message: 'Book not found' });\n        return;\n      }\n      throw new Error(`Google Books API error: ${response.statusText}`);\n    }\n\n    const data = await response.json();\n    setCache(cacheKey, data);\n    res.json(data);\n  } catch (error) {\n    console.error('Error fetching book:', error);\n    res.status(500).json({ message: 'Failed to fetch book' });\n  }\n});\n\nexport default router;\n
+import { Router, Response } from 'express';
+import { AuthRequest, authenticateToken } from '../middlewares/auth';
+
+const router = Router();
+
+const GOOGLE_BOOKS_API_KEY = process.env.GOOGLE_BOOKS_API_KEY || '';
+const GOOGLE_BOOKS_BASE_URL = 'https://www.googleapis.com/books/v1';
+
+// Simple in-memory cache for book searches (production should use Redis)
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
+function getCached(key: string) {
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    cache.delete(key);
+    return null;
+}
+
+function setCache(key: string, data: any) {
+    cache.set(key, { data, timestamp: Date.now() });
+}
+
+// Search books
+router.get('/search', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const {
+            q,
+            maxResults = '20',
+            startIndex = '0',
+            orderBy = 'relevance',
+            printType = 'books',
+            filter,
+        } = req.query as Record<string, string>;
+
+        if (!q) {
+            res.status(400).json({ message: 'Query parameter "q" is required' });
+            return;
+        }
+
+        const cacheKey = `search:${q}:${maxResults}:${startIndex}:${orderBy}:${printType
+            }:${filter || ''}`;
+        const cached = getCached(cacheKey);
+
+        if (cached) {
+            res.json(cached);
+            return;
+        }
+
+        const params = new URLSearchParams({
+            q,
+            maxResults,
+            startIndex,
+            orderBy,
+            printType,
+            ...(filter && { filter }),
+            ...(GOOGLE_BOOKS_API_KEY && { key: GOOGLE_BOOKS_API_KEY }),
+        });
+
+        const response = await fetch(`${GOOGLE_BOOKS_BASE_URL}/volumes?${params}`);
+
+        if (!response.ok) {
+            throw new Error(`Google Books API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const result = {
+            items: data.items || [],
+            totalItems: data.totalItems || 0,
+        };
+
+        setCache(cacheKey, result);
+        res.json(result);
+    } catch (error) {
+        console.error('Error searching books:', error);
+        res.status(500).json({ message: 'Failed to search books' });
+    }
+});
+
+// Get book by ID
+router.get('/:bookId', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const { bookId } = req.params;
+
+        const cacheKey = `book:${bookId}`;
+        const cached = getCached(cacheKey);
+
+        if (cached) {
+            res.json(cached);
+            return;
+        }
+
+        const params = new URLSearchParams({
+            ...(GOOGLE_BOOKS_API_KEY && { key: GOOGLE_BOOKS_API_KEY }),
+        });
+
+        const response = await fetch(
+            `${GOOGLE_BOOKS_BASE_URL}/volumes/${bookId}?${params}`
+        );
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                res.status(404).json({ message: 'Book not found' });
+                return;
+            }
+            throw new Error(`Google Books API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setCache(cacheKey, data);
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching book:', error);
+        res.status(500).json({ message: 'Failed to fetch book' });
+    }
+});
+
+export default router;
