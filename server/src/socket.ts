@@ -152,6 +152,19 @@ export const setupSocket = async (io: Server) => {
       }
     });
 
+    // Typing indicators
+    socket.on('typingStart', ({ roomId }) => {
+      if (!socket.user) return;
+      // Broadcast to all users in the room except the sender
+      socket.to(roomId).emit('typingStart', { userId: socket.user.id });
+    });
+
+    socket.on('typingStop', ({ roomId }) => {
+      if (!socket.user) return;
+      // Broadcast to all users in the room except the sender
+      socket.to(roomId).emit('typingStop', { userId: socket.user.id });
+    });
+
     socket.on('signal', ({ targetId, signal }) => {
       io.to(targetId).emit('signal', {
         from: socket.id,
@@ -327,6 +340,13 @@ export const setupSocket = async (io: Server) => {
       if (socket.user) {
         try {
           await prisma.participant.deleteMany({ where: { userId: socket.user.id } });
+
+          // Broadcast typing stop to all rooms the user was in
+          socket.rooms.forEach(roomId => {
+            if (roomId !== socket.id) { // Don't broadcast to personal room
+              socket.to(roomId).emit('typingStop', { userId: socket.user.id });
+            }
+          });
         } catch (error) {
           if (!isProduction) console.error("Disconnect cleanup error:", error);
         }

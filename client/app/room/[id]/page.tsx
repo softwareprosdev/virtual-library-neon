@@ -64,14 +64,64 @@ export default function RoomPage() {
   const [inputText, setInputText] = useState('');
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }, []);
+
+  const emitTypingStart = useCallback(() => {
+    const socket = getSocket();
+    if (socket && token) {
+      socket.emit('typingStart', { roomId });
+    }
+  }, [roomId, token]);
+
+  const emitTypingStop = useCallback(() => {
+    const socket = getSocket();
+    if (socket && token) {
+      socket.emit('typingStop', { roomId });
+    }
+  }, [roomId, token]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+
+    // Emit typing start if not already typing
+    if (e.target.value && !typingTimeoutRef.current) {
+      emitTypingStart();
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to stop typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      emitTypingStop();
+      typingTimeoutRef.current = null;
+    }, 2000); // Stop typing indicator after 2 seconds of inactivity
+  };
+
+  const handleInputFocus = () => {
+    if (inputText.trim()) {
+      emitTypingStart();
+    }
+  };
+
+  const handleInputBlur = () => {
+    emitTypingStop();
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     const fetchRoomData = async () => {
@@ -138,6 +188,21 @@ export default function RoomPage() {
 
     function onUserLeft({ userId }: { userId: string }) {
       setParticipants((prev) => prev.filter(p => p.userId !== userId));
+      // Remove from typing users if they leave
+      setTypingUsers((prev) => prev.filter(id => id !== userId));
+    }
+
+    function onTypingStart({ userId }: { userId: string }) {
+      setTypingUsers((prev) => {
+        if (!prev.includes(userId)) {
+          return [...prev, userId];
+        }
+        return prev;
+      });
+    }
+
+    function onTypingStop({ userId }: { userId: string }) {
+      setTypingUsers((prev) => prev.filter(id => id !== userId));
     }
 
     socket.on('connect', onConnect);
@@ -146,6 +211,8 @@ export default function RoomPage() {
     socket.on('messageDeleted', (data: unknown) => onMessageDeleted(data as { messageId: string }));
     socket.on('userJoined', (data: unknown) => onUserJoined(data as Participant));
     socket.on('userLeft', (data: unknown) => onUserLeft(data as { userId: string }));
+    socket.on('typingStart', (data: unknown) => onTypingStart(data as { userId: string }));
+    socket.on('typingStop', (data: unknown) => onTypingStop(data as { userId: string }));
 
     if (socket.connected) {
       onConnect();
@@ -158,6 +225,12 @@ export default function RoomPage() {
       socket.off('messageDeleted');
       socket.off('userJoined');
       socket.off('userLeft');
+      socket.off('typingStart');
+      socket.off('typingStop');
+
+      // Stop typing when leaving
+      emitTypingStop();
+
       socket.emit('leaveRoom', { roomId });
       socket.disconnect();
     };
@@ -169,6 +242,12 @@ export default function RoomPage() {
     if (inputText.trim() && socket) {
       socket.emit('chat', { roomId, text: inputText });
       setInputText('');
+      // Stop typing indicator when sending message
+      emitTypingStop();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     }
   };
 
@@ -292,12 +371,35 @@ export default function RoomPage() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Typing Indicators */}
+          {typingUsers.length > 0 && (
+            <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border bg-muted/5">
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1">
+                  {typingUsers.slice(0, 3).map(userId => (
+                    <div key={userId} className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  ))}
+                </div>
+                <span>
+                  {typingUsers.length === 1
+                    ? `${participants.find(p => p.userId === typingUsers[0])?.email.split('@')[0] || 'Someone'} is typing...`
+                    : typingUsers.length === 2
+                    ? `${participants.find(p => p.userId === typingUsers[0])?.email.split('@')[0] || 'Someone'} and ${participants.find(p => p.userId === typingUsers[1])?.email.split('@')[0] || 'someone'} are typing...`
+                    : `${typingUsers.length} people are typing...`
+                  }
+                </span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSend} className="p-4 bg-muted/5 border-t border-border">
             <div className="flex gap-2">
               <Input
                 placeholder="TRANSMIT_DATA..."
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleInputChange}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 className="bg-background font-mono text-sm"
               />
               <Button type="submit" disabled={!inputText.trim()} size="icon">
