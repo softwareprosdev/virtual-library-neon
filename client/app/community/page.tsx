@@ -8,13 +8,19 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { api } from '../../lib/api';
 import { useRouter } from 'next/navigation';
+import CreateRoomDialog from '../../components/CreateRoomDialog';
 
 interface Room {
   id: string;
   name: string;
-  description: string;
-  host: { name: string };
-  genre?: { name: string };
+  description: string | null;
+  hostId: string;
+  genreId: string | null;
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  host: { name: string; email: string };
+  genre?: { id: string; name: string; description?: string | null };
   _count: { messages: number; participants: number };
 }
 
@@ -36,12 +42,20 @@ export default function CommunityPage() {
           // Redirect to login if not authenticated
           router.push('/feed');
           return;
+        } else if (res.status === 500) {
+          setError('Server error. The community rooms service may be temporarily unavailable.');
+        } else if (res.status === 403) {
+          setError('Access denied. Please check your account permissions.');
         } else {
-          setError(`Unable to load community rooms. Please try again later. (${res.status})`);
+          setError(`Unable to load community rooms (${res.status}). Please try again later.`);
         }
       } catch (error) {
         console.error('Failed to fetch rooms:', error);
-        setError('Network error. Please check your connection and try again.');
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          setError('Network connection failed. Please check your internet connection.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -53,11 +67,16 @@ export default function CommunityPage() {
   return (
     <MainLayout>
       <div className="mb-12">
-        <h1 className="text-4xl font-black mb-2 flex items-center gap-3">
-          <Users className="h-8 w-8 text-secondary" />
-          Community Rooms
-        </h1>
-        <p className="text-muted-foreground">Join active discussion rooms and connect with fellow readers through voice and video chat.</p>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-4xl font-black mb-2 flex items-center gap-3">
+              <Users className="h-8 w-8 text-secondary" />
+              Community Rooms
+            </h1>
+            <p className="text-muted-foreground">Join active discussion rooms and connect with fellow readers through voice and video chat.</p>
+          </div>
+          <CreateRoomDialog onRoomCreated={() => window.location.reload()} />
+        </div>
       </div>
 
       {loading ? (
@@ -76,9 +95,13 @@ export default function CommunityPage() {
       ) : rooms.length === 0 ? (
         <div className="text-center py-12">
           <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl font-semibold mb-2">Community rooms are being set up</h3>
-          <p className="text-muted-foreground mb-4">Permanent discussion rooms will be available soon. Check back later to join conversations about books, relationships, and trending topics.</p>
-          <div className="flex gap-3 justify-center">
+          <h3 className="text-xl font-semibold mb-2">No Active Community Rooms</h3>
+          <p className="text-muted-foreground mb-4">
+            There are currently no active discussion rooms. Community rooms are created by administrators and will appear here when available.
+            Check back later or explore other parts of the platform.
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <CreateRoomDialog onRoomCreated={() => window.location.reload()} />
             <Button variant="outline" onClick={() => window.location.reload()}>
               Refresh Page
             </Button>
