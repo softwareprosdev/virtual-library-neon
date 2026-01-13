@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, Play, Heart, MessageCircle, User, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
+import VideoPlayer from '@/components/Videos/VideoPlayer';
 
 interface PexelsVideo {
   id: string;
@@ -41,10 +42,28 @@ export default function VideosPage() {
   const [totalVideos, setTotalVideos] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
+  // Video player state
+  const [selectedVideo, setSelectedVideo] = useState<PexelsVideo | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
   useEffect(() => {
     loadCategories();
     loadVideos('popular', '', 1);
   }, []);
+
+  // Handle Escape key to close video player
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isPlayerOpen) {
+        handleClosePlayer();
+      }
+    };
+
+    if (isPlayerOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isPlayerOpen]);
 
   const loadCategories = async () => {
     try {
@@ -135,7 +154,13 @@ export default function VideosPage() {
   };
 
   const handleVideoClick = (video: PexelsVideo) => {
-    alert(`Video clicked: ${video.title}\n\nVideo player will be implemented soon!`);
+    setSelectedVideo(video);
+    setIsPlayerOpen(true);
+  };
+
+  const handleClosePlayer = () => {
+    setIsPlayerOpen(false);
+    setSelectedVideo(null);
   };
 
   return (
@@ -336,6 +361,16 @@ export default function VideosPage() {
           )}
         </div>
       </div>
+
+      {/* Video Player Modal */}
+      {selectedVideo && (
+        <VideoPlayer
+          video={selectedVideo}
+          isOpen={isPlayerOpen}
+          onClose={handleClosePlayer}
+          autoPlay={true}
+        />
+      )}
     </MainLayout>
   );
 }
