@@ -2,6 +2,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, Library, LogOut, Menu, X, Bookmark, Compass, Users, Zap, ChevronRight, UserCircle, BookOpen, MessageSquare, Home, ShoppingBag, Play } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { logout, getUser } from '../lib/auth';
@@ -41,20 +42,19 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
-      {/* Mobile Header */}
+    <div className="min-h-screen flex flex-col md:flex-row bg-background font-sans text-foreground">
+      {/* Mobile Header - Glassmorphic */}
       {!hideNav && (
-      <header className="md:hidden flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b border-border bg-card relative">
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#fcee0a] to-transparent" />
+      <header className="md:hidden flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] glass-card rounded-none border-x-0 border-t-0 bg-card/80 backdrop-blur-xl relative z-50">
         <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 5px #fcee0a)' }} />
-          <span className="font-bold text-xl text-[#fcee0a] uppercase tracking-wider">IndexBin</span>
+          <Zap className="w-5 h-5 text-primary" />
+          <span className="font-bold text-xl gradient-text uppercase tracking-widest">IndexBin</span>
         </div>
         <div className="flex items-center gap-2">
           <NotificationCenter />
           <button
             onClick={toggleMobileMenu}
-            className="p-3 text-[#00f0ff] hover:text-[#fcee0a] border border-border hover:border-[#fcee0a] transition-colors rounded-md"
+            className="p-2 text-primary hover:text-accent transition-colors"
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -66,43 +66,38 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar (Desktop & Mobile) */}
+      {/* Sidebar (Desktop & Mobile) - Glassmorphic & Modern */}
       {!hideNav && (
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-68 glass border-r-0 transform transition-all duration-300 ease-in-out md:relative md:translate-x-0",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Sidebar accent line */}
-        <div className="absolute top-0 right-0 bottom-0 w-px bg-gradient-to-b from-[#fcee0a] via-[#00f0ff] to-[#ff00a0]" />
-
-        <div className="h-full flex flex-col">
-          {/* Logo */}
-          <div className="p-6 border-b border-border hidden md:block relative">
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[#fcee0a] to-transparent" />
-            <div className="flex items-center gap-3">
-              <Zap className="w-8 h-8 text-[#fcee0a]" style={{ filter: 'drop-shadow(0 0 8px #fcee0a)' }} />
-              <div className="flex-1">
-                <h1 className="font-bold text-2xl text-[#fcee0a] uppercase tracking-wider">IndexBin</h1>
-                <p className="text-[10px] text-[#00f0ff] uppercase tracking-[0.2em]">Neural Archive</p>
+        <div className="h-full flex flex-col glass-card rounded-none border-x-0 border-y-0 bg-card/40">
+          {/* Logo Section */}
+          <div className="p-8 border-b border-white/5 hidden md:block">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow-primary">
+                <Zap className="w-6 h-6 text-white" />
               </div>
-              <div className="hidden md:block">
-                <NotificationCenter />
+              <div className="flex-1">
+                <h1 className="font-bold text-2xl gradient-text uppercase tracking-wider">IndexBin</h1>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium">Neural Archive</p>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3 px-2">
-              {`// Navigation`}
+          <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-6 px-3 opacity-50 font-bold">
+              Explore
             </div>
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -115,51 +110,66 @@ export default function MainLayout({ children, fullWidth = false, hideNav = fals
                     setIsMobileMenuOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all group relative",
+                    "w-full flex items-center gap-4 px-4 py-3 text-sm font-medium transition-all rounded-xl group relative overflow-hidden",
                     isActive
-                      ? "bg-[#fcee0a]/10 text-[#fcee0a] border-l-2 border-[#fcee0a]"
-                      : "text-muted-foreground hover:text-[#00f0ff] hover:bg-[#00f0ff]/5 border-l-2 border-transparent hover:border-[#00f0ff]/50"
+                      ? "bg-primary/10 text-primary glow-primary/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   )}
                 >
-                  <Icon size={18} className={isActive ? "text-[#fcee0a]" : "group-hover:text-[#00f0ff]"} />
-                  <span className="uppercase tracking-wider text-xs">{item.text}</span>
+                  <Icon size={20} className={cn("transition-colors", isActive ? "text-primary" : "group-hover:text-primary")} />
+                  <span className="tracking-wide">{item.text}</span>
                   {isActive && (
-                    <ChevronRight size={14} className="ml-auto text-[#fcee0a]" />
+                    <motion.div 
+                      layoutId="activeNav"
+                      className="absolute right-0 w-1 h-6 gradient-primary rounded-l-full"
+                    />
                   )}
                 </button>
               );
             })}
           </nav>
 
-          {/* System Status */}
-          <div className="px-4 py-3 border-t border-border">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">
-              {`// System Status`}
+          {/* System Status - Mini stats area */}
+          <div className="px-6 py-6 border-t border-white/5 bg-black/20">
+            <div className="flex items-center justify-between mb-4">
+               <div className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-50 font-bold">
+                Connection
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                <span className="text-emerald-500 font-bold uppercase tracking-tighter">Secure</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />
-              <span className="text-[#00f0ff]">Connected</span>
+            
+            <div className="flex items-center gap-3 glass-card p-3 rounded-xl border-white/5">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Users size={14} className="text-accent" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-foreground">624 Readers</p>
+                <p className="text-[8px] text-muted-foreground uppercase">Sync Active</p>
+              </div>
             </div>
           </div>
 
           {/* Logout */}
-          <div className="p-4 border-t border-border">
+          <div className="p-6 border-t border-white/5">
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#ff003c] hover:bg-[#ff003c]/10 border border-transparent hover:border-[#ff003c]/30 transition-all group"
+              className="w-full flex items-center gap-4 px-4 py-4 text-sm font-bold text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all group"
             >
-              <LogOut size={18} />
-              <span className="uppercase tracking-wider text-xs">Disconnect</span>
+              <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+              <span className="tracking-wide">Disconnect</span>
             </button>
           </div>
         </div>
       </aside>
       )}
 
-      {/* Overlay for mobile */}
+      {/* Mobile Menu Overlay with better blur */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-xl transition-all duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

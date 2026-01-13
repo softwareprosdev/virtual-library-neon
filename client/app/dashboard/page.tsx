@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import MainLayout from '@/components/MainLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,10 +57,7 @@ interface ReadingProgress {
 export default function DashboardPage() {
   const router = useRouter();
   const currentUser = getUser();
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  
   // Get personalized greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -69,32 +66,32 @@ export default function DashboardPage() {
     return 'Good Evening';
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [roomsRes, progressRes] = await Promise.all([
-          api('/rooms'),
-          api('/reading-progress/my').catch(() => ({ ok: false }))
-        ]);
+  const { data: roomsData, isLoading: roomsLoading } = useQuery({
+    queryKey: ['rooms'],
+    queryFn: async () => {
+      const res = await api('/rooms');
+      if (!res.ok) throw new Error('Failed to fetch rooms');
+      return res.json();
+    }
+  });
 
-        if (roomsRes.ok) {
-          const data = await roomsRes.json();
-          setRooms(data.rooms || []);
-        }
-
-        if (progressRes.ok && 'json' in progressRes) {
-          const data = await progressRes.json();
-          setReadingProgress(data.slice(0, 5));
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
+  const { data: progressData, isLoading: progressLoading } = useQuery({
+    queryKey: ['reading-progress'],
+    queryFn: async () => {
+      const res = await api('/reading-progress/my');
+      if (!res.ok) {
+         // Return empty array/object gracefully if this fails (e.g. 404 or auth issue)
+         return []; 
       }
-    };
+      return res.json();
+    }
+  });
 
-    fetchData();
-  }, []);
+  const rooms = (roomsData?.rooms || []) as Room[];
+  // The API returns an array directly according to previous code: `setReadingProgress(data.slice(0, 5))`
+  const readingProgress = (Array.isArray(progressData) ? progressData.slice(0, 5) : []) as ReadingProgress[];
+  
+  const loading = roomsLoading || progressLoading;
 
   const handleBookSelect = (book: GoogleBook) => {
     console.log('Book selected:', book);

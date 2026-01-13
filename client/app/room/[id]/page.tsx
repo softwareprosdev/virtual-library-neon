@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { connectSocket, getSocket } from '../../../lib/socket';
 import { getToken, getUser } from '../../../lib/auth';
 import BookPanel from '../../../components/BookPanel';
@@ -131,38 +132,45 @@ export default function RoomPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchRoomData = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/rooms/${roomId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setRoomData(data);
-          setMessages(data.messages || []);
-          scrollToBottom();
+  // Replace fetchRoomData with useQuery
+  const { data: initialRoomData } = useQuery({
+    queryKey: ['room', roomId],
+    queryFn: async () => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/rooms/${roomId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Failed to fetch room data:', error);
-      }
-    };
+      });
+      if (!res.ok) throw new Error('Failed to fetch room');
+      return res.json();
+    },
+    enabled: !!token && !!roomId,
+    staleTime: Infinity, // Don't refetch automatically, rely on sockets
+  });
 
+  // Sync Query data to local state for socket compatibility
+  useEffect(() => {
+    if (initialRoomData) {
+      setRoomData(initialRoomData);
+      // Only set messages if we haven't already (to avoid overwriting chat if re-renders happen)
+      // Actually, for this migration, let's just set it initially.
+      setMessages(prev => {
+        if (prev.length === 0) return initialRoomData.messages || [];
+        return prev;
+      });
+      scrollToBottom();
+    }
+  }, [initialRoomData, scrollToBottom]);
+
+  // Socket connection logic
+  useEffect(() => {
     const token = getToken();
     if (!token) {
       router.push('/');
       return;
     }
 
-    if (!token) {
-      router.push('/');
-      return;
-    }
-
-    fetchRoomData();
+    // fetchRoomData call removed, handled by useQuery above
 
     const socket = connectSocket();
 

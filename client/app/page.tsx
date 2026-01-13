@@ -7,6 +7,8 @@ import { setToken, setUser } from '../lib/auth';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { motion } from 'framer-motion';
+import { GradientText } from '../components/ui/GradientText';
 import { AlertCircle, Zap, Shield, User } from 'lucide-react';
 import MatrixRain from '../components/MatrixRain';
 
@@ -80,68 +82,74 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      <MatrixRain color="#00f0ff" highlightColor="#fcee0a" />
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#fcee0a] to-transparent" />
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00f0ff] to-transparent" />
-
-      {/* Corner accents */}
-      <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-[#fcee0a] opacity-50" />
-      <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-[#fcee0a] opacity-50" />
-      <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-[#00f0ff] opacity-50" />
-      <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-[#00f0ff] opacity-50" />
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative overflow-hidden bg-[#050505]">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
 
       <div className="w-full max-w-md space-y-8 relative z-10">
-        {/* Logo/Title */}
+        {/* Logo/Title Section */}
         <div className="text-center">
-          <div className="inline-block mb-4">
-            <Zap className="w-12 h-12 text-[#fcee0a] mx-auto" style={{ filter: 'drop-shadow(0 0 10px #fcee0a)' }} />
-          </div>
-          <h1 className="text-5xl font-bold tracking-tight text-[#fcee0a] text-glow-yellow">
-            INDEXBIN
-          </h1>
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#00f0ff]" />
-            <p className="text-sm text-[#00f0ff] tracking-[0.3em] uppercase">
-              Digital Knowledge Archive
-            </p>
-            <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#00f0ff]" />
-          </div>
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary mb-6 glow-primary"
+          >
+            <Zap className="w-8 h-8 text-white" />
+          </motion.div>
+          <motion.h1 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl font-bold tracking-tight"
+          >
+            <GradientText variant="primary">INDEXBIN</GradientText>
+          </motion.h1>
+          <motion.p 
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-4 text-sm text-muted-foreground tracking-[0.4em] uppercase font-medium"
+          >
+            Neural Knowledge Archive
+          </motion.p>
         </div>
 
-        {/* Auth Card */}
-        <div className="cyber-card p-6">
+        {/* Auth Card - Glassmorphic */}
+        <motion.div 
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, type: 'spring', damping: 20 }}
+          className="glass-card p-8 md:p-10 border-white/10 bg-card/30"
+        >
           {/* Card Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 mb-3 border border-[#00f0ff] bg-[#00f0ff]/10">
-              {isLogin ? (
-                <Shield className="w-6 h-6 text-[#00f0ff]" />
-              ) : (
-                <User className="w-6 h-6 text-[#00f0ff]" />
-              )}
-            </div>
-            <h2 className="text-2xl font-bold text-[#fcee0a] uppercase tracking-wider">
-              {isLogin ? 'Access Terminal' : 'New User Registration'}
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold tracking-tight mb-2">
+              {isLogin ? 'Access Terminal' : 'Create Profile'}
             </h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {isLogin ? 'Enter credentials to authenticate' : 'Create your neural link profile'}
+            <p className="text-muted-foreground text-sm">
+              {isLogin ? 'Enter credentials to authenticate' : 'Join the synchronized library'}
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 border border-[#ff003c] bg-[#ff003c]/10 text-[#ff003c] text-sm flex items-center gap-2">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mb-6 p-4 rounded-xl border border-destructive/20 bg-destructive/10 text-destructive text-sm flex items-center gap-3"
+            >
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span className="uppercase tracking-wide">{error}</span>
-            </div>
+              <span className="font-medium">{error}</span>
+            </motion.div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-[#00f0ff] uppercase tracking-wider text-xs">
+                <Label htmlFor="name" className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">
                   Handle / Name
                 </Label>
                 <Input
@@ -150,13 +158,13 @@ export default function AuthPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="V"
-                  className="bg-input border-border focus:border-[#fcee0a] focus:ring-[#fcee0a]/20 placeholder:text-muted-foreground/50"
+                  className="bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 rounded-xl h-12"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-[#00f0ff] uppercase tracking-wider text-xs">
+              <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">
                 Email Address
               </Label>
               <Input
@@ -166,12 +174,12 @@ export default function AuthPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="user@nightcity.net"
-                className="bg-input border-border focus:border-[#fcee0a] focus:ring-[#fcee0a]/20 placeholder:text-muted-foreground/50"
+                className="bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 rounded-xl h-12"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-[#00f0ff] uppercase tracking-wider text-xs">
+              <Label htmlFor="password" className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">
                 Access Code
               </Label>
               <Input
@@ -181,48 +189,51 @@ export default function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••••••"
-                className="bg-input border-border focus:border-[#fcee0a] focus:ring-[#fcee0a]/20 placeholder:text-muted-foreground/50"
+                className="bg-white/5 border-white/10 focus:border-primary focus:ring-primary/20 rounded-xl h-12"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full mt-6 cyber-btn py-6 text-base"
+              className="w-full mt-6 gradient-primary hover:opacity-90 py-6 text-base font-bold rounded-xl glow-primary transition-all active:scale-[0.98]"
               size="lg"
               disabled={isLoading}
             >
               {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  Processing...
+                <span className="flex items-center gap-3">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  AUTHENTICATING...
                 </span>
               ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  {isLogin ? 'Initialize Connection' : 'Create Profile'}
+                <span className="flex items-center justify-center gap-2 tracking-widest">
+                  <Zap className="w-4 h-4 fill-white" />
+                  {isLogin ? 'CONNECT' : 'REGISTER'}
                 </span>
               )}
             </Button>
           </form>
 
           {/* Toggle Auth Mode */}
-          <div className="mt-6 pt-4 border-t border-border text-center">
+          <div className="mt-8 pt-6 border-t border-white/5 text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-[#00f0ff] hover:text-[#fcee0a] transition-colors uppercase tracking-wider text-sm"
+              className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium"
             >
-              {isLogin ? "// New user? Create profile" : '// Existing user? Access terminal'}
+              {isLogin ? "New user? Create your neural link profile" : 'Already tagged? Return to access terminal'}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Footer */}
-        <div className="text-center text-xs text-muted-foreground uppercase tracking-widest">
-          <span className="text-[#ff00a0]">[</span>
-          Secure Connection Established
-          <span className="text-[#ff00a0]">]</span>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ delay: 1 }}
+          className="text-center text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-bold"
+        >
+          Secure Neural Connection Active
+        </motion.div>
       </div>
     </div>
   );

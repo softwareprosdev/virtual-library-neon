@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import "./globals.css";
 import { cn } from "../lib/utils";
+import Providers from "./providers";
 
 export const metadata = {
   title: "IndexBin - The Ultimate Book Community",
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={cn("min-h-screen bg-background font-sans antialiased text-foreground")}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
