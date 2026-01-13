@@ -322,19 +322,65 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Run database migrations (for emergency use)
+app.post('/admin/migrate', async (req: Request, res: Response) => {
+    try {
+        const { execSync } = require('child_process');
+        const result = execSync('cd /home/rogue/Documents/ding/virtual-library-neon/server && npx prisma migrate deploy', {
+            encoding: 'utf8'
+        });
+
+        res.json({
+            status: 'success',
+            message: 'Migrations completed',
+            output: result
+        });
+    } catch (error) {
+        console.error('Migration failed:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Migration failed',
+            error: error.message
+        });
+    }
+});
+
 // Diagnostics endpoint (Protected by simple key or open for now if critical)
 app.get('/diagnostics', async (req: Request, res: Response) => {
     try {
         // Check DB connection by running a simple query
         const userCount = await prisma.user.count();
-        const tableList = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`;
-        
+        const roomCount = await prisma.room.count();
+        const marketplaceCount = await prisma.marketplaceListing.count().catch(() => 0);
+        const messageCount = await prisma.message.count();
+
+        // Check specific tables that are failing
+        const tables = [
+            'User', 'Room', 'MarketplaceListing', 'Message',
+            'Book', 'Genre', 'Participant'
+        ];
+
+        const tableCounts = {};
+        for (const table of tables) {
+            try {
+                const count = await prisma[table.toLowerCase()].count();
+                tableCounts[table] = count;
+            } catch (error) {
+                tableCounts[table] = `ERROR: ${error.message}`;
+            }
+        }
+
         res.json({
             status: 'ok',
             database: {
                 connected: true,
-                userCount,
-                tables: tableList
+                counts: tableCounts,
+                summary: {
+                    users: userCount,
+                    rooms: roomCount,
+                    marketplaceListings: marketplaceCount,
+                    messages: messageCount
+                }
             },
             env: {
                 node_env: process.env.NODE_ENV,
@@ -343,6 +389,7 @@ app.get('/diagnostics', async (req: Request, res: Response) => {
             }
         });
     } catch (error) {
+        console.error('Diagnostics failed:', error);
         res.status(500).json({
             status: 'error',
             message: 'Diagnostics failed',
