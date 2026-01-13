@@ -332,6 +332,7 @@ router.get('/category/:category', authenticateToken, async (req: AuthRequest, re
     }
 
     const { category } = req.params;
+    const categoryParam = Array.isArray(category) ? category[0] : category;
     const { cursor, limit = '10', page = '1' } = req.query;
     const take = parseInt(limit as string);
     const pageNum = parseInt(page as string);
@@ -352,7 +353,7 @@ router.get('/category/:category', authenticateToken, async (req: AuthRequest, re
     // Get user videos from this category
     const userVideos = await prisma.video.findMany({
       where: {
-        category: category as any,
+        category: categoryParam as any,
         visibility: 'PUBLIC',
         userId: { notIn: blockedIds },
         processingStatus: 'COMPLETED'
@@ -406,7 +407,7 @@ router.get('/category/:category', authenticateToken, async (req: AuthRequest, re
         'FASHION': 'lifestyle'
       };
 
-      const pexelsCategory = pexelsCategoryMap[category] || 'popular';
+      const pexelsCategory = pexelsCategoryMap[categoryParam] || 'popular';
 
       try {
         stockVideos = await pexelsService.getCuratedVideos(pexelsCategory, pageNum, neededStock);
