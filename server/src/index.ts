@@ -34,6 +34,7 @@ import videosRoutes from './routes/videos';
 import soundsRoutes from './routes/sounds';
 import pexelsRoutes from './routes/pexels';
 import googleBooksRoutes from './routes/googleBooks';
+import readingProgressRoutes from './routes/readingProgress';
 import { setupSocket } from './socket';
 import path from 'path';
 
@@ -282,6 +283,8 @@ app.use('/api/pexels', pexelsRoutes);
 app.use('/pexels', pexelsRoutes);
 app.use('/api/google-books', googleBooksRoutes);
 app.use('/google-books', googleBooksRoutes);
+app.use('/api/reading-progress', readingProgressRoutes);
+app.use('/reading-progress', readingProgressRoutes);
 
 // HTTP Server & Socket.io
 const httpServer = createServer(app);
