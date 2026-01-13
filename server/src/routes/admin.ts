@@ -395,4 +395,90 @@ router.get('/analytics', authenticateToken, requireAdmin, async (req: AuthReques
   }
 });
 
+// Grant Verification Badge
+router.post('/users/:id/verify', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body; // "author", "influencer", "notable", "contributor"
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        isVerified: true,
+        verifiedAt: new Date(),
+        verificationReason: reason || 'verified'
+      },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        isVerified: true,
+        verifiedAt: true,
+        verificationReason: true
+      }
+    });
+
+    await prisma.adminLog.create({
+      data: {
+        adminId: req.user!.id,
+        action: 'VERIFY_USER',
+        targetId: id,
+        details: `Granted verification badge: ${reason || 'verified'}`,
+        ipAddress: req.ip
+      }
+    });
+
+    // Create notification for the user
+    await prisma.notification.create({
+      data: {
+        userId: id,
+        type: 'SYSTEM',
+        title: 'Verification Granted! ✓',
+        body: 'Congratulations! Your account has been verified.'
+      }
+    });
+
+    res.json({ message: 'User verified', user });
+  } catch (error) {
+    console.error('Verify user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Remove Verification Badge
+router.delete('/users/:id/verify', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        isVerified: false,
+        verifiedAt: null,
+        verificationReason: null
+      },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        isVerified: true
+      }
+    });
+
+    await prisma.adminLog.create({
+      data: {
+        adminId: req.user!.id,
+        action: 'UNVERIFY_USER',
+        targetId: id,
+        ipAddress: req.ip
+      }
+    });
+
+    res.json({ message: 'Verification removed', user });
+  } catch (error) {
+    console.error('Unverify user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

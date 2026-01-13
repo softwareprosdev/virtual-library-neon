@@ -67,6 +67,63 @@ const upload = multer({
   }
 });
 
+// Get User Profile by Username (@username)
+router.get('/@:username', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { username } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: {
+        _count: {
+          select: {
+            profileComments: true,
+            receivedProfileVisits: true,
+            following: true,
+            followedBy: true
+          }
+        },
+        badges: true
+      }
+    });
+
+    if (!user) {
+      res.status(404).json({ message: \"User not found\" });
+      return;
+    }
+
+    // Fetch top friends details
+    let topFriendsDetails: any[] = [];
+    if (user.topFriends && user.topFriends.length > 0) {
+      const friends = await prisma.user.findMany({
+        where: { id: { in: user.topFriends } },
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          avatarUrl: true,
+          username: true,
+          isVerified: true
+        }
+      });
+      topFriendsDetails = user.topFriends
+        .map(friendId => friends.find(f => f.id === friendId))
+        .filter(Boolean);
+    }
+
+    // Don't send sensitive info
+    const { password, emailVerificationToken, emailVerificationExpires, emailVerificationCode, ...publicProfile } = user;
+    
+    res.json({
+      ...publicProfile,
+      topFriends: topFriendsDetails
+    });
+  } catch (error) {
+    console.error(\"Get Profile by Username Error:\", error);
+    res.status(500).json({ message: \"Server error\" });
+  }
+});
+
 // Get User Profile
 router.get('/:id/profile', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -410,4 +467,108 @@ router.put('/:id/top-friends', authenticateToken, async (req: AuthRequest, res: 
   }
 });
 
+// Update Username
+router.put('/:id/username', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const { username } = req.body;
+
+    if (!userId || userId !== id) {
+      res.status(403).json({ message: \"Unauthorized\" });
+      return;
+    }
+
+    if (!username || !username.trim()) {
+      res.status(400).json({ message: \"Username is required\" });
+      return;
+    }
+
+    // Validate username format (alphanumeric and underscore only, 3-20 chars)
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      res.status(400).json({ 
+        message: \"Username must be 3-20 characters and contain only letters, numbers, and underscores\" 
+      });
+      return;
+    }
+
+    // Check if username is already taken
+    const existingUser = await prisma.user.findUnique({
+      where: { username: username.toLowerCase() }
+    });
+
+    if (existingUser && existingUser.id !== id) {
+      res.status(400).json({ message: \"Username already taken\" });
+      return;
+    }
+
+    // Check cooldown period (30 days)
+    const currentUser = await prisma.user.findUnique({
+      where: { id },
+      select: { usernameChangedAt: true }
+    });
+
+    if (currentUser?.usernameChangedAt) {
+      const daysSinceChange = Math.floor(
+        (Date.now() - new Date(currentUser.usernameChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      if (daysSinceChange < 30) {
+        res.status(400).json({ 
+          message: `You can only change your username once every 30 days. Please wait ${30 - daysSinceChange} more days.` 
+        });
+        return;
+      }
+    }
+
+    // Update username
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        username: username.toLowerCase(),
+        usernameChangedAt: new Date()
+      },
+      select: {
+        id: true,
+        username: true,
+        usernameChangedAt: true
+      }
+    });
+
+    res.json({ 
+      message: \"Username updated successfully\",
+      username: updatedUser.username,
+      nextChangeAvailable: new Date(updatedUser.usernameChangedAt!.getTime() + 30 * 24 * 60 * 60 * 1000)
+    });
+  } catch (error) {
+    console.error(\"Update Username Error:\", error);
+    res.status(500).json({ message: \"Server error\" });
+  }
+});
+
+// Check Username Availability
+router.get('/username/check/:username', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { username } = req.params;
+
+    // Validate format
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      res.json({ available: false, reason: \"Invalid format\" });
+      return;
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username: username.toLowerCase() }
+    });
+
+    res.json({ available: !existingUser });
+  } catch (error) {
+    console.error(\"Check Username Error:\", error);
+    res.status(500).json({ message: \"Server error\" });
+  }
+});
+
 export default router;
+
