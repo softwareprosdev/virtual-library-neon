@@ -253,6 +253,7 @@ export default function RoomPage() {
       socket.off('userLeft');
       socket.off('typingStart');
       socket.off('typingStop');
+      socket.off('directMessage');
 
       // Stop typing when leaving
       emitTypingStop();
@@ -260,7 +261,8 @@ export default function RoomPage() {
       socket.emit('leaveRoom', { roomId });
       socket.disconnect();
     };
-  }, [roomId, router, scrollToBottom]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, router, scrollToBottom, emitTypingStop]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

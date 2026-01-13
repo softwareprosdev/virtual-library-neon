@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import MainLayout from '@/components/MainLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,23 +13,22 @@ import { GoogleBook } from '@/lib/googleBooks';
 import { api } from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { GradientText } from '@/components/ui/GradientText';
-import { StatsCard } from '@/components/ui/StatsCard';
 import { StoryCircle } from '@/components/StoryCircle';
 import { BookCarousel, BookCarouselItem } from '@/components/BookCarousel';
 import {
   BookOpen,
-  TrendingUp,
   Sparkles,
-  Clock,
   Trophy,
   Users,
-  MessageCircle,
   ChevronRight,
   Flame,
   Target,
-  Award
+  Award,
+  Play,
+  TrendingUp,
+  Star,
+  Clock
 } from 'lucide-react';
-import Image from 'next/image';
 
 interface Room {
   id: string;
@@ -54,11 +54,24 @@ interface ReadingProgress {
   };
 }
 
+// Animation variants for staggered entrance
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const currentUser = getUser();
   
-  // Get personalized greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -79,18 +92,14 @@ export default function DashboardPage() {
     queryKey: ['reading-progress'],
     queryFn: async () => {
       const res = await api('/reading-progress/my');
-      if (!res.ok) {
-         // Return empty array/object gracefully if this fails (e.g. 404 or auth issue)
-         return []; 
-      }
+      if (!res.ok) return [];
       return res.json();
     }
   });
 
   const rooms = (roomsData?.rooms || []) as Room[];
-  // The API returns an array directly according to previous code: `setReadingProgress(data.slice(0, 5))`
   const readingProgress = (Array.isArray(progressData) ? progressData.slice(0, 5) : []) as ReadingProgress[];
-  
+  const liveRooms = rooms.filter(r => r.isLive);
   const loading = roomsLoading || progressLoading;
 
   const handleBookSelect = (book: GoogleBook) => {
@@ -99,228 +108,202 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-8 pb-12">
-        {/* Hero Section - Modern Minimalist with Gradient */}
-        <div className="relative">
-          <div className="glass-card p-8 md:p-12">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
-                {getGreeting()}, {currentUser?.name || 'Reader'}
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <GradientText variant="primary" as="span" animated>
-                Ready to dive into a new world?
-              </GradientText>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mb-6">
-              Discover your next great read, join live reading circles, or continue where you left off.
-            </p>
+      <motion.div 
+        className="space-y-6 md:space-y-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* === HERO SECTION - Mobile Optimized === */}
+        <motion.section variants={itemVariants} className="relative">
+          <div className="glass-card p-5 md:p-8 overflow-hidden">
+            {/* Gradient orb background */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-accent/20 rounded-full blur-3xl" />
             
-            {/* Search Bar */}
-            <div className="max-w-2xl">
-              <BookSearch onBookSelect={handleBookSelect} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                  {getGreeting()}
+                </span>
+              </div>
+              <h1 className="text-2xl md:text-4xl font-bold mb-2">
+                <GradientText variant="primary" as="span" animated>
+                  {currentUser?.name || 'Reader'}
+                </GradientText>
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
+                What will you read today?
+              </p>
+              
+              {/* Search - Full width on mobile */}
+              <div className="max-w-xl">
+                <BookSearch onBookSelect={handleBookSelect} />
+              </div>
             </div>
           </div>
-        </div>
+        </motion.section>
 
-        {/* Continue Reading Carousel */}
-        {readingProgress.length > 0 && (
-          <BookCarousel title="Continue Reading" showViewAll={readingProgress.length > 5}>
-            {readingProgress.map((progress) => (
-              <BookCarouselItem
-                key={progress.id}
-                onClick={() => router.push(`/books/${progress.book.id}`)}
-                className="w-[200px]"
-              >
-                <div className="flex flex-col items-center">
-                  <BookProgress
-                    currentPage={progress.currentPage}
-                    totalPages={progress.totalPages}
-                    coverUrl={progress.book.coverUrl}
-                    title={progress.book.title}
-                    size={140}
-                  />
-                  <h3 className="font-semibold text-sm line-clamp-2 text-center mt-3 px-2">
-                    {progress.book.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {progress.currentPage} of {progress.totalPages} pages
-                  </p>
-                </div>
-              </BookCarouselItem>
-            ))}
-          </BookCarousel>
-        )}
-
-
-        {/* Stats Cards - Enhanced with Animation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatsCard
-            icon={BookOpen}
-            label="Books This Year"
-            value={12}
-            trend="+3 from last month"
-            iconColor="text-primary"
-            iconBgColor="bg-primary/10"
-            delay={0}
-          />
-          <StatsCard
-            icon={Flame}
-            label="Day Streak"
-            value={23}
-            trend="Keep it up!"
-            iconColor="text-orange-500"
-            iconBgColor="bg-orange-500/10"
-            delay={0.1}
-          />
-          <StatsCard
-            icon={Trophy}
-            label="Reader Level"
-            value={12}
-            trend="Book Enthusiast"
-            iconColor="text-purple-500"
-            iconBgColor="bg-purple-500/10"
-            delay={0.2}
-          />
-        </div>
-
-        {/* Reading Circle Stories Preview*/}
-        {rooms.filter(r => r.isLive).length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg font-semibold">📸 Reading Circle Stories</span>
+        {/* === LIVE STORIES (Instagram-style circles) === */}
+        {liveRooms.length > 0 && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <h2 className="text-sm font-bold uppercase tracking-wide">Live Now</h2>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                See All <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-              {rooms.filter(r => r.isLive).slice(0, 8).map((room) => (
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
+              {liveRooms.slice(0, 10).map((room) => (
                 <StoryCircle
                   key={room.id}
                   label={room.name}
                   unread={true}
                   onClick={() => router.push(`/room/${room.id}`)}
-                  size={80}
+                  size={72}
                 />
               ))}
             </div>
-          </div>
+          </motion.section>
         )}
 
-
-        {/* Live Reading Rooms - Enhanced */}
-        {rooms.filter(r => r.isLive).length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <h2 className="text-2xl font-bold">Live Reading Circles</h2>
+        {/* === CONTINUE READING - Premium Cards === */}
+        {readingProgress.length > 0 && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                Continue Reading
+              </h2>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.filter(r => r.isLive).slice(0, 3).map((room) => (
-                <Card
-                  key={room.id}
-                  className="glass-card border-0 cursor-pointer card-hover glow-primary"
-                  onClick={() => router.push(`/room/${room.id}`)}
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
+              {readingProgress.map((progress) => (
+                <motion.div
+                  key={progress.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push(`/books/${progress.book.id}`)}
+                  className="flex-shrink-0 w-36 md:w-44 snap-start cursor-pointer"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge variant="destructive" className="bg-red-500">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white mr-1.5"></div>
-                        LIVE
-                      </Badge>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Users className="w-4 h-4 mr-1" />
-                        {room._count?.participants || 0}
-                      </div>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-2">{room.name}</h3>
-                    {room.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {room.description}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                  <div className="relative mb-2">
+                    <BookProgress
+                      currentPage={progress.currentPage}
+                      totalPages={progress.totalPages}
+                      coverUrl={progress.book.coverUrl}
+                      title={progress.book.title}
+                      size={120}
+                    />
+                  </div>
+                  <h3 className="font-semibold text-xs line-clamp-2 text-center px-1">
+                    {progress.book.title}
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground text-center mt-0.5">
+                    {Math.round(progress.percentComplete)}% complete
+                  </p>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.section>
         )}
 
-        {/* Personalized For You Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-accent" />
-            <h2 className="text-2xl font-bold">Curated For You</h2>
+        {/* === QUICK STATS - Horizontal Scroll === */}
+        <motion.section variants={itemVariants}>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
+            {[
+              { icon: BookOpen, label: 'Books', value: '12', color: 'text-primary', bg: 'bg-primary/10' },
+              { icon: Flame, label: 'Streak', value: '23d', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+              { icon: Trophy, label: 'Level', value: '12', color: 'text-purple-500', bg: 'bg-purple-500/10' },
+              { icon: Star, label: 'Reviews', value: '47', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+            ].map((stat, i) => (
+              <div
+                key={stat.label}
+                className="flex-shrink-0 w-24 glass-card p-3 snap-start"
+              >
+                <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center mb-2`}>
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                </div>
+                <p className="text-lg font-bold">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+              </div>
+            ))}
           </div>
-          
-          <div className="glass-card p-8 text-center">
-            <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">
-              AI-powered book recommendations coming soon
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Based on your reading history and preferences
-            </p>
-          </div>
-        </div>
+        </motion.section>
 
-        {/* All Reading Rooms - Enhanced */}
-        {rooms.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-4">All Reading Circles</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.slice(0, 6).map((room) => (
-                <Card
+        {/* === LIVE READING ROOMS - Premium Cards === */}
+        {liveRooms.length > 0 && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+                <Play className="w-4 h-4 text-red-500" />
+                Reading Circles
+              </h2>
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                View All <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {liveRooms.slice(0, 3).map((room) => (
+                <motion.div
                   key={room.id}
-                  className="glass-card border-0 cursor-pointer card-hover"
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => router.push(`/room/${room.id}`)}
+                  className="glass-card p-4 cursor-pointer border-l-2 border-l-primary"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      {room.isLive ? (
-                        <Badge variant="destructive" className="bg-red-500">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white mr-1.5"></div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="destructive" className="bg-red-500/90 text-[10px] px-1.5 py-0">
                           LIVE
                         </Badge>
-                      ) : (
-                        <Badge variant="secondary">Available</Badge>
-                      )}
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Users className="w-4 h-4 mr-1" />
-                        {room._count?.participants || 0}
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {room._count?.participants || 0}
+                        </span>
                       </div>
+                      <h3 className="font-semibold text-sm line-clamp-1">{room.name}</h3>
+                      {room.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{room.description}</p>
+                      )}
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">{room.name}</h3>
-                    {room.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {room.description}
-                      </p>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/room/${room.id}`);
-                      }}
-                    >
-                      {room.isLive ? 'Join Now' : 'Enter Room'}
+                    <Button size="sm" className="ml-3 h-8 text-xs touch-target">
+                      Join
                     </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.section>
         )}
 
+        {/* === CURATED FOR YOU - Coming Soon === */}
+        <motion.section variants={itemVariants}>
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <Target className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-bold uppercase tracking-wide">For You</h2>
+          </div>
+          <div className="glass-card p-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-3">
+              <Award className="w-7 h-7 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">
+              AI recommendations coming soon
+            </p>
+            <p className="text-xs text-muted-foreground/60">
+              Based on your reading history
+            </p>
+          </div>
+        </motion.section>
+
+        {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="shimmer w-12 h-12 rounded-full"></div>
+          <div className="flex items-center justify-center py-8">
+            <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
         )}
-      </div>
+      </motion.div>
     </MainLayout>
   );
 }
