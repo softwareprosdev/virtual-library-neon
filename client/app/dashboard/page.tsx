@@ -66,7 +66,7 @@ export default function DashboardPage() {
           setRooms(data.rooms || []);
         }
 
-        if (progressRes.ok) {
+        if (progressRes.ok && 'json' in progressRes) {
           const data = await progressRes.json();
           setReadingProgress(data.slice(0, 3)); // Show top 3
         }
