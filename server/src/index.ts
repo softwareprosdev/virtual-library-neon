@@ -38,8 +38,13 @@ import googleBooksRoutes from './routes/googleBooks';
 import readingProgressRoutes from './routes/readingProgress';
 import { setupSocket } from './socket';
 import path from 'path';
+import { startMemoryCleanup, getMemoryStats } from './lib/memoryCleanup';
 
 dotenv.config();
+
+// Start periodic memory cleanup (every 5 minutes)
+startMemoryCleanup();
+console.log('[Server] Memory cleanup initialized');
 
 // Ensure correct sender email is used (fix for placeholder)
 if (!process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL === 'noreply@yourdomain.com') {
