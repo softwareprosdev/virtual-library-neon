@@ -26,18 +26,18 @@ const LiveAudio = nextDynamic(() => import('../../../components/LiveAudio'), {
 export const dynamic = 'force-dynamic';
 
 interface RoomData {
+  id: string;
+  name: string;
+  description: string;
+  books?: {
     id: string;
-    name: string;
-    description: string;
-    books?: {
-        id: string;
-        title: string;
-        author?: string;
-        coverUrl?: string;
-        description?: string;
-        isbn?: string;
-    }[];
-    messages?: Message[];
+    title: string;
+    author?: string;
+    coverUrl?: string;
+    description?: string;
+    isbn?: string;
+  }[];
+  messages?: Message[];
 }
 
 interface Message {
@@ -61,7 +61,7 @@ export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
   const roomId = params.id as string;
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [inputText, setInputText] = useState('');
@@ -162,8 +162,8 @@ export default function RoomPage() {
       return;
     }
 
-fetchRoomData();
-    
+    fetchRoomData();
+
     const socket = connectSocket();
 
     function onConnect() {
@@ -257,7 +257,7 @@ fetchRoomData();
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     const socket = getSocket();
-    
+
     if (showPrivateMessage) {
       if (privateMessageText.trim() && privateRecipient && socket) {
         socket.emit('directMessage', { receiverId: privateRecipient.userId, text: privateMessageText });
@@ -310,22 +310,22 @@ fetchRoomData();
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Main Content Area (Live Audio/Video) */}
         <div className="flex-1 flex flex-col bg-secondary/5 h-[50vh] md:h-full overflow-hidden border-r border-border">
-           {/* Book Panel - shows book being discussed */}
-            {roomData?.books && roomData.books.length > 0 && (
-                <div className="flex-shrink-0 p-2 sm:p-3 bg-background/95 border-b border-primary/30 z-10">
-                   <BookPanel 
-                     book={roomData.books[0]} 
-                     onReadBook={(book) => {
-                       // Open book in read page within same tab
-                       window.open(`/read/${book.id}`, '_blank');
-                     }}
-                   />
-               </div>
-           )}
-           {/* LiveAudio takes remaining space */}
-           <div className="flex-1 min-h-0 overflow-hidden relative">
-             <LiveAudio roomId={roomId} />
-           </div>
+          {/* Book Panel - shows book being discussed */}
+          {roomData?.books && roomData.books.length > 0 && (
+            <div className="flex-shrink-0 p-2 sm:p-3 bg-background/95 border-b border-primary/30 z-10">
+              <BookPanel
+                book={roomData.books[0]}
+                onReadBook={(book) => {
+                  // Open book in read page within same tab
+                  window.open(`/read/${book.id}`, '_blank');
+                }}
+              />
+            </div>
+          )}
+          {/* LiveAudio takes remaining space */}
+          <div className="flex-1 min-h-0 overflow-hidden relative">
+            <LiveAudio roomId={roomId} />
+          </div>
         </div>
 
         {/* Right Sidebar: Chat + Participants */}
@@ -352,7 +352,7 @@ fetchRoomData();
             </div>
           </div>
 
-<div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
             {messages.map((msg, index) => {
               if (msg.isSystem) {
                 return (
@@ -377,9 +377,9 @@ fetchRoomData();
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-1">
-<span className={
+                      <span className={
                         "text-xs font-bold truncate " +
-                        (isPrivate ? "text-blue-600" : 
+                        (isPrivate ? "text-blue-600" :
                           (isFlagged ? "text-destructive" : "text-primary"))
                       }>
                         {msg.sender.name || 'Anonymous'}
@@ -404,58 +404,19 @@ fetchRoomData();
                       )}
                     </div>
                     <div className={
-                        "p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border " +
-                        (isPrivate 
-                          ? "bg-blue-50 border-blue-200 text-blue-800" 
-                          : isFlagged 
-                            ? "bg-destructive/10 border-destructive text-destructive" 
-                            : "bg-muted/30 border-border text-foreground")
-                      }>
+                      "p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border " +
+                      (isPrivate
+                        ? "bg-blue-50 border-blue-200 text-blue-800"
+                        : isFlagged
+                          ? "bg-destructive/10 border-destructive text-destructive"
+                          : "bg-muted/30 border-border text-foreground")
+                    }>
                       {msg.text}
                     </div>
                   </div>
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
-          </div>
-                      )}
-<Avatar className="w-8 h-8 opacity-80 bg-secondary">
-                    <AvatarFallback>{msg.sender.name ? msg.sender.name[0] : '?'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-xs font-bold truncate text-primary">
-                        {msg.sender.name || 'Anonymous'}
-                      </span>
-                      {msg.isPrivate && msg.receiver && (
-                        <span className="text-xs text-blue-500">
-                          → {msg.receiver.name}
-                        </span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
-                      </span>
-                      {!msg.isPrivate && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleDelete(msg.id)}
-                        >
-                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl text-sm border bg-muted/30 border-border text-foreground">
-                      {msg.text}
-                    </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            ))}
             <div ref={messagesEndRef} />
           </div>
 
@@ -472,8 +433,8 @@ fetchRoomData();
                   {typingUsers.length === 1
                     ? `${participants.find(p => p.userId === typingUsers[0])?.email.split('@')[0] || 'Someone'} is typing...`
                     : typingUsers.length === 2
-                    ? `${participants.find(p => p.userId === typingUsers[0])?.email.split('@')[0] || 'Someone'} and ${participants.find(p => p.userId === typingUsers[1])?.email.split('@')[0] || 'someone'} are typing...`
-                    : `${typingUsers.length} people are typing...`
+                      ? `${participants.find(p => p.userId === typingUsers[0])?.email.split('@')[0] || 'Someone'} and ${participants.find(p => p.userId === typingUsers[1])?.email.split('@')[0] || 'someone'} are typing...`
+                      : `${typingUsers.length} people are typing...`
                   }
                 </span>
               </div>
@@ -481,61 +442,61 @@ fetchRoomData();
           )}
 
           <div className="border-t border-border bg-muted/5">
-          <div className="p-2 border-b border-border">
-            <Button
-              variant={showPrivateMessage ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowPrivateMessage(!showPrivateMessage)}
-              className="w-full"
-            >
-              {showPrivateMessage ? "🔓 Public Chat" : "🔒 Send Private Message"}
-            </Button>
-          </div>
-
-          {showPrivateMessage && (
-            <div className="p-2 border-b border-border bg-blue-50">
-              <div className="text-xs font-medium text-blue-600 mb-2">Select Recipient:</div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {participants
-                  .filter(p => p.userId !== currentUser?.id && p.role !== 'LISTENER')
-                  .map((p) => (
-                    <Button
-                      key={p.userId}
-                      variant={privateRecipient?.userId === p.userId ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPrivateRecipient(p)}
-                      className="text-xs"
-                    >
-                      {p.email.split('@')[0]} ({p.role})
-                    </Button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSend} className="p-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder={showPrivateMessage ? `Private message to ${privateRecipient?.email.split('@')[0] || 'Select recipient'}...` : "TRANSMIT_DATA..."}
-                value={showPrivateMessage ? privateMessageText : inputText}
-                onChange={(e) => {
-                  if (showPrivateMessage) {
-                    setPrivateMessageText(e.target.value);
-                  } else {
-                    handleInputChange(e);
-                  }
-                }}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                className={cn("bg-background font-mono text-sm", showPrivateMessage && "border-blue-300 focus:border-blue-500")}
-              />
-              <Button type="submit" disabled={!showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} size="icon">
-                <Send className="h-4 w-4" />
+            <div className="p-2 border-b border-border">
+              <Button
+                variant={showPrivateMessage ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowPrivateMessage(!showPrivateMessage)}
+                className="w-full"
+              >
+                {showPrivateMessage ? "🔓 Public Chat" : "🔒 Send Private Message"}
               </Button>
             </div>
-          </form>
+
+            {showPrivateMessage && (
+              <div className="p-2 border-b border-border bg-blue-50">
+                <div className="text-xs font-medium text-blue-600 mb-2">Select Recipient:</div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {participants
+                    .filter(p => p.userId !== currentUser?.id && p.role !== 'LISTENER')
+                    .map((p) => (
+                      <Button
+                        key={p.userId}
+                        variant={privateRecipient?.userId === p.userId ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPrivateRecipient(p)}
+                        className="text-xs"
+                      >
+                        {p.email.split('@')[0]} ({p.role})
+                      </Button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSend} className="p-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder={showPrivateMessage ? `Private message to ${privateRecipient?.email.split('@')[0] || 'Select recipient'}...` : "TRANSMIT_DATA..."}
+                  value={showPrivateMessage ? privateMessageText : inputText}
+                  onChange={(e) => {
+                    if (showPrivateMessage) {
+                      setPrivateMessageText(e.target.value);
+                    } else {
+                      handleInputChange(e);
+                    }
+                  }}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  className={cn("bg-background font-mono text-sm", showPrivateMessage && "border-blue-300 focus:border-blue-500")}
+                />
+                <Button type="submit" disabled={!showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} size="icon">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
+      );
 }
