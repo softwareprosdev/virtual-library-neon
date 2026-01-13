@@ -410,7 +410,7 @@ router.get('/category/:category', authenticateToken, async (req: AuthRequest, re
       const pexelsCategory = pexelsCategoryMap[categoryParam] || 'popular';
 
       try {
-        stockVideos = await pexelsService.getCuratedVideos(pexelsCategory, pageNum, neededStock);
+        stockVideos = await pexelsService.getCuratedVideos(pexelsCategory as any, pageNum, neededStock);
       } catch (error) {
         // Fallback to popular if category not available
         stockVideos = await pexelsService.getPopularVideos(pageNum, neededStock);
