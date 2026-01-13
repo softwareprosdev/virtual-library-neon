@@ -54,7 +54,7 @@ if (isS3Enabled) {
   });
 }
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for marketplace images
   fileFilter: (req: Request, file: Express.Multer.File, cb: (error: Error | null, acceptFile: boolean) => void) => {
@@ -223,6 +223,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
 
     const { title, description, price, category, condition, images, location } = req.body;
 
+    console.log('[Marketplace] Create listing request:', {
+      user: req.user.id,
+      title,
+      description: description?.substring(0, 50),
+      price,
+      category,
+      condition,
+      images: images?.length,
+      location
+    });
+
     if (!title || !description || price === undefined || !category) {
       res.status(400).json({ message: 'Title, description, price, and category are required' });
       return;
@@ -237,6 +248,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       res.status(400).json({ message: 'Invalid category' });
       return;
     }
+
+    console.log('[Marketplace] Creating listing in database...');
 
     const listing = await prisma.marketplaceListing.create({
       data: {
@@ -261,10 +274,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response): Pro
       }
     });
 
+    console.log('[Marketplace] Listing created successfully:', listing.id);
     res.status(201).json(listing);
   } catch (error) {
     console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Failed to create listing' });
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    res.status(500).json({
+      message: 'Failed to create listing',
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
