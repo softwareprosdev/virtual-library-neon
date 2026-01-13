@@ -30,6 +30,7 @@
     "dommatrix": "^1.0.3",
     "epubjs": "^0.3.93",
     "express-rate-limit": "^8.2.1",
+    "framer-motion": "^11.18.2",
     "helmet": "^8.1.0",
     "livekit-client": "^2.16.1",
     "lucide-react": "^0.562.0",

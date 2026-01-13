@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Literata:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap");
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
@@ -9,6 +9,7 @@
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  --font-reading: "Literata", Georgia, serif;
 
   /* Color tokens */
   --color-border: hsl(var(--border));
@@ -214,6 +215,7 @@ h3 {
   margin-bottom: 0.75rem;
 }
 
+
 /* Glassmorphism utilities */
 .glass {
   background: var(--glass-bg);
@@ -238,6 +240,32 @@ h3 {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* Glass variants */
+.glass-intense {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+}
+
+.glass-neon {
+  background: rgba(99, 102, 241, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
 /* Gradient utilities */
 .gradient-primary {
   background: linear-gradient(
@@ -255,6 +283,22 @@ h3 {
   );
 }
 
+.gradient-emerald {
+  background: linear-gradient(
+    135deg,
+    var(--color-emerald) 0%,
+    var(--color-cyan) 100%
+  );
+}
+
+.gradient-purple-cyan {
+  background: linear-gradient(
+    135deg,
+    var(--color-purple) 0%,
+    var(--color-cyan) 100%
+  );
+}
+
 .gradient-text {
   background: linear-gradient(
     135deg,
@@ -264,6 +308,87 @@ h3 {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(
+    135deg,
+    var(--color-cyan) 0%,
+    var(--color-indigo) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(99, 102, 241, 0.15);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(6, 182, 212, 0.15);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.15);
+}
+
+/* Story circle styles */
+.story-circle {
+  position: relative;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--color-indigo), var(--color-purple));
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.story-circle:hover {
+  transform: scale(1.05);
+}
+
+.story-circle.unread {
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
+}
+
+.story-circle-inner {
+  border-radius: 50%;
+  border: 3px solid hsl(var(--background));
+  overflow: hidden;
+  background: hsl(var(--card));
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.02) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+/* Neon accent utilities */
+.neon-border {
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+}
+
+.neon-text {
+  color: var(--color-indigo);
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }
 
 /* Custom scrollbar - Modern minimalist */
@@ -284,6 +409,16 @@ h3 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Selection styling */

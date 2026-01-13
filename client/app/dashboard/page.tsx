@@ -11,6 +11,10 @@ import BookSearch from '@/components/BookSearch';
 import { GoogleBook } from '@/lib/googleBooks';
 import { api } from '@/lib/api';
 import { getUser } from '@/lib/auth';
+import { GradientText } from '@/components/ui/GradientText';
+import { StatsCard } from '@/components/ui/StatsCard';
+import { StoryCircle } from '@/components/StoryCircle';
+import { BookCarousel, BookCarouselItem } from '@/components/BookCarousel';
 import {
   BookOpen,
   TrendingUp,
@@ -99,17 +103,19 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="space-y-8 pb-12">
-        {/* Hero Section - Modern Minimalist */}
+        {/* Hero Section - Modern Minimalist with Gradient */}
         <div className="relative">
           <div className="glass-card p-8 md:p-12">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-5 h-5 text-primary" />
               <span className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
-                {getGreeting()}, {current User?.name || 'Reader'}
+                {getGreeting()}, {currentUser?.name || 'Reader'}
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">
-              Ready to dive into a new world?
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <GradientText variant="primary" as="span" animated>
+                Ready to dive into a new world?
+              </GradientText>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mb-6">
               Discover your next great read, join live reading circles, or continue where you left off.
@@ -117,101 +123,94 @@ export default function DashboardPage() {
             
             {/* Search Bar */}
             <div className="max-w-2xl">
-              <BookSearch onSelectBook={handleBookSelect} />
+              <BookSearch onBookSelect={handleBookSelect} />
             </div>
           </div>
         </div>
 
-        {/* Reading Progress Carousel */}
+        {/* Continue Reading Carousel */}
         {readingProgress.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Continue Reading</h2>
-              <Button variant="ghost" size="sm" className="text-primary">
-                View All <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {readingProgress.map((progress) => (
-                <button
-                  key={progress.id}
-                  onClick={() => router.push(`/books/${progress.book.id}`)}
-                  className="glass-card p-4 text-left hover:scale-105 transition-all duration-300"
-                >
-                  <div className="flex justify-center mb-3">
-                    <BookProgress
-                      currentPage={progress.currentPage}
-                      totalPages={progress.totalPages}
-                      coverUrl={progress.book.coverUrl}
-                      title={progress.book.title}
-                      size={100}
-                    />
-                  </div>
-                  <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+          <BookCarousel title="Continue Reading" showViewAll={readingProgress.length > 5}>
+            {readingProgress.map((progress) => (
+              <BookCarouselItem
+                key={progress.id}
+                onClick={() => router.push(`/books/${progress.book.id}`)}
+                className="w-[200px]"
+              >
+                <div className="flex flex-col items-center">
+                  <BookProgress
+                    currentPage={progress.currentPage}
+                    totalPages={progress.totalPages}
+                    coverUrl={progress.book.coverUrl}
+                    title={progress.book.title}
+                    size={140}
+                  />
+                  <h3 className="font-semibold text-sm line-clamp-2 text-center mt-3 px-2">
                     {progress.book.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {progress.currentPage} of {progress.totalPages} pages
                   </p>
-                </button>
+                </div>
+              </BookCarouselItem>
+            ))}
+          </BookCarousel>
+        )}
+
+
+        {/* Stats Cards - Enhanced with Animation */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatsCard
+            icon={BookOpen}
+            label="Books This Year"
+            value={12}
+            trend="+3 from last month"
+            iconColor="text-primary"
+            iconBgColor="bg-primary/10"
+            delay={0}
+          />
+          <StatsCard
+            icon={Flame}
+            label="Day Streak"
+            value={23}
+            trend="Keep it up!"
+            iconColor="text-orange-500"
+            iconBgColor="bg-orange-500/10"
+            delay={0.1}
+          />
+          <StatsCard
+            icon={Trophy}
+            label="Reader Level"
+            value={12}
+            trend="Book Enthusiast"
+            iconColor="text-purple-500"
+            iconBgColor="bg-purple-500/10"
+            delay={0.2}
+          />
+        </div>
+
+        {/* Reading Circle Stories Preview*/}
+        {rooms.filter(r => r.isLive).length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg font-semibold">📸 Reading Circle Stories</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              {rooms.filter(r => r.isLive).slice(0, 8).map((room) => (
+                <StoryCircle
+                  key={room.id}
+                  label={room.name}
+                  unread={true}
+                  onClick={() => router.push(`/room/${room.id}`)}
+                  size={80}
+                />
               ))}
             </div>
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Books Read */}
-          <Card className="glass-card border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Books This Year</p>
-                  <p className="text-3xl font-bold">12</p>
-                  <p className="text-xs text-primary mt-1">+3 from last month</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Reading Streak */}
-          <Card className="glass-card border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Day Streak</p>
-                  <p className="text-3xl font-bold">23</p>
-                  <p className="text-xs text-orange-500 mt-1">Keep it up!</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <Flame className="w-6 h-6 text-orange-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Level */}
-          <Card className="glass-card border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Reader Level</p>
-                  <p className="text-3xl font-bold">12</p>
-                  <p className="text-xs text-purple-500 mt-1">Book Enthusiast</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-purple-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Live Reading Rooms */}
+        {/* Live Reading Rooms - Enhanced */}
         {rooms.filter(r => r.isLive).length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -223,7 +222,7 @@ export default function DashboardPage() {
               {rooms.filter(r => r.isLive).slice(0, 3).map((room) => (
                 <Card
                   key={room.id}
-                  className="glass-card border-0 cursor-pointer card-hover"
+                  className="glass-card border-0 cursor-pointer card-hover glow-primary"
                   onClick={() => router.push(`/room/${room.id}`)}
                 >
                   <CardContent className="p-6">
@@ -268,7 +267,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* All Reading Rooms */}
+        {/* All Reading Rooms - Enhanced */}
         {rooms.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold mb-4">All Reading Circles</h2>
@@ -321,7 +320,7 @@ export default function DashboardPage() {
 
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="shimmer w-12 h-12 rounded-full"></div>
           </div>
         )}
       </div>
