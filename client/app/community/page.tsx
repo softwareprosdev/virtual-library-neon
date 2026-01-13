@@ -33,19 +33,42 @@ export default function CommunityPage() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
+        // Check if user is authenticated first
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('No auth token found, redirecting to feed');
+          router.push('/feed');
+          return;
+        }
+
+        console.log('Fetching rooms from API...');
         const res = await api('/rooms');
+        console.log('Rooms API response:', res.status, res.statusText);
 
         if (res.ok) {
           const data = await res.json();
+          console.log('Rooms data received:', data);
           setRooms(data);
         } else if (res.status === 401) {
+          console.log('Authentication required, redirecting to feed');
           // Redirect to login if not authenticated
           router.push('/feed');
           return;
+        } else if (res.status === 403) {
+          console.log('Access forbidden - checking response body');
+          try {
+            const errorBody = await res.clone().json();
+            console.log('403 error body:', errorBody);
+            if (errorBody.message?.includes('CSRF')) {
+              setError('Security token issue. Please refresh the page and try again.');
+            } else {
+              setError('Access denied. Please check your account permissions.');
+            }
+          } catch {
+            setError('Access denied. Please check your account permissions.');
+          }
         } else if (res.status === 500) {
           setError('Server error. The community rooms service may be temporarily unavailable.');
-        } else if (res.status === 403) {
-          setError('Access denied. Please check your account permissions.');
         } else {
           setError(`Unable to load community rooms (${res.status}). Please try again later.`);
         }
