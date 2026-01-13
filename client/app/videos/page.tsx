@@ -69,8 +69,6 @@ export default function VideosPage() {
     try {
       const response = await api('/pexels/categories') as any;
       if (response.ok) {
-      const data = await response.json();
-      if (response.ok) {
         const data = await response.json();
         setCategories(data.categories);
       } else {

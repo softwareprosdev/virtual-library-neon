@@ -86,6 +86,81 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
     }
   }, [isOpen, video, autoPlay, resetControlsTimeout]);
 
+  const togglePlay = () => {
+    if (!videoRef.current || hasError) return;
+
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {
+        setHasError(true);
+        setErrorMessage('Unable to play video. Please check your connection.');
+      });
+    }
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+
+    const newMuted = !isMuted;
+    videoRef.current.muted = newMuted;
+    setIsMuted(newMuted);
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+
+    if (!isFullscreen) {
+      const element = containerRef.current;
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if ((element as any).webkitRequestFullscreen) {
+        (element as any).webkitRequestFullscreen();
+      } else if ((element as any).mozRequestFullScreen) {
+        (element as any).mozRequestFullScreen();
+      } else if ((element as any).msRequestFullscreen) {
+        (element as any).msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+    }
+  };
+
+  const seekTo = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, Math.min(time, duration));
+    }
+  };
+
+  const skipForward = () => {
+    if (videoRef.current) {
+      seekTo(videoRef.current.currentTime + 10);
+    }
+  };
+
+  const skipBackward = () => {
+    if (videoRef.current) {
+      seekTo(videoRef.current.currentTime - 10);
+    }
+  };
+
+  const adjustVolume = (delta: number) => {
+    if (!videoRef.current) return;
+
+    const newVolume = Math.max(0, Math.min(1, volume + delta));
+    setVolume(newVolume);
+    videoRef.current.volume = newVolume;
+    setIsMuted(newVolume === 0);
+  };
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -280,81 +355,7 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
     setErrorMessage('Failed to load video. Please try again.');
   };
 
-  // Control functions
-  const togglePlay = () => {
-    if (!videoRef.current || hasError) return;
-
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play().catch(() => {
-        setHasError(true);
-        setErrorMessage('Unable to play video. Please check your connection.');
-      });
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-
-    const newMuted = !isMuted;
-    videoRef.current.muted = newMuted;
-    setIsMuted(newMuted);
-  };
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-
-    if (!isFullscreen) {
-      const element = containerRef.current;
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      } else if ((element as any).webkitRequestFullscreen) {
-        (element as any).webkitRequestFullscreen();
-      } else if ((element as any).mozRequestFullScreen) {
-        (element as any).mozRequestFullScreen();
-      } else if ((element as any).msRequestFullscreen) {
-        (element as any).msRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
-    }
-  };
-
-  const seekTo = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = Math.max(0, Math.min(time, duration));
-    }
-  };
-
-  const skipForward = () => {
-    if (videoRef.current) {
-      seekTo(videoRef.current.currentTime + 10);
-    }
-  };
-
-  const skipBackward = () => {
-    if (videoRef.current) {
-      seekTo(videoRef.current.currentTime - 10);
-    }
-  };
-
-  const adjustVolume = (delta: number) => {
-    if (!videoRef.current) return;
-
-    const newVolume = Math.max(0, Math.min(1, volume + delta));
-    setVolume(newVolume);
-    videoRef.current.volume = newVolume;
-    setIsMuted(newVolume === 0);
-  };
+  
 
   const handleSeek = (value: number[]) => {
     const newTime = (value[0] / 100) * duration;
@@ -432,7 +433,7 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
           {isExternalVideo(video.videoUrl) ? (
             <ReactPlayer
               ref={videoRef}
-              url={video.videoUrl}
+              src={video.videoUrl}
               playing={isPlaying}
               volume={isMuted ? 0 : volume}
               playbackRate={playbackSpeed}
@@ -440,7 +441,7 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
               height="100%"
               controls={false}
               muted={isMuted}
-              playsinline
+              playsInline
               onReady={() => setIsLoading(false)}
               onStart={() => setIsPlaying(true)}
               onPlay={() => setIsPlaying(true)}
@@ -451,12 +452,12 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
                 setErrorMessage('Failed to load external video');
                 console.error('ReactPlayer error:', error);
               }}
-              onProgress={(progress) => {
+              onProgress={(progress: any) => {
                 setCurrentTime(progress.playedSeconds);
                 if (progress.loaded < 1) setIsBuffering(true);
                 else setIsBuffering(false);
               }}
-              onDuration={(duration) => setDuration(duration)}
+              onDurationChange={(duration: any) => setDuration(duration)}
               config={{
                 youtube: {
                   playerVars: {
@@ -471,7 +472,7 @@ export default function VideoPlayer({ video, isOpen, onClose, autoPlay = false }
                     portrait: false
                   }
                 }
-              }}
+              } as any}
             />
           ) : (
             <video

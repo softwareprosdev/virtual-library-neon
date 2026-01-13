@@ -68,6 +68,7 @@ export default function RoomPage() {
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const token = getToken();
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -149,7 +150,12 @@ export default function RoomPage() {
       return;
     }
 
-    fetchRoomData();
+    if (!token) {
+      router.push('/');
+      return;
+    }
+
+fetchRoomData();
     
     const socket = connectSocket();
 
