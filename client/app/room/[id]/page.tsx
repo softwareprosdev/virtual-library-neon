@@ -490,7 +490,7 @@ export default function RoomPage() {
                   onBlur={handleInputBlur}
                   className={cn("bg-background font-mono text-sm", showPrivateMessage && "border-blue-300 focus:border-blue-500")}
                 />
-                <Button type="submit" disabled={!showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} size="icon">
+                <Button type="submit" disabled={showPrivateMessage ? !privateMessageText.trim() : !inputText.trim()} size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
