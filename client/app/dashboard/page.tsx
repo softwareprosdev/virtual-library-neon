@@ -6,6 +6,7 @@ import MainLayout from '@/components/MainLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ProgressRing, BookProgress } from '@/components/ProgressRing';
 import BookSearch from '@/components/BookSearch';
 import { GoogleBook } from '@/lib/googleBooks';
 import { api } from '@/lib/api';
@@ -18,7 +19,10 @@ import {
   Trophy,
   Users,
   MessageCircle,
-  ChevronRight
+  ChevronRight,
+  Flame,
+  Target,
+  Award
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -53,6 +57,14 @@ export default function DashboardPage() {
   const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Get personalized greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -68,7 +80,7 @@ export default function DashboardPage() {
 
         if (progressRes.ok && 'json' in progressRes) {
           const data = await progressRes.json();
-          setReadingProgress(data.slice(0, 3)); // Show top 3
+          setReadingProgress(data.slice(0, 5));
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -82,136 +94,153 @@ export default function DashboardPage() {
 
   const handleBookSelect = (book: GoogleBook) => {
     console.log('Book selected:', book);
-    // TODO: Add book to reading list or create reading circle
   };
 
   return (
     <MainLayout>
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-secondary/20 p-8 border border-primary/30">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-              <span className="text-sm font-medium text-primary tracking-wider">WELCOME BACK</span>
+      <div className="space-y-8 pb-12">
+        {/* Hero Section - Modern Minimalist */}
+        <div className="relative">
+          <div className="glass-card p-8 md:p-12">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
+                {getGreeting()}, {current User?.name || 'Reader'}
+              </span>
             </div>
-            <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Discover Your Next Great Read
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 gradient-text">
+              Ready to dive into a new world?
             </h1>
-            <p className="text-muted-foreground max-w-2xl mb-6">
-              Join reading circles, track your progress, and connect with fellow book lovers in our virtual library.
+            <p className="text-lg text-muted-foreground max-w-2xl mb-6">
+              Discover your next great read, join live reading circles, or continue where you left off.
             </p>
-            <div className="flex gap-3">
-              <Button onClick={() => router.push('/rooms')} size="lg" className="group">
-                <Users className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-                Browse Reading Circles
-              </Button>
-              <Button onClick={() => router.push('/marketplace')} variant="outline" size="lg">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Marketplace
-              </Button>
+            
+            {/* Search Bar */}
+            <div className="max-w-2xl">
+              <BookSearch onSelectBook={handleBookSelect} />
             </div>
           </div>
-
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-0" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/10 rounded-full blur-3xl -z-0" />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                </div>
-                <Badge variant="outline" className="text-xs">This Week</Badge>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">{readingProgress.length}</h3>
-              <p className="text-sm text-muted-foreground">Books in Progress</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Trophy className="w-5 h-5 text-emerald-500" />
-                </div>
-                <Badge variant="outline" className="text-xs">All Time</Badge>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">0</h3>
-              <p className="text-sm text-muted-foreground">Books Completed</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Users className="w-5 h-5 text-amber-500" />
-                </div>
-                <Badge variant="outline" className="text-xs">Active</Badge>
-              </div>
-              <h3 className="text-2xl font-bold mb-1">{rooms.filter(r => r.isLive).length}</h3>
-              <p className="text-sm text-muted-foreground">Live Reading Circles</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Currently Reading */}
+        {/* Reading Progress Carousel */}
         {readingProgress.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
-                <h2 className="text-2xl font-bold">Continue Reading</h2>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/reading-list')}>
-                View All
-                <ChevronRight className="w-4 h-4 ml-1" />
+              <h2 className="text-2xl font-bold">Continue Reading</h2>
+              <Button variant="ghost" size="sm" className="text-primary">
+                View All <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {readingProgress.map((progress) => (
-                <Card key={progress.id} className="group cursor-pointer hover:shadow-lg transition-all overflow-hidden border-primary/20">
-                  <div className="aspect-[3/4] relative bg-secondary/30">
-                    {progress.book.coverUrl ? (
-                      <Image
-                        src={progress.book.coverUrl}
-                        alt={progress.book.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <BookOpen className="w-12 h-12 text-muted-foreground/30" />
-                      </div>
-                    )}
-
-                    {/* Progress Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <div className="w-full bg-secondary/30 rounded-full h-2 mb-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${progress.percentComplete}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-white/90 font-medium">
-                        {Math.round(progress.percentComplete)}% Complete
-                      </p>
-                    </div>
+                <button
+                  key={progress.id}
+                  onClick={() => router.push(`/books/${progress.book.id}`)}
+                  className="glass-card p-4 text-left hover:scale-105 transition-all duration-300"
+                >
+                  <div className="flex justify-center mb-3">
+                    <BookProgress
+                      currentPage={progress.currentPage}
+                      totalPages={progress.totalPages}
+                      coverUrl={progress.book.coverUrl}
+                      title={progress.book.title}
+                      size={100}
+                    />
                   </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold line-clamp-2 mb-1 group-hover:text-primary transition-colors">
-                      {progress.book.title}
-                    </h3>
-                    {progress.book.author && (
-                      <p className="text-sm text-muted-foreground line-clamp-1">
-                        {progress.book.author}
+                  <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+                    {progress.book.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {progress.currentPage} of {progress.totalPages} pages
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Books Read */}
+          <Card className="glass-card border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Books This Year</p>
+                  <p className="text-3xl font-bold">12</p>
+                  <p className="text-xs text-primary mt-1">+3 from last month</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Reading Streak */}
+          <Card className="glass-card border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Day Streak</p>
+                  <p className="text-3xl font-bold">23</p>
+                  <p className="text-xs text-orange-500 mt-1">Keep it up!</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Level */}
+          <Card className="glass-card border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Reader Level</p>
+                  <p className="text-3xl font-bold">12</p>
+                  <p className="text-xs text-purple-500 mt-1">Book Enthusiast</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-purple-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Live Reading Rooms */}
+        {rooms.filter(r => r.isLive).length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              <h2 className="text-2xl font-bold">Live Reading Circles</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rooms.filter(r => r.isLive).slice(0, 3).map((room) => (
+                <Card
+                  key={room.id}
+                  className="glass-card border-0 cursor-pointer card-hover"
+                  onClick={() => router.push(`/room/${room.id}`)}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <Badge variant="destructive" className="bg-red-500">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white mr-1.5"></div>
+                        LIVE
+                      </Badge>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Users className="w-4 h-4 mr-1" />
+                        {room._count?.participants || 0}
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">{room.name}</h3>
+                    {room.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {room.description}
                       </p>
                     )}
                   </CardContent>
@@ -221,58 +250,67 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Live Reading Circles */}
-        {rooms.filter(r => r.isLive).length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                </div>
-                <h2 className="text-2xl font-bold">Live Now</h2>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/rooms')}>
-                See All Circles
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+        {/* Personalized For You Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-accent" />
+            <h2 className="text-2xl font-bold">Curated For You</h2>
+          </div>
+          
+          <div className="glass-card p-8 text-center">
+            <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
+              AI-powered book recommendations coming soon
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Based on your reading history and preferences
+            </p>
+          </div>
+        </div>
 
+        {/* All Reading Rooms */}
+        {rooms.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">All Reading Circles</h2>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.filter(r => r.isLive).slice(0, 6).map((room) => (
+              {rooms.slice(0, 6).map((room) => (
                 <Card
                   key={room.id}
-                  className="group cursor-pointer hover:shadow-lg hover:border-primary/40 transition-all"
+                  className="glass-card border-0 cursor-pointer card-hover"
                   onClick={() => router.push(`/room/${room.id}`)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <span className="text-xs font-medium text-emerald-500">LIVE</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        <Users className="w-3 h-3 mr-1" />
+                      {room.isLive ? (
+                        <Badge variant="destructive" className="bg-red-500">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white mr-1.5"></div>
+                          LIVE
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Available</Badge>
+                      )}
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Users className="w-4 h-4 mr-1" />
                         {room._count?.participants || 0}
-                      </Badge>
+                      </div>
                     </div>
-
-                    <h3 className="font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                      {room.name}
-                    </h3>
-
+                    <h3 className="font-semibold text-lg mb-2">{room.name}</h3>
                     {room.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                         {room.description}
                       </p>
                     )}
-
-                    <Button variant="ghost" size="sm" className="w-full mt-4 group-hover:bg-primary/10">
-                      Join Circle
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/room/${room.id}`);
+                      }}
+                    >
+                      {room.isLive ? 'Join Now' : 'Enter Room'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -281,19 +319,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Book Discovery */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h2 className="text-2xl font-bold">Discover Books</h2>
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
-
-          <BookSearch
-            onBookSelect={handleBookSelect}
-            placeholder="Search millions of books..."
-            showAllResults={true}
-          />
-        </div>
+        )}
       </div>
     </MainLayout>
   );
