@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import compression from 'compression';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -54,6 +55,17 @@ if (!process.env.JWT_SECRET) {
 
 const app: Express = express();
 const port = process.env.PORT || 4000;
+
+// Compression middleware - reduces response size by 60-80%
+app.use(compression({
+  level: 6, // Balanced compression level
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't accept gzip
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
 
 // Body parsing middleware - CRITICAL for API routes
 app.use(express.json({ limit: '10mb' }));
