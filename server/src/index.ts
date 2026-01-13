@@ -160,6 +160,14 @@ const strictLimiter = createAdvancedRateLimit({
   blockDurationMinutes: 120
 });
 
+// Import enhanced security utilities
+import { sanitizeRequestBody, securityHeaders, preventParamPollution } from './lib/security';
+
+// Apply enhanced security middleware
+app.use(sanitizeRequestBody);      // XSS sanitization for all request bodies
+app.use(securityHeaders);          // Additional security headers
+app.use(preventParamPollution);    // Prevent HTTP parameter pollution
+
 // Enhanced security middleware
 app.use(blockSystemPaths);
 app.use(blockExternalRequests);

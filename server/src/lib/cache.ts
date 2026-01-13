@@ -50,7 +50,9 @@ export const cacheGet = async <T>(key: string): Promise<T | null> => {
     const cached = await client.get(key);
     if (!cached) return null;
     
-    return JSON.parse(cached) as T;
+    // Redis get() returns string | null, but TypeScript types it as string | Buffer
+    // Cast to string explicitly since we're storing JSON strings
+    return JSON.parse(String(cached)) as T;
   } catch (err) {
     console.error('[Redis Cache] Get error:', err);
     return null;
