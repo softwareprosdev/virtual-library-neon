@@ -30,7 +30,6 @@ RUN npm install --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/app ./app
 
 # Generate client again for the production environment
 RUN npx prisma generate
